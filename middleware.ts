@@ -6,16 +6,24 @@ export async function middleware(request: NextRequest) {
         request,
     })
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('Missing Supabase credentials in middleware')
+        return supabaseResponse
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseKey,
         {
             cookies: {
                 getAll() {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                     supabaseResponse = NextResponse.next({
                         request,
                     })
@@ -31,9 +39,14 @@ export async function middleware(request: NextRequest) {
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    let user = null
+    try {
+        const { data } = await supabase.auth.getUser()
+        user = data.user
+    } catch (error) {
+        console.error('Middleware: Error getting user:', error)
+        return supabaseResponse
+    }
 
     // Protect routes that require authentication
     const protectedRoutes = ['/dashboard', '/builder']

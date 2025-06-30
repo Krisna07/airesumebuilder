@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
+import { ensureUserExists } from '@/lib/user-utils'
 
 export async function POST() {
     try {
@@ -12,21 +13,18 @@ export async function POST() {
             )
         }
 
-        // For now, just return success without database interaction
-        // TODO: Re-enable database user creation once DB connection is fixed
+        // Ensure user exists in our database
+        const dbUser = await ensureUserExists(user)
+
         return NextResponse.json({
             success: true,
-            user: {
-                id: user.id,
-                email: user.email
-            }
+            user: dbUser
         })
     } catch (error) {
         console.error('Error ensuring user:', error)
-        // Don't fail if database is unavailable - just log the error
         return NextResponse.json({
-            success: true,
-            message: 'Database unavailable but user authenticated'
-        })
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 })
     }
 }

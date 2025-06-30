@@ -4,14 +4,11 @@ import { cookies } from 'next/headers'
 export async function createServerSupabaseClient() {
     const cookieStore = await cookies()
 
-    // Check if we have valid Supabase credentials
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    // If URL contains the invalid domain, return null (will be handled gracefully)
-    if (supabaseUrl?.includes('cnljhinbhpvglmrvariw') || !supabaseUrl || !supabaseKey) {
-        console.warn('Invalid Supabase credentials - please update your environment variables')
-        throw new Error('Invalid Supabase configuration')
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Missing Supabase credentials. Please update your .env file with valid Supabase project credentials.')
     }
 
     return createServerClient(
@@ -19,8 +16,13 @@ export async function createServerSupabaseClient() {
         supabaseKey,
         {
             cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value
+                getAll() {
+                    return cookieStore.getAll()
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        cookieStore.set(name, value, options)
+                    })
                 },
             },
         }
