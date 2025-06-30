@@ -1,6 +1,7 @@
 'use client';
 
 import { ResumeProvider } from '@/context/ResumeContext';
+import { useAuth } from '@/context/AuthContext';
 import PersonalDetails from '@/components/steps/PersonalDetails';
 import WorkExperience from '@/components/steps/WorkExperience';
 import Education from '@/components/steps/Education';
@@ -9,9 +10,10 @@ import SkillsCertifications from '@/components/steps/SkillsCertifications';
 import ResumePreview from '@/components/ResumePreview';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
 import GenerateButton from '@/components/GenerateButton';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { User, Briefcase, GraduationCap, Lightbulb, Star, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
+import { User, Briefcase, GraduationCap, Lightbulb, Star, FileText, ArrowLeft, ArrowRight, Save, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
 const ResumeUpload = dynamic(() => import('@/components/ResumeUpload'), { ssr: false });
@@ -27,6 +29,42 @@ const steps = [
 
 export default function Builder() {
   const [step, setStep] = useState(0);
+  const { user, signOut, loading } = useAuth();
+  const router = useRouter();
+  // const searchParams = useSearchParams();
+  // const resumeId = searchParams?.get('resumeId'); // TODO: Load existing resume
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth');
+    }
+  }, [user, loading, router]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const saveResume = async () => {
+    // TODO: Implement save functionality
+    console.log('Saving resume...');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to auth
+  }
 
   return (
     <ResumeProvider>
@@ -37,8 +75,29 @@ export default function Builder() {
             AI Resume Builder
           </Link>
           <div className="flex items-center gap-4">
-            <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-black">Dashboard</button>
-            <button className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800">Export</button>
+            <Link 
+              href="/dashboard" 
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-black"
+            >
+              Dashboard
+            </Link>
+            <button 
+              onClick={saveResume}
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-black"
+            >
+              <Save className="w-4 h-4 mr-1" />
+              Save
+            </button>
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-black"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Sign Out
+            </button>
+            <span className="text-sm text-gray-500">
+              {user.email}
+            </span>
           </div>
         </header>
 

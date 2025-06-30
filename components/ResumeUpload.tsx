@@ -28,7 +28,12 @@ export default function ResumeUpload() {
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            text += content.items.map((item: any) => item.str).join(' ') + '\n';
+            text += content.items.map((item) => {
+              if ('str' in item) {
+                return item.str;
+              }
+              return '';
+            }).join(' ') + '\n';
           }
           resolve(text);
         } catch (error) {
@@ -72,10 +77,10 @@ export default function ResumeUpload() {
       }
 
       const data = await res.json();
-      setResume((prev: any) => ({ ...prev, ...data.data }));
+      setResume((prev) => ({ ...prev, ...data.data }));
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
