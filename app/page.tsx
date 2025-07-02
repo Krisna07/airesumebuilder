@@ -19,10 +19,10 @@ export default function Home() {
       {/* Header */}
       <header className="p-4 flex justify-between items-center border-b">
         <div className="text-2xl font-bold text-gray-800">
-          AI Resume Builder
+        R
         </div>
         <nav className="flex items-center gap-4">
-          <Link href="/builder" className="text-gray-600 hover:text-black">
+          <Link href="/dashboard/builder" className="text-gray-600 hover:text-black">
             Builder
           </Link>
           {user && (

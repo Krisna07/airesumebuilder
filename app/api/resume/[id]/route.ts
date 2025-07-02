@@ -19,10 +19,7 @@ export async function GET(
                 userId: user.id
             },
             include: {
-                personal: true,
-                work: true,
-                education: true,
-                projects: true
+                profile: true
             }
         });
 
@@ -49,76 +46,63 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const {
-            personal,
-            workExperience,
-            education,
-            projects,
-            skills,
-            certifications
-        } = body;
+        const { profile, skills, experience, education, certificates } = body;
 
         // Check if the resume belongs to the user
         const existingResume = await prisma.resume.findFirst({
-            where: { id: params.id, userId: user.id }
+            where: { id: params.id, userId: user.id },
+            include: { profile: true }
         });
 
         if (!existingResume) {
             return NextResponse.json({ error: 'Resume not found or access denied' }, { status: 404 });
         }
 
-        // Update the resume and its related data
-        const resume = await prisma.resume.update({
+        // Update the resume - much simpler with JSON fields
+        await prisma.resume.update({
             where: { id: params.id },
             data: {
-                skills: skills || existingResume.skills,
-                certifications: certifications || existingResume.certifications,
+                skills: skills || null,
+                experience: experience || null,
+                education: education || null,
+                certificates: certificates || null,
                 updatedAt: new Date()
-            },
-            include: {
-                personal: true,
-                work: true,
-                education: true,
-                projects: true
             }
         });
 
-        // Update personal details if provided
-        if (personal) {
-            if (resume.personal) {
-                await prisma.personalDetail.update({
+        // Update profile if provided
+        if (profile) {
+            if (existingResume.profile) {
+                await prisma.profile.update({
                     where: { resumeId: params.id },
                     data: {
-                        name: personal.name,
-                        contact: personal.email || personal.phone,
-                        linkedin: personal.linkedin,
-                        github: personal.github,
-                        portfolio: personal.portfolio
+                        fullname: profile.fullname || '',
+                        email: profile.email || '',
+                        phone: profile.phone || '',
+                        location: profile.location || '',
+                        links: profile.links || null,
+                        summary: profile.summary || ''
                     }
                 });
             } else {
-                await prisma.personalDetail.create({
+                await prisma.profile.create({
                     data: {
                         resumeId: params.id,
-                        name: personal.name,
-                        contact: personal.email || personal.phone,
-                        linkedin: personal.linkedin,
-                        github: personal.github,
-                        portfolio: personal.portfolio
+                        fullname: profile.fullname || '',
+                        email: profile.email || '',
+                        phone: profile.phone || '',
+                        location: profile.location || '',
+                        links: profile.links || null,
+                        summary: profile.summary || ''
                     }
                 });
             }
         }
 
-        // Get the updated resume with all relations
+        // Fetch the updated resume with profile
         const updatedResume = await prisma.resume.findUnique({
             where: { id: params.id },
-            include: {
-                personal: true,
-                work: true,
-                education: true,
-                projects: true
-            }
+            include: { profile: true }
         });
 
         return NextResponse.json({ resume: updatedResume });
@@ -148,7 +132,7 @@ export async function DELETE(
             return NextResponse.json({ error: 'Resume not found or access denied' }, { status: 404 });
         }
 
-        // Delete the resume (cascade will handle related data)
+        // Delete the resume (cascade will handle profile)
         await prisma.resume.delete({ where: { id: params.id } });
 
         return NextResponse.json({ success: true });

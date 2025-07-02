@@ -1,21 +1,25 @@
 'use client';
 import { useRef, useState } from 'react';
-import { useResume } from '@/context/ResumeContext';
-import * as pdfjsLib from 'pdfjs-dist';
 import { UploadCloud, CheckCircle2, XCircle } from 'lucide-react';
+import { ResumeData } from '@/types/types';
 
-// Set up the worker source for pdfjs-dist
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-
-export default function ResumeUpload() {
+interface Resumeupload{
+  handleResumeDataUpdate:(data: ResumeData) => void
+}
+export default function ResumeUpload({ handleResumeDataUpdate }: Resumeupload) {
   const fileInput = useRef<HTMLInputElement>(null);
-  const { setResume } = useResume();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const extractTextFromPdf = async (file: File): Promise<string> => {
+    // Dynamic import to avoid SSR issues
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Set up the worker source for pdfjs-dist
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
       reader.onload = async (event) => {
@@ -77,8 +81,9 @@ export default function ResumeUpload() {
       }
 
       const data = await res.json();
-      setResume((prev) => ({ ...prev, ...data.data }));
-      setSuccess(true);
+      console.log(data.message)
+      handleResumeDataUpdate(data.data)
+      return setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

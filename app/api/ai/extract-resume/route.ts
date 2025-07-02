@@ -25,7 +25,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
         }
         console.log('Structured Data:', structuredData);
-        return NextResponse.json({ data: structuredData });
+        return NextResponse.json({
+            status: 200,
+            message: 'Resume data extracted successfully',
+            data: structuredData,
+        });
 
     } catch (error) {
         console.error('Error in extract-resume route:', error);

@@ -1,20 +1,15 @@
-import { Resume } from "@/types/Resume";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ResumeData } from "@/types/types";
+
+const api = `${process.env.GEMINI_API_KEY}`;
+
+const genAI = new GoogleGenerativeAI(api);
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+export async function analyseResumeToJobDescription(userdata?: ResumeData, jobDescription?: string) {
 
 
-const apiKey = process.env.GEMINI_API_KEY;
-
-if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set");
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-export async function analyseResumeToJobDescription(userdata?: Resume, jobDescription?: string) {
-
-
-    const prompt = `Analyze the following resume data and job description to provide a detailed analysis:
+  const prompt = `Analyze the following resume data and job description to provide a detailed analysis:
 
   Resume Data:
   ${JSON.stringify(userdata, null, 2)}
@@ -34,77 +29,67 @@ export async function analyseResumeToJobDescription(userdata?: Resume, jobDescri
   "suggestions": string[], // List of suggestions for improving the resume
   `;
 
-    try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
 
-        const text = await response.text();
-        if (text) {
-            const jsonResponse = text.split("`json")[1]?.split("`")[0];
-            return JSON.parse(jsonResponse);
-        } else {
-            throw new Error("Response text does not contain valid JSON format");
-        }
-    } catch (error) {
-        console.error("Error analyzing resume:", error);
-        throw new Error("Failed to analyze resume");
+    const text = await response.text();
+    if (text) {
+      const jsonResponse = text.split("`json")[1]?.split("`")[0];
+      return JSON.parse(jsonResponse);
+    } else {
+      throw new Error("Response text does not contain valid JSON format");
     }
+  } catch (error) {
+    console.error("Error analyzing resume:", error);
+    throw new Error("Failed to analyze resume");
+  }
 
 }
 
-export async function GenerateResume(userdata?: Resume, data?: string, jobDescription?: string) {
+export async function GenerateResume(userdata?: ResumeData, data?: string, jobDescription?: string) {
 
-    const prompt = `Create a professional resume using the following information and taylor to align wirth the job decription provided:
+  const prompt = `Create a professional resume using the following information and taylor to align wirth the job decription provided:
 
   ${userdata ? `
-  Name: ${userdata.personal?.name}
-  Email: ${userdata.personal?.email}
-  Phone: ${userdata.personal?.phone}
-  Location: ${userdata.personal?.location}
-  LinkedIn: ${userdata.personal?.linkedin}
-  GitHub: ${userdata.personal?.github}
-  Portfolio: ${userdata.personal?.portfolio}
+  Name: ${userdata.profile.fullname}
+  Email: ${userdata.profile.email}
+  Phone: ${userdata.profile.phone}
+  Links: ${userdata.profile.links}
   
   Work Experience:
-  ${userdata.work
-                ?.map((exp) => `
-    - Position: ${exp.role}
+  ${userdata.experience
+        .map((exp) => `
+    - Position: ${exp.title}
       Company: ${exp.company}
-      Duration: ${exp.duration}
-      Description: ${exp.description}
+      Duration: ${exp.startDate} to ${exp.endDate ? exp.endDate : "current"}
+      Current: ${exp.current}
+      Description: 
+        ${exp.responsibilities?.join("\n")}
     `)
-                .join("\n")}
+        .join("\n")}
   
   Education:
   ${userdata.education
-                ?.map((edu) => `
+        .map((edu) => `
     - Degree: ${edu.degree}
-      Institution: ${edu.institution}
-      Field of Study: ${edu.field}
-      Duration: ${edu.duration}
+      Location: ${edu.location}
+      University: ${edu.university}
+      Start Date: ${edu.startDate}
+      End Date: ${edu.endDate}
+      Current: ${edu.current ? "Yes" : "No"}
     `)
-                .join("\n")}
-    
-  Projects:
-  ${userdata.projects?.map((proj) => `
-    - Name: ${proj.name}
-      Description: ${proj.description}
-      Tech Stack: ${proj.techStack}
-      Role: ${proj.role}
-  `).join("\n")}
-
-  Skills:
-  ${userdata.skills ? `
-  Technical: ${userdata.skills.technical?.join(", ")}
-  Soft: ${userdata.skills.soft?.join(", ")}
-  ` : ''}
+        .join("\n")}
   
   Certifications:
-  ${userdata.certifications?.map((cert) => `
-    - Name: ${cert.name}
-      Issuer: ${cert.issuer}
-      Date: ${cert.date}
+  ${userdata.certificates.map((cert) => `
+    - Title: ${cert.title}
+      Issued By: ${cert.issued_by}
+      Year: ${cert.year}
   `).join("\n")}
+  
+  Skills:
+  ${userdata.skills.join(", ")}
   ` : `${data}`}
   
   Job Description:
@@ -113,79 +98,81 @@ export async function GenerateResume(userdata?: Resume, data?: string, jobDescri
   Please create a professional resume using the details above and output it in JSON format. The JSON structure should match the following format:
   
   {
-    "personal": {
-      "name": string,
+    "profile": {
+      "fullname": string,
       "email": string,
       "phone": string,
       "location": string,
-      "linkedin": string,
-      "github": string,
-      "portfolio": string
+      "links": [{ 
+        "type": string,  // e.g., 'LinkedIn', 'GitHub', etc.
+        "url": string
+      }],
+      "summary": string  // Provide a brief summary (max 50 words) aligning with the user's profile
     },
-    "work": [
+    "experience": [
       {
+        "title": string,
         "company": string,
-        "role": string,
-        "duration": string,
-        "description": string
+        "location": string,
+        "startDate": string,  // Use 'Month-Year' format (e.g., Jan 2024)
+        "endDate": string,  // Use 'Month-Year' format (e.g., Dec 2024) or "current"
+        "current": boolean,  // true/false based on whether it's the current job
+        "responsibilities": [string]  // List at least 5 key points of responsibilities
       }
     ],
     "education": [
       {
-        "institution": string,
         "degree": string,
-        "field": string,
-        "duration": string
+        "university": string,
+        "location": string,
+        "startDate": string,  // Use 'Month-Year' format
+        "endDate": string,  // Use 'Month-Year' format or "current"
+        "current": boolean  // true/false based on whether it's the current education
       }
     ],
-    "projects": [
-        {
-            "name": string,
-            "description": string,
-            "techStack": string,
-            "role": string
-        }
+    "skills": [
+      {
+        "type": string,  // e.g., 'Frontend', 'Backend', 'Tools', etc.
+        "skills": string[]  // List of skills relevant to the user, based on the profile, experience, and provided skills
+      }
     ],
-    "skills": {
-        "technical": [string],
-        "soft": [string]
-    },
-    "certifications": [
-        {
-            "name": string,
-            "issuer": string,
-            "date": string
-        }
+    "certificates": [
+      {
+        "title": string,
+        "issued_by": string,
+        "year": string  // Year the certificate was issued
+      }
     ]
   }
   
   Key Instructions:
-  - Ensure that each work experience entry includes a detailed description.
-  - The resume's date format should be consistent (e.g., Month Year - Month Year).
-  - Generate relevant skills based on the user's profile.
+  - Ensure that each work experience entry includes a description with at least 5 bullet points.
+  - The resume's date format should be 'Month-Year' (e.g., Jan 2024).
+  - Generate at least 10 relevant skills based on the user's profile, work experience, and education -> make sure to breakdown the types of skills, focus more on user input 
   - Align the summary with the user's overall profile, summarizing their expertise and career focus in 80 words or less.
+  - For links, identify the type (e.g., 'LinkedIn', 'GitHub', etc.) and provide the respective URLs.
   `;
 
-    try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
 
-        const text = await response.text();
+    const text = await response.text();
 
-        if (text) {
-            const jsonResponse = text.split("`json")[1]?.split("`")[0];
-            return JSON.parse(jsonResponse);
-        } else {
-            throw new Error("Response text does not contain valid JSON format");
-        }
-    } catch (error) {
-        console.error("Error generating resume:", error);
-        throw new Error("Failed to generate resume");
+    if (text) {
+      const jsonResponse = text.split("`json")[1]?.split("`")[0];
+      return JSON.parse(jsonResponse);
+    } else {
+      throw new Error("Response text does not contain valid JSON format");
     }
+  } catch (error) {
+    console.error("Error generating resume:", error);
+    throw new Error("Failed to generate resume");
+  }
 }
 
 export async function extractUrlData(url: string) {
-    const prompt = `Extract the following data from the URL provided:
+  const prompt = `Extract the following data from the URL provided:
   
   URL: ${url}
   
@@ -200,20 +187,20 @@ export async function extractUrlData(url: string) {
   
   Ensure that the extracted data is accurate and relevant to the content of the page.`;
 
-    try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        console.log("Response:", response);
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    console.log("Response:", response);
 
-        const text = await response.text();
-        if (text) {
-            const jsonResponse = text.split("`json")[1]?.split("`")[0];
-            return JSON.parse(jsonResponse);
-        } else {
-            throw new Error("Response text does not contain valid JSON format");
-        }
-    } catch (error) {
-        console.error("Error extracting URL data:", error);
-        throw new Error("Failed to extract URL data");
+    const text = await response.text();
+    if (text) {
+      const jsonResponse = text.split("`json")[1]?.split("`")[0];
+      return JSON.parse(jsonResponse);
+    } else {
+      throw new Error("Response text does not contain valid JSON format");
     }
+  } catch (error) {
+    console.error("Error extracting URL data:", error);
+    throw new Error("Failed to extract URL data");
+  }
 }

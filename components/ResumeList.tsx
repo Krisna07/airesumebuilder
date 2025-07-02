@@ -148,34 +148,25 @@ export default function ResumeList() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {resume.personal?.name || 'Untitled Resume'}
                   </h3>
-                  <div className="flex items-center text-sm text-gray-500 mb-2">
-                    <Clock className="w-4 h-4 mr-1" />
-                    Updated {new Date(resume.updatedAt).toLocaleDateString()}
-                  </div>
                 </div>
-                <button
-                  onClick={() => deleteResume(resume.id)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
               </div>
               
-              <div className="flex space-x-2">
-                <Link
-                  href={`/builder?resumeId=${resume.id}`}
-                  className="flex-1 flex items-center justify-center px-3 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors text-sm"
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Link>
-                <Link
-                  href={`/preview/${resume.id}`}
-                  className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
-                >
-                  <FileText className="w-4 h-4 mr-1" />
-                  Preview
-                </Link>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center text-xs text-gray-500">
+                  <Clock className="w-3 h-3 mr-1.5" />
+                  Updated {new Date(resume.updatedAt).toLocaleDateString()}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/builder?resumeId=${resume.id}`} className="text-blue-600 hover:text-blue-800 p-2">
+                      <Edit className="w-4 h-4" />
+                  </Link>
+                  <button 
+                    onClick={() => deleteResume(resume.id)}
+                    className="text-red-600 hover:text-red-800 p-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

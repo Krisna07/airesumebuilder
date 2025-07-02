@@ -64,6 +64,10 @@ export async function POST(req: NextRequest) {
                         email: profile.email || '',
                         phone: profile.phone || '',
                         location: profile.location || '',
+                        company: profile.company || '',
+                        job: profile.job || '',
+                        school: profile.school || '',
+                        graduated: profile.graduated || false,
                         links: profile.links || null,
                         summary: profile.summary || ''
                     }
@@ -107,7 +111,7 @@ export async function PUT(req: NextRequest) {
         }
 
         // Update the resume - much simpler with JSON fields
-        await prisma.resume.update({
+        const updatedResume = await prisma.resume.update({
             where: { id },
             data: {
                 skills: skills || null,
@@ -115,6 +119,9 @@ export async function PUT(req: NextRequest) {
                 education: education || null,
                 certificates: certificates || null,
                 updatedAt: new Date()
+            },
+            include: {
+                profile: true
             }
         });
 
@@ -128,6 +135,10 @@ export async function PUT(req: NextRequest) {
                         email: profile.email || '',
                         phone: profile.phone || '',
                         location: profile.location || '',
+                        company: profile.company || '',
+                        job: profile.job || '',
+                        school: profile.school || '',
+                        graduated: profile.graduated || false,
                         links: profile.links || null,
                         summary: profile.summary || ''
                     }
@@ -140,6 +151,10 @@ export async function PUT(req: NextRequest) {
                         email: profile.email || '',
                         phone: profile.phone || '',
                         location: profile.location || '',
+                        company: profile.company || '',
+                        job: profile.job || '',
+                        school: profile.school || '',
+                        graduated: profile.graduated || false,
                         links: profile.links || null,
                         summary: profile.summary || ''
                     }
