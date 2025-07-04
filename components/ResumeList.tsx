@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Plus, FileText, Trash2, Edit, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { FaRobot } from 'react-icons/fa6'
 
 interface Resume {
   id: string
@@ -108,16 +109,18 @@ export default function ResumeList() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
+    <div className="mx-auto">
+      
+      <div className="grid ">
         <h1 className="text-3xl font-bold text-gray-900">My Resumes</h1>
-        <button
+        <p>{user.email}</p>
+        {/* <button
           onClick={createNewResume}
           className="flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
         >
           <Plus className="w-5 h-5 mr-2" />
           New Resume
-        </button>
+        </button> */}
       </div>
 
       {error && (
