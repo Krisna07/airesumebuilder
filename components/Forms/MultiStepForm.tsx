@@ -37,7 +37,6 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
   onSave,
   isSaving,
   isDirty,
-  saveError
 }) => {
   const [formData, setFormData] = useState<ResumeData>(resumeContent);
 

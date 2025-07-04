@@ -22,12 +22,12 @@ export default function DashboardLayout({
             R
           </div>
           
-          <Link 
+          {/* <Link 
             href="/dashboard/builder" 
             className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
           >
             New Resume
-          </Link>
+          </Link> */}
         </div>
       </header>
       
