@@ -32,8 +32,8 @@ export const authOptions: NextAuthOptions = {
 
                 const existingUser = await db.user.findFirst({
                     where: {
-                        OR: [{ email: credentials.email },
-                        { username: credentials.email }],
+                        OR: [{ email: credentials.email }]
+
                     },
                     include: { verification: true },
                 });
@@ -55,7 +55,6 @@ export const authOptions: NextAuthOptions = {
                 if (!passwordMatch) {
                     const userDetails = {
                         id: `${existingUser.id}`,
-                        username: existingUser.username,
                         email: existingUser.email,
                     };
                     throw new Error(
@@ -70,13 +69,13 @@ export const authOptions: NextAuthOptions = {
                     id: `${existingUser.id}`,
                     email: existingUser.email,
                     image: existingUser.avatar,
-                    verified: existingUser.verification?.verified ?? false,
+                    verification: false,
                 };
             },
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user }: { token: any; user?: any }) {
             if (user) {
                 return {
                     ...token,
@@ -88,7 +87,7 @@ export const authOptions: NextAuthOptions = {
             }
             return token;
         },
-        async session({ session, token }) {
+        async session({ session, token }: { session: any; token: any }) {
             return {
                 ...session,
                 user: {
