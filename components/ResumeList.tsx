@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Plus, FileText, Trash2, Edit, Clock } from 'lucide-react'
 import Link from 'next/link'
-import { FaRobot } from 'react-icons/fa6'
 
 interface Resume {
   id: string

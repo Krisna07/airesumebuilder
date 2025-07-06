@@ -1,3 +1,13 @@
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  profile?: Profile;
+  resume?: ResumeData;
+}
 export interface ResumeData {
   profile: Profile;
   skills: skills[];
