@@ -1,18 +1,21 @@
 "use client";
 import Link from "next/link";
 import { ArrowRight, LogIn, User } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { getCurrentUser } from "@/lib/session";
+import { useState } from "react";
+
+
 
 export default function Home() {
-  const { user, signOut, loading } = useAuth();
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+const user:any = getCurrentUser()
+const [loading, setLoading] = useState<boolean>(true)
+// if(user){
+//   setLoading(false)
+// }
+const handleSignOut =()=>{
+  console.log('Handling sign out for the user !!')
+}
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -38,7 +41,7 @@ export default function Home() {
                     Welcome, {user.email}
                   </span>
                   <button
-                    onClick={handleSignOut}
+                    onClick={()=>handleSignOut}
                     className="flex items-center px-3 py-2 text-gray-600 hover:text-black transition-colors"
                   >
                     <User className="w-4 h-4 mr-1" />
