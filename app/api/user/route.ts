@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { db } from "../../../lib/db";
 import { hash } from "bcryptjs";
-import RandomBgGenerator from "../../../lib/randombggenerator";
-import RandomCodeGenerator from "../../../lib/radomcodegenerator";
-import { sendEmail } from "../../../lib/mailer";
+import RandomBgGenerator from "@/lib/randomBgGenerator";
+import RandomCodeGenerator from "@/lib/randomCodeGenerator";
+import { sendEmail } from "@/lib/mailer";
+
 
 // Handle GET requests (check if user is authenticated)
-export const GET = async (req: Request) => {
+export const GET = async () => {
     const session = await getServerSession(authOptions);
     return NextResponse.json({ authenticated: !!session });
 };
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
 
         // Check for existing user or username conflicts
         const existingUser = await db.user.findUnique({ where: { email } });
-        const usernameConflict = await db.user.findUnique({ where: { username } });
+        const usernameConflict = await db.user.findUnique({ where: { email } });
 
         if (existingUser || usernameConflict) {
             return NextResponse.json({
@@ -59,9 +60,7 @@ export async function POST(req: Request) {
         const newUser = await db.user.create({
             data: {
                 email,
-                username,
                 password: hashedPassword,
-                name: "", // Provide default value for optional field
                 avatar: RandomBgGenerator(), // Provide default value for optional field
             },
         });
@@ -91,8 +90,8 @@ export async function POST(req: Request) {
             const result = await sendEmail({
                 sender,
                 receiver: recipients,
-                subject: "Welcome to Linkify",
-                message: `Please verify your account using the following code: ${code}`,
+                subject: "Account Verification",
+                message: `Hi ${email.split('@')[0]}<br> Please verify your account using the following code: ${code}`,
             });
 
             return NextResponse.json({
