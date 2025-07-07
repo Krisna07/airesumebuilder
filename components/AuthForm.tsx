@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
+// import { useAuth } from '@/context/AuthContext'
 import { Eye, EyeOff, Mail, Lock, User, Github } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -18,7 +18,6 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   
-  const { signIn, signUp, signInWithOAuth } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,10 +28,10 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
 
     try {
       if (mode === 'signin') {
-        await signIn(email, password)
+        // await signIn(email, password)
         router.push('/dashboard')
       } else {
-        await signUp(email, password)
+        // await signUp(email, password)
         setSuccess('Please check your email and click the confirmation link to complete your registration.')
       }
     } catch (err) {
@@ -47,7 +46,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     setError(null)
     
     try {
-      await signInWithOAuth(provider)
+      // await signInWithOAuth(provider)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
