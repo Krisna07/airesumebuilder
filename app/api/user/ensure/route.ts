@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { ensureUserExists } from '@/lib/user-utils'
+// import { ensureUserExists } from '@/lib/user-utils'
 
 export async function POST() {
     try {
@@ -14,11 +14,11 @@ export async function POST() {
         }
 
         // Ensure user exists in our database
-        const dbUser = await ensureUserExists(user)
+        // const dbUser = await ensureUserExists(user)
 
         return NextResponse.json({
             success: true,
-            user: dbUser
+            // user: dbUser
         })
     } catch (error) {
         console.error('Error ensuring user:', error)

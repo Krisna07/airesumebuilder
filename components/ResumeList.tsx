@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/context/AuthContext'
+// import { useAuth } from '@/context/AuthContext'
 import { Plus, FileText, Trash2, Edit, Clock } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,7 +15,7 @@ interface Resume {
 }
 
 export default function ResumeList() {
-  const { user } = useAuth()
+  let  user
   const [resumes, setResumes] = useState<Resume[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -112,14 +112,14 @@ export default function ResumeList() {
       
       <div className="grid ">
         <h1 className="text-3xl font-bold text-gray-900">My Resumes</h1>
-        <p>{user.email}</p>
-        {/* <button
+        <p>chillman</p>
+        <button
           onClick={createNewResume}
           className="flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
         >
           <Plus className="w-5 h-5 mr-2" />
           New Resume
-        </button> */}
+        </button>
       </div>
 
       {error && (
