@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 // import { useAuth } from '@/context/AuthContext'
 import { Eye, EyeOff, Mail, Lock, User, Github } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/context/PopupContext'
+
 
 interface AuthFormProps {
   mode: 'signin' | 'signup'
@@ -19,6 +21,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   const [success, setSuccess] = useState<string | null>(null)
   
   const router = useRouter()
+  const toast = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +35,19 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         router.push('/dashboard')
       } else {
         // await signUp(email, password)
-        setSuccess('Please check your email and click the confirmation link to complete your registration.')
+        const result = await fetch('api/user', {
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email,
+              password
+            })
+        }).then(response =>{
+          return response.json()
+        })
+        setSuccess(result.message)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -40,6 +55,14 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
       setLoading(false)
     }
   }
+  useEffect(()=>{
+    if(error){
+      toast.showToast(`${error}`, "warning")
+    }
+    if(success){
+      toast.showToast(`${success}`,"success")
+    }
+  },[error, success])
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     setLoading(true)
@@ -69,11 +92,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
+      
 
         {success && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
