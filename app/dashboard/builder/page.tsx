@@ -1,11 +1,12 @@
 'use client';
-import { useAuth } from '@/context/AuthContext';
+
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import {  useSearchParams } from 'next/navigation';
 import MultiStepForm from '@/components/Forms/MultiStepForm';
 import { ResumeData } from '@/types/types';
 import Button from '@/components/Button';
 import dynamic from 'next/dynamic';
+// import { getUuid } from 'pdfjs-dist';
 
 // Dynamically import ResumeUpload to avoid SSR issues
 const ResumeUpload = dynamic(() => import('@/components/ResumeUpload'), {
@@ -60,16 +61,14 @@ export default function BuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  // const { user, loading: authLoading } = useAuth();
+  // const router = useRouter();
   const searchParams = useSearchParams();
   const resumeId = searchParams?.get('resumeId');
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth');
-    }
-  }, [user, authLoading, router]);
+const user ={
+  id: "usertestid"
+}
 
   useEffect(() => {
     if (resumeId) {
@@ -93,17 +92,7 @@ export default function BuilderPage() {
   }, [resumeId]);
 
   // Auto-save to localStorage whenever resume content changes
-  useEffect(() => {
-    const cacheKey = `resume_cache_${user?.id || 'anonymous'}`;
-    if (resumeContent.profile.fullname || manual) {
-      localStorage.setItem(cacheKey, JSON.stringify({
-        resumeContent,
-        jobDescription,
-        timestamp: new Date().toISOString(),
-        resumeId: currentResumeId
-      }));
-    }
-  }, [resumeContent, jobDescription, user?.id, manual, currentResumeId]);
+
 
   // Load from localStorage on mount if no resumeId
   useEffect(() => {
@@ -187,7 +176,7 @@ export default function BuilderPage() {
     setIsDirty(true);
     setManual(true);
   };
-
+   const authLoading = false
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

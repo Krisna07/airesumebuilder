@@ -1,18 +1,9 @@
 "use client";
 import Link from "next/link";
 import { ArrowRight, LogIn, User } from "lucide-react";
-import { getCurrentUser } from "@/lib/session";
-import { useState } from "react";
-
-
 
 export default function Home() {
 
-const user:any = getCurrentUser()
-const [loading, setLoading] = useState<boolean>(true)
-// if(user){
-//   setLoading(false)
-// }
 const handleSignOut =()=>{
   console.log('Handling sign out for the user !!')
 }
@@ -28,17 +19,13 @@ const handleSignOut =()=>{
           <Link href="/dashboard/builder" className="text-gray-600 hover:text-black">
             Builder
           </Link>
-          {user && (
+      
             <Link href="/dashboard" className="text-gray-600 hover:text-black">
               Dashboard
             </Link>
-          )}
-          {!loading && (
-            <>
-              {user ? (
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-600">
-                    Welcome, {user.email}
+                    Welcome, Visitor
                   </span>
                   <button
                     onClick={()=>handleSignOut}
@@ -48,17 +35,8 @@ const handleSignOut =()=>{
                     Sign Out
                   </button>
                 </div>
-              ) : (
-                <Link
-                  href="/auth"
-                  className="flex items-center px-3 py-2 text-gray-600 hover:text-black transition-colors"
-                >
-                  <LogIn className="w-4 h-4 mr-1" />
-                  Sign In
-                </Link>
-              )}
-            </>
-          )}
+            
+            
         </nav>
       </header>
 
@@ -79,7 +57,7 @@ const handleSignOut =()=>{
             Start Building for Free
             <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
           </Link>
-          {!user && !loading && (
+        
             <Link
               href="/auth"
               className="group flex items-center justify-center px-8 py-4 border-2 border-black text-black rounded-lg font-semibold hover:bg-black hover:text-white transition-all"
@@ -87,7 +65,7 @@ const handleSignOut =()=>{
               <LogIn className="mr-2 h-5 w-5" />
               Sign In
             </Link>
-          )}
+         
         </div>
       </main>
 

@@ -70,7 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signIn,
     signUp,
-    signOut
+    signOut,
+    user
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
+    console.log("there is no contextß")
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
