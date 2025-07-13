@@ -8,7 +8,6 @@ import Button from '@/components/Button';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/context/AuthContext';
 
-
 // Dynamically import ResumeUpload to avoid SSR issues
 const ResumeUpload = dynamic(() => import('@/components/ResumeUpload'), {
   ssr: false,
@@ -256,11 +255,13 @@ function BuilderContent() {
 
 export default function BuilderPage() {
   return (
-    <Suspense fallback={
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-black'></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className='flex items-center justify-center min-h-screen'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-black'></div>
+        </div>
+      }
+    >
       <BuilderContent />
     </Suspense>
   );
