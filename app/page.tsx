@@ -53,17 +53,12 @@ export default function Home() {
         </p>
         <div className='flex flex-col sm:flex-row gap-4'>
           <Link
-            href='/builder'
+            href='/dashboard/builder'
             className='group flex items-center justify-center px-8 py-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-transform transform hover:scale-105'
           >
             Start Building for Free
             <ArrowRight className='ml-2 h-5 w-5 transition-transform group-hover:translate-x-1' />
           </Link>
-
-          {/* <Link href='/auth' className='group flex items-center justify-center px-8 py-4 border-2 border-black text-black rounded-lg font-semibold hover:bg-black hover:text-white transition-all'>
-            <LogIn className='mr-2 h-5 w-5' />
-            Sign In
-          </Link> */}
         </div>
       </main>
 
