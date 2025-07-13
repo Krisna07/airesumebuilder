@@ -19,9 +19,10 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const { email, username, password, checkUser } = body;
+        const { email, password, checkUser } = body;
+        console.log("Received data:", body);
 
-        // Check if the request is to check user existence
+        //checking if the user exists 
         if (checkUser) {
             const existingUser = await db.user.findUnique({ where: { email } });
             if (existingUser) {
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
         }
 
         // Validate user data
-        if (!email || !username || !password) {
+        if (!email || !password) {
             return NextResponse.json({
                 status: 400,
                 message: "Email, username, and password are required.",
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
         // Generate verification code
         const code = RandomCodeGenerator();
 
+
         // Save verification code to the database
         await db.verification.create({
             data: {
@@ -79,26 +81,41 @@ export async function POST(req: Request) {
             },
         });
 
-        // Prepare and send the verification email
+        // // Prepare and send the verification email
         const sender = {
-            name: "The Linkify",
+            name: "The Resume Builder Team",
             address: process.env.MAILER_EMAIL as string,
         };
-        const recipients = [{ name: username, address: email }];
 
         try {
             const result = await sendEmail({
                 sender,
-                receiver: recipients,
-                subject: "Account Verification",
-                message: `Hi ${email.split('@')[0]}<br> Please verify your account using the following code: ${code}`,
+                receiver: [email],
+                subject: "New account verification",
+                message: `Hi ${email.split('@')[0]}<br> 
+                <h2>Welcome to The Resume Builder</h2>
+                <p>Thank you for signing up! To complete your registration, please verify your email address.</p>
+                <p>Your verification code is: <strong>${code}</strong></p>
+                <p>If you did not create an account, please ignore this email.</p>
+                <p>Best regards,</p>
+                <p>The Resume Builder Team</p>
+                <br>`
             });
-
+            if (!result) {
+                return NextResponse.json({
+                    status: 500,
+                    message: "Error sending verification email.",
+                });
+            }
             return NextResponse.json({
                 status: 200,
                 message: "User created successfully. Verification email sent.",
-                accepted: result.accepted,
-            });
+                user: {
+                    email,
+                    password: hashedPassword,
+                    avatar: RandomBgGenerator(), // Provide default value for optional field
+                }
+            })
         } catch (error) {
             console.error("Error sending email:", error);
             return NextResponse.json({
@@ -110,7 +127,8 @@ export async function POST(req: Request) {
         console.error("Error creating user:", error);
         return NextResponse.json({
             status: 500,
-            message: "Error creating user.",
+            message: "Error creating user. ",
+
         });
     }
 }
@@ -136,7 +154,7 @@ export async function PUT(req: Request) {
             status: 200,
             message: "User updated successfully",
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json({
             status: 500,
             message: "Error updating user",
@@ -164,7 +182,7 @@ export async function PATCH(req: Request) {
             status: 200,
             message: "Password reset successful, please login.",
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json({
             status: 500,
             message: "Error during password reset.",
@@ -200,7 +218,7 @@ export async function DELETE(req: Request) {
             status: 200,
             message: "User deleted successfully.",
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json({
             status: 500,
             message: "Error deleting user.",

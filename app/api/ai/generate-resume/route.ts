@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GenerateResume } from '@/lib/ai-actions';
-import { Resume } from '@/types/Resume';
 import { getCurrentUser } from '@/lib/auth';
+import { ResumeData } from '@/types/types';
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
-        const { resume, jobDescription }: { resume: Resume, jobDescription: string } = await req.json();
+        const { resume, jobDescription }: { resume: ResumeData, jobDescription: string } = await req.json();
 
         if (!resume || !jobDescription) {
             return NextResponse.json({ error: 'Missing resume data or job description' }, { status: 400 });

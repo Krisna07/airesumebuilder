@@ -1,10 +1,10 @@
 export interface User {
   id: string;
-  name: string;
   email: string;
+  avatar: string;
   verified: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   profile?: Profile;
   resume?: ResumeData;
 }
