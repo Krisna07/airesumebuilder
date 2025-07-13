@@ -1,12 +1,13 @@
-import { getServerSession, User } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth";
 
+// Replace any with proper type
+export async function getSession() {
+    return await getServerSession(authOptions);
+}
 
+// Or if you need the user specifically:
 export async function getCurrentUser() {
-    const session: any = await getServerSession(authOptions);
-    const user: User = session?.user;
-    if (!user) {
-        return null; // Return null if no user is found
-    }
-    return user;
+    const session = await getServerSession(authOptions);
+    return session?.user || null;
 }

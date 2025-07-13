@@ -1,58 +1,70 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {  useSearchParams } from 'next/navigation';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import MultiStepForm from '@/components/Forms/MultiStepForm';
 import { ResumeData } from '@/types/types';
 import Button from '@/components/Button';
 import dynamic from 'next/dynamic';
-// import { getUuid } from 'pdfjs-dist';
+import { useAuth } from '@/context/AuthContext';
 
 // Dynamically import ResumeUpload to avoid SSR issues
 const ResumeUpload = dynamic(() => import('@/components/ResumeUpload'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center p-8">Loading...</div>
+  loading: () => <div className='flex items-center justify-center p-8'>Loading...</div>
 });
 
+function BuilderContent() {
+  const { user: authUser, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const resumeId = searchParams?.get('resumeId');
 
-export default function BuilderPage() {
+  // Wrap user initialization in useMemo to prevent unnecessary re-renders
+  const user = useMemo(() => {
+    if (!authUser) return null;
+    return {
+      id: authUser.id,
+      email: authUser.email
+    };
+  }, [authUser]); // Include authUser in the dependency array
+
   const [manual, setManual] = useState<boolean>(false);
   const [resumeContent, setResumeContent] = useState<ResumeData>({
     profile: {
-      fullname: "",
-      email: "",
-      phone: "",
-      location: "",
+      fullname: '',
+      email: '',
+      phone: '',
+      location: '',
       links: [
         {
-          type: "",
-          url: "",
-        },
+          type: '',
+          url: ''
+        }
       ],
-      summary: "",
+      summary: ''
     },
     skills: [],
     experience: [
       {
-        title: "",
-        company: "",
-        location: "",
-        startDate: "",
-        endDate: "",
+        title: '',
+        company: '',
+        location: '',
+        startDate: '',
+        endDate: '',
         current: false,
-        responsibilities: [],
-      },
+        responsibilities: []
+      }
     ],
     education: [
       {
-        degree: "",
-        university: "",
-        startDate: "",
-        location: "",
-        current: false,
-      },
+        degree: '',
+        university: '',
+        startDate: '',
+        location: '',
+        current: false
+      }
     ],
-    certificates: [],
+    certificates: []
   });
   const [jobDescription, setJobDescription] = useState<string>('');
   const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
@@ -60,15 +72,6 @@ export default function BuilderPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  // const { user, loading: authLoading } = useAuth();
-  // const router = useRouter();
-  const searchParams = useSearchParams();
-  const resumeId = searchParams?.get('resumeId');
-
-const user ={
-  id: "usertestid"
-}
 
   useEffect(() => {
     if (resumeId) {
@@ -90,9 +93,6 @@ const user ={
       fetchResume();
     }
   }, [resumeId]);
-
-  // Auto-save to localStorage whenever resume content changes
-
 
   // Load from localStorage on mount if no resumeId
   useEffect(() => {
@@ -176,11 +176,11 @@ const user ={
     setIsDirty(true);
     setManual(true);
   };
-   const authLoading = false
+
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+      <div className='flex items-center justify-center min-h-screen'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-black'></div>
       </div>
     );
   }
@@ -190,32 +190,30 @@ const user ={
   }
 
   return (
-    <div className="min-w-full min-h-screen grid place-items-center ">
+    <div className='min-w-full min-h-screen grid place-items-center '>
       {/* Save Status Indicator */}
       {(manual || resumeContent.profile.fullname) && (
-        <div className="fixed top-4 right-4 z-50">
-          <div className="bg-white border rounded-lg shadow-lg px-4 py-2 flex items-center gap-2">
+        <div className='fixed top-4 right-4 z-50'>
+          <div className='bg-white border rounded-lg shadow-lg px-4 py-2 flex items-center gap-2'>
             {isSaving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm text-gray-600">Saving...</span>
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
+                <span className='text-sm text-gray-600'>Saving...</span>
               </>
             ) : saveError ? (
               <>
-                <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                <span className="text-sm text-red-600">Save failed</span>
+                <div className='w-4 h-4 bg-red-500 rounded-full'></div>
+                <span className='text-sm text-red-600'>Save failed</span>
               </>
             ) : isDirty ? (
               <>
-                <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Unsaved changes</span>
+                <div className='w-4 h-4 bg-yellow-500 rounded-full'></div>
+                <span className='text-sm text-gray-600'>Unsaved changes</span>
               </>
             ) : lastSaved ? (
               <>
-                <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">
-                  Saved {lastSaved.toLocaleTimeString()}
-                </span>
+                <div className='w-4 h-4 bg-green-500 rounded-full'></div>
+                <span className='text-sm text-gray-600'>Saved {lastSaved.toLocaleTimeString()}</span>
               </>
             ) : null}
           </div>
@@ -224,29 +222,22 @@ const user ={
 
       {!manual && (
         <div className={`relative grid place-items-center overflow-hidden p-1 rounded-lg`}>
-          <div className="relative bg-white hover:shadow-lg p-4 gap-2 w-fit rounded-lg grid ring-1 transition-all ease-in-out duration-300">
-            <label
-              htmlFor="resume-upload"
-              className="block text-lg font-semibold mb-2 font-[Bebas Neue]"
-            >
+          <div className='relative bg-white hover:shadow-lg p-4 gap-2 w-fit rounded-lg grid ring-1 transition-all ease-in-out duration-300'>
+            <label htmlFor='resume-upload' className='block text-lg font-semibold mb-2 font-[Bebas Neue]'>
               Get started with your resume
             </label>
-            <div className="min-w-full grid place-items-center">
-              <div className="border-dashed relative w-full   grid place-items-center transition-all ease-out">
-                <ResumeUpload  handleResumeDataUpdate={updateResumeContent}/>
+            <div className='min-w-full grid place-items-center'>
+              <div className='border-dashed relative w-full   grid place-items-center transition-all ease-out'>
+                <ResumeUpload handleResumeDataUpdate={updateResumeContent} />
               </div>
             </div>
-            <Button
-              variant={"primary"}
-              size={"small"}
-              onClick={() => setManual(true)}
-            >
+            <Button variant={'primary'} size={'small'} onClick={() => setManual(true)}>
               Add Manual Data
             </Button>
           </div>
         </div>
       )}
-      {( resumeContent.profile.fullname || manual) && (
+      {(resumeContent.profile.fullname || manual) && (
         <MultiStepForm
           resumeContent={resumeContent}
           handleJobDescription={updateJobDescription}
@@ -262,4 +253,16 @@ const user ={
   );
 }
 
-
+export default function BuilderPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className='flex items-center justify-center min-h-screen'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-black'></div>
+        </div>
+      }
+    >
+      <BuilderContent />
+    </Suspense>
+  );
+}

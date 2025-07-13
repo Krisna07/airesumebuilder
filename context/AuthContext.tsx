@@ -1,69 +1,111 @@
-'use client'
+'use client';
 
-import { User } from '@/types/types'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { User } from '@/types/types';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { signIn as nextAuthSignIn, signOut as nextAuthSignOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
-  user: User | null
-  loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
-  signOut: () => Promise<void>
-  signInWithOAuth: (provider: 'google' | 'github') => Promise<void>
+  user: User | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'github') => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: session, status } = useSession();
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
+  const loading = status === 'loading';
 
   useEffect(() => {
-    const getUser = async () => {
-      setUser(user)
-      
-      // If user is authenticated, ensure they exist in our database
-      if (user) {
+    if (session?.user) {
+      // Transform NextAuth session to your User type
+      setUser({
+        id: session.user.id,
+        email: session.user.email!,
+        avatar: session.user.image,
+        verified: session.user.verified || false,
+        createdAt: session.user.timestamp || new Date()
+        // Add other User properties as needed
+      } as User);
+    } else {
+      setUser(null);
+    }
+  }, [session]);
+
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await nextAuthSignIn('credentials', {
+        email,
+        password,
+        redirect: false
+      });
+
+      if (result?.error) {
+        // Parse error message if it's JSON
         try {
-          await fetch('/api/user/ensure', { method: 'POST' })
-        } catch (error) {
-          console.error('Error ensuring user in database:', error)
+          const errorData = JSON.parse(result.error);
+          return { success: false, error: errorData.message };
+        } catch {
+          return { success: false, error: result.error };
         }
       }
-      
-      setLoading(false)
+
+      if (result?.ok) {
+        router.push('/dashboard');
+        return { success: true };
+      }
+
+      return { success: false, error: 'Sign in failed' };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'An error occurred during sign in'
+      };
     }
+  };
 
-    getUser()
+  const signUp = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
 
-    
+      const data = await response.json();
 
-  
-  }, [])
+      if (!response.ok) {
+        return { success: false, error: data.message || 'Sign up failed' };
+      }
 
-  const signIn = async (email: string, password: string) => {
-    console.log(email, password)
-  
-  }
-
-  const signUp = async (email: string, password: string) => {
-    
-    console.log(email, password)
-    
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'An error occurred during sign up'
+      };
     }
-   
-  
+  };
 
   const signOut = async () => {
-    
-  }
+    await nextAuthSignOut({ redirect: false });
+  };
 
   const signInWithOAuth = async (provider: 'google' | 'github') => {
-    console.log(`Signing in with ${provider}`)
-  }
-
-
+    await nextAuthSignIn(provider, { callbackUrl: '/dashboard' });
+  };
 
   const value = {
     signInWithOAuth,
@@ -72,17 +114,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     user
-  }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    console.log("there is no contextß")
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }
