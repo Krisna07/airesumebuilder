@@ -53,7 +53,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     if (success) {
       toast.showToast(`${success}`, 'success');
     }
-  }, [error, success]);
+  }, [error, success, toast]); // Added toast to dependencies
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     setLoading(true);
