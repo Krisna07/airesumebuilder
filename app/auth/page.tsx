@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import AuthForm from '@/components/AuthForm'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
-export default function AuthPage() {
+function AuthContent() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const searchParams = useSearchParams()
   const error = searchParams?.get('error')
@@ -53,5 +53,17 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   )
 }
