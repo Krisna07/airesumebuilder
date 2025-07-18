@@ -1,17 +1,25 @@
-import './global.css'
-import { ReactNode } from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './global.css';
+import Providers from '@/components/Providers';
 
-export const metadata = {
-    title: 'AI Resume Builder',
-    description: 'Build your resume effortlessly with AI',
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'AI Resume Builder',
+  description: 'Create a professional resume with the help of AI.'
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-    return (
-        <html lang="en">
-            <body className='bg-red-400'>
-                {children}
-            </body>
-        </html>
-    );
+export default function RootLayout({
+  children
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang='en'>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
 }
