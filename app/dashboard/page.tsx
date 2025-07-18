@@ -1,12 +1,17 @@
 'use client';
 
-import ResumeList from '@/components/ResumeList';
-import { useAuth } from '@/context/AuthContext';
 
+import { useState } from 'react';
 import { FaRobot } from 'react-icons/fa6';
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const user = {
+    email:"user@email.com",
+    avatar:"rgba(123,445,223,0.8)"
+  }
+  const [loading, setLoading]= useState<boolean>(true)
+
+  setTimeout(()=> setLoading(false), 300)
   // Show loading state
   if (loading) {
     return (
@@ -44,7 +49,7 @@ export default function DashboardPage() {
         </div>
       </div>
       <main>
-        <ResumeList />
+        {/* <ResumeList /> */}
       </main>
     </div>
   );

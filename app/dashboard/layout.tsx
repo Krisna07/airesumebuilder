@@ -1,18 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { redirect } from 'next/navigation';
+
 
 export default function DashboardLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { user } = useAuth();
-  if (!user) {
-    redirect('/');
-  }
+
   return (
     <div className='min-h-screen bg-gray-50'>
       <header className='bg-white border-b'>
@@ -21,11 +17,9 @@ export default function DashboardLayout({
             <ArrowLeft className='w-5 h-5 mr-2' />
             Back to Home
           </Link>
-
           <div className='text-xl font-bold text-gray-900'>R</div>
         </div>
       </header>
-
       <main className='max-w-6xl mx-auto px-4 py-8'>{children}</main>
     </div>
   );
