@@ -1,4 +1,4 @@
-import './globals.css';
+import './global.css'
 import { ReactNode } from 'react';
 
 export const metadata = {
@@ -9,7 +9,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="en">
-            <body>
+            <body className='bg-red-400'>
                 {children}
             </body>
         </html>
