@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GenerateResume } from '@/lib/ai-actions';
-import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
     try {
-        // Check authentication
-        const user = await getCurrentUser();
-        if (!user) {
-            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-        }
 
         const body = await req.json();
         const { text } = body;
