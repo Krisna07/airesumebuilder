@@ -3,9 +3,9 @@ import { GenerateResume } from '@/lib/ai-actions';
 
 export async function POST(req: NextRequest) {
     try {
-
         const body = await req.json();
         const { text } = body;
+        console.log(text)
 
         if (!text) {
             return NextResponse.json({ error: 'No text provided' }, { status: 400 });
@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
 
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
         }
-        console.log('Structured Data:', structuredData);
         return NextResponse.json({
             status: 200,
             message: 'Resume data extracted successfully',
@@ -30,4 +29,19 @@ export async function POST(req: NextRequest) {
         const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
         return NextResponse.json({ error: 'Failed to parse request body', details: message }, { status: 500 });
     }
+}
+
+export async function GET() {
+    try {
+        return NextResponse.json({
+            status: 200,
+            message: 'ednpoint hit succfully'
+        })
+
+    } catch (error) {
+        console.error('Error in resume-extraction:', error);
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+        return NextResponse.json({ error: 'Failed to parse request body', details: message }, { status: 500 });
+    }
+
 }
