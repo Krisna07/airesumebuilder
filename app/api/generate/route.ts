@@ -2,8 +2,7 @@
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { NextRequest } from "next/server";
-
-export const runtime = "edge"; // Ensures this runs on the Edge runtime
+// / Ensures this runs on the Edge runtime
 
 export async function POST(req: NextRequest) {
     try {
