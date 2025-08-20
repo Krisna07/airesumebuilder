@@ -4,7 +4,7 @@
 export function getResumeData(resumeId: string) {
     // Only access localStorage in the browser
     if (typeof window !== 'undefined' && resumeId) {
-        const availableResume = localStorage.getItem(resumeId);
+        const availableResume = localStorage.getItem('resumeData');
         if (availableResume) {
             try {
                 const parsed = JSON.parse(availableResume);
@@ -46,6 +46,7 @@ export function getJobDescription(url: string) {
     }
     try {
         console.log(url)
+
 
 
     } catch (error) {

@@ -14,11 +14,18 @@ export async function handleResumeDataUpload(file: File) {
         }
         const data = await res.json();
         const resumeId = self.crypto.randomUUID();
-        localStorage.setItem(`${resumeId}`, JSON.stringify({
-            ...data.data, 
-            id:resumeId,
-            createdOn: Date.now()
-        }))
+        // Uncomment the following line if ResumeStorage is needed
+        // const { ResumeStorage } = await import('./resume-storage');
+
+        // Save the extracted resume data
+        localStorage.setItem(`resumeData`, JSON.stringify({
+            resumeId: resumeId,
+            template: 'mordern',
+            resumeData: data.data,
+            createdOn: new Date().toISOString()
+        }));
+        localStorage.setItem(`resume_${resumeId}_template`, 'modern');
+        localStorage.setItem(`resume_${resumeId}_created`, new Date().toISOString());
         return {
             status: 200,
             data: {
@@ -48,7 +55,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
         reader.onload = async (event) => {
             if (!event.target?.result) {
                 return reject(new Error('Failed to read file.'));
-            } 
+            }
             try {
                 const pdf = await pdfjsLib.getDocument({ data: event.target.result as ArrayBuffer }).promise;
                 let text = '';
