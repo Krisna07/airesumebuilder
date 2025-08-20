@@ -48,7 +48,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
         reader.onload = async (event) => {
             if (!event.target?.result) {
                 return reject(new Error('Failed to read file.'));
-            }
+            } 
             try {
                 const pdf = await pdfjsLib.getDocument({ data: event.target.result as ArrayBuffer }).promise;
                 let text = '';
