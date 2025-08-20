@@ -10,33 +10,58 @@ import Button from '../Button';
 import FormLayout from './FomLayout';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import JobDescription from './JobDescription';
-// import ResumePreview from "../resumes/ResumePreview";
-// import JobDescription from "./JobDescription";
+import { UserResume } from '@/types/types';
+import { ResumeStorage } from '@/lib/resume-storage';
 
 interface MultiStepFormProps {
   resumeContent: ResumeData;
+  resumeId: string;
 }
 
-const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
+const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId }) => {
   const [formData, setFormData] = useState<ResumeData>(resumeContent);
+  const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
 
   useEffect(() => {
     setFormData(resumeContent);
-  }, [resumeContent]);
+    // Load saved resume (data and template) for this resumeId
+    const stored = ResumeStorage.load(resumeId);
+    if (stored) {
+      setFormData(stored.resumeData);
+      setSelectedTemplate(stored.template);
+    }
+  }, [resumeContent, resumeId]);
 
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Save data and template whenever formData or template changes
+  useEffect(() => {
+    if (resumeId && formData && selectedTemplate) {
+      ResumeStorage.save(resumeId, selectedTemplate, formData);
+    }
+  }, [formData, selectedTemplate, resumeId]);
+
   const handleNext = async () => {
-    // Save on final step (step 6 -> completion)
-    if (currentStep === 6) {
-      setCurrentStep((prevStep) => Math.min(prevStep + 1, 7));
+    // Save current data and template before proceeding
+    ResumeStorage.save(resumeId, selectedTemplate, formData);
+
+    if (currentStep === 7) {
+      // Redirect to preview page with UUID
+      window.location.href = `/builder/${resumeId}/preview`;
     } else {
-      setCurrentStep((prevStep) => Math.min(prevStep + 1, 7));
+      setCurrentStep((prevStep) => Math.min(prevStep + 1, 8));
     }
   };
 
   const handlePrevious = () => {
+    // Save current data and template before going back
+    ResumeStorage.save(resumeId, selectedTemplate, formData);
     setCurrentStep((prevStep) => Math.max(prevStep - 1, 1));
+  };
+
+  const handleSaveDraft = () => {
+    ResumeStorage.save(resumeId, selectedTemplate, formData);
+    alert('Draft saved successfully!');
   };
 
   // const handleSaveDraft = async (item:{name:string ,value:any}) => {
@@ -85,6 +110,34 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
         );
       case 7:
         return (
+          <FormLayout heading={'Choose Your Template'} subheading={'Select a template style for your resume.'}>
+            <div className='max-w-4xl mx-auto'>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+                {[
+                  { id: 'modern' as const, name: 'Modern', desc: 'Clean design with gradient header', icon: '🎨' },
+                  { id: 'classic' as const, name: 'Classic', desc: 'Traditional professional layout', icon: '📄' },
+                  { id: 'minimal' as const, name: 'Minimal', desc: 'Simple, elegant design', icon: '✨' }
+                ].map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => setSelectedTemplate(template.id)}
+                    className={`p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                      selectedTemplate === template.id ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className='flex items-center gap-3 mb-2'>
+                      <span className='text-2xl'>{template.icon}</span>
+                      <h3 className={`font-semibold ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}>{template.name}</h3>
+                    </div>
+                    <p className='text-sm text-gray-600'>{template.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </FormLayout>
+        );
+      case 8:
+        return (
           <div className='text-center py-8'>
             <div className='bg-green-50 border border-green-200 rounded-lg p-6 max-w-md mx-auto'>
               <div className='w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
@@ -92,11 +145,8 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
                   <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M5 13l4 4L19 7'></path>
                 </svg>
               </div>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Resume Saved Successfully!</h3>
-              <p className='text-gray-600 mb-4'>Your resume has been saved to your account.</p>
-              <Button variant='primary' size='small' onClick={() => (window.location.href = '/dashboard')}>
-                Go to Dashboard
-              </Button>
+              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Ready to Preview!</h3>
+              <p className='text-gray-600 mb-4'>Your resume is ready. Click next to preview and download.</p>
             </div>
           </div>
         );
@@ -104,7 +154,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
         return <div>Invalid Step</div>;
     }
   };
-  const navigations = ['Profile', 'Skill', 'Experience', 'Education', 'Certificates', 'Job Description'];
+  const navigations = ['Profile', 'Skill', 'Experience', 'Education', 'Certificates', 'Job Description', 'Template'];
   return (
     <div className='w-full grid place-items-center transition-all ease-in-out duration-300 '>
       <div className='w-full  grid gap-2 place-items-start p-2 box-border '>
@@ -141,13 +191,13 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
               <div className='flex gap-2'>
                 {/* Save Draft Button - available on all steps except completion */}
                 {currentStep < 7 && (
-                  <Button type='button' variant='secondary' size='small'>
+                  <Button type='button' variant='secondary' size='small' onClick={handleSaveDraft}>
                     {'Save Draft'}
                   </Button>
                 )}
 
-                <Button type='button' variant='primary' size='small' onClick={handleNext} disabled={currentStep === 7 || currentStep === 6}>
-                  {currentStep === 6 ? 'Saving...' : currentStep === 6 ? 'Complete & Save' : 'Next'}
+                <Button type='button' variant='primary' size='small' onClick={handleNext} disabled={currentStep === 8}>
+                  {currentStep === 7 ? 'Preview Resume' : 'Next'}
                   <FaChevronRight />
                 </Button>
               </div>

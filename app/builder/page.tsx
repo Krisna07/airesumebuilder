@@ -1,20 +1,29 @@
+'use client';
 import Button from '@/components/Button';
 import Link from 'next/link';
 import React from 'react';
+import { ResumeStorage } from '@/lib/resume-storage';
 
-const page = () => {
+const Page = () => {
+  const createNewResume = () => {
+    const uuid = ResumeStorage.create();
+    window.location.href = `/builder/${uuid}`;
+  };
+
   return (
     <section className='w-full min-h-[60vh] sm:h-full  grid place-items-center justify-center'>
       <div className='place-items-center gap-2 grid'>
-        <Button variant='secondary' size='medium' >
+        <Button variant='secondary' size='medium' onClick={createNewResume}>
           New Resume
         </Button>
-        <Link href={'/builder/build'}><Button variant='primary' size='medium'>
-          Start With Existing
-        </Button></Link>
+        <Link href={'/builder/build'}>
+          <Button variant='primary' size='medium'>
+            Start With Existing
+          </Button>
+        </Link>
       </div>
     </section>
   );
 };
 
-export default page;
+export default Page;

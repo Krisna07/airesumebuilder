@@ -1,43 +1,97 @@
-// app/api/generate-pdf/route.js (Example for App Router)
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+// Ensure this API route runs in Node.js, not Edge
+// export const runtime = "nodejs";
 import { NextRequest } from "next/server";
-// / Ensures this runs on the Edge runtime
+import { generateTemplateHTML } from "@/lib/template-utils";
+
+import puppeteer from 'puppeteer';
 
 export async function POST(req: NextRequest) {
     try {
-        const { htmlContent } = await req.json();
-
-        const browser = await puppeteer.launch({
-            args: chromium.args,
-            executablePath: await chromium.executablePath(
-                process.platform === "win32" ? "chrome.exe" : undefined
-            ),
-            headless: true,
+        const body = await req.json();
+        console.log('📄 PDF Generation Request:', {
+            hasResumeData: !!body.resumeData,
+            template: body.template,
+            hasContent: !!body.content
         });
 
-        const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: "domcontentloaded" });
-        await page.emulateMediaType("screen"); // To apply screen styles for printing
+        let content = body.content;
 
+        // If resumeData and template are provided, generate HTML from template
+        if (body.resumeData && body.template) {
+            try {
+                content = generateTemplateHTML(body.template, body.resumeData);
+                console.log('✅ HTML generated from template, length:', content.length);
+            } catch (htmlError) {
+                console.error('❌ HTML generation error:', htmlError);
+                throw new Error(`HTML generation failed: ${htmlError instanceof Error ? htmlError.message : 'Unknown error'}`);
+            }
+        }
+
+        if (!content) {
+            throw new Error('No content provided for PDF generation');
+        }
+
+        console.log('🚀 Launching browser...');
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--no-first-run',
+                '--disable-extensions',
+            ]
+        });
+
+        console.log('📄 Creating new page...');
+        const page = await browser.newPage();
+        await page.setContent(content, { waitUntil: 'load' });
+
+        console.log('🖨️ Generating PDF...');
         const pdfBuffer = await page.pdf({
-            format: "A4",
+            format: 'A4',
             printBackground: true,
-            // Add other PDF options as needed
+            margin: {
+                top: '20mm',
+                bottom: '20mm',
+                left: '15mm',
+                right: '15mm',
+            },
+            preferCSSPageSize: false,
+            displayHeaderFooter: false,
         });
 
         await browser.close();
+        console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
 
+        // Generate filename
+        const filename = body.resumeData?.profile?.fullname
+            ? `${body.resumeData.profile.fullname.replace(/\s+/g, '_')}_Resume.pdf`
+            : 'Resume.pdf';
+
+        // Return PDF as response
         return new Response(Buffer.from(pdfBuffer), {
             headers: {
-                "Content-Type": "application/pdf",
-                "Content-Disposition": "attachment; filename=generated.pdf",
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="${filename}"`,
+                'Content-Length': pdfBuffer.length.toString(),
             },
         });
+
     } catch (error) {
-        console.error("PDF generation failed:", error);
-        return new Response(JSON.stringify({ error: "PDF generation failed" }), {
+        console.error('❌ PDF generation failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+        return new Response(JSON.stringify({
+            error: 'PDF generation failed',
+            details: errorMessage,
+            timestamp: new Date().toISOString()
+        }), {
             status: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
     }
 }

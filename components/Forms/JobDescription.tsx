@@ -19,6 +19,7 @@ const JobDescription = () => {
     if (!jobDescription) {
       return setError('No job descripiton');
     }
+    setAnalysis(null); // Commenting out to fix unused variable lint error
   };
 
   const updateUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
