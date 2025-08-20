@@ -36,3 +36,23 @@ export function getResumeData(resumeId: string) {
         certificates: []
     };
 }
+
+export function getJobDescription(url: string) {
+    if (!url) {
+        return {
+            status: 404,
+            message: "No url provided"
+        }
+    }
+    try {
+        console.log(url)
+
+
+    } catch (error) {
+        return {
+            status: 400,
+            message: JSON.stringify(error)
+        }
+    }
+
+}
