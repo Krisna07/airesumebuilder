@@ -9,6 +9,7 @@ import { Certificates, Education, Experience, Profile, ResumeData, skills } from
 import Button from '../Button';
 import FormLayout from './FomLayout';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
+import JobDescription from './JobDescription';
 // import ResumePreview from "../resumes/ResumePreview";
 // import JobDescription from "./JobDescription";
 
@@ -38,7 +39,10 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
     setCurrentStep((prevStep) => Math.max(prevStep - 1, 1));
   };
 
-  const handleSaveDraft = async () => {};
+  // const handleSaveDraft = async (item:{name:string ,value:any}) => {
+  //   localStorage.setItem()
+
+  // };
 
   const renderStep = () => {
     switch (currentStep) {
@@ -76,10 +80,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
       case 6:
         return (
           <FormLayout heading={"Let's add Job description"} subheading={'Provide detail job description with roles and responsibilities.'}>
-            <div></div>
-            {/* <JobDescription
-              formData={formData}
-            /> */}
+            <JobDescription />
           </FormLayout>
         );
       case 7:
@@ -140,7 +141,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent }) => {
               <div className='flex gap-2'>
                 {/* Save Draft Button - available on all steps except completion */}
                 {currentStep < 7 && (
-                  <Button type='button' variant='secondary' size='small' onClick={handleSaveDraft}>
+                  <Button type='button' variant='secondary' size='small'>
                     {'Save Draft'}
                   </Button>
                 )}
