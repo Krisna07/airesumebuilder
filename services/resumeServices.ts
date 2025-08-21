@@ -1,5 +1,7 @@
 'use client '
 
+import { ResumeStorage } from "@/lib/resume-storage";
+
 
 export function getResumeData(resumeId: string) {
     // Only access localStorage in the browser
@@ -56,4 +58,9 @@ export function getJobDescription(url: string) {
         }
     }
 
+}
+
+export function createResume() {
+    const uuid = ResumeStorage.create();
+    window.location.href = `/builder/${uuid}`;
 }

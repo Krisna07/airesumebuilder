@@ -3,7 +3,7 @@ import { AnalysisResult } from '@/types/types';
 import Input from '../Input';
 
 // import scrapeWebsite from "@/lib/scrape";
-import Button from '../Button';
+import Button from '../UI/Button';
 import { getJobDescription } from '@/services/resumeServices';
 
 const JobDescription = () => {
