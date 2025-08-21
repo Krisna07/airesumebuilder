@@ -6,7 +6,7 @@ import ExperienceStep from './ExperienceStep';
 import EducationStep from './EducationStep';
 import CertificatesStep from './CertificatesStep';
 import { Certificates, Education, Experience, Profile, ResumeData, skills } from '@/types/types';
-import Button from '../Button';
+import Button from '../UI/Button';
 import FormLayout from './FomLayout';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import JobDescription from './JobDescription';

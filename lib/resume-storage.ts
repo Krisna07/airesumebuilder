@@ -55,7 +55,7 @@ export class ResumeStorage {
         return this.loadAll().sort((a, b) => new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime());
     }
 
-    static create(template: UserResume['template'] = 'modern', data?: Partial<ResumeData>): string {
+    static create(template: UserResume['template'] = 'classic', data?: Partial<ResumeData>): string {
         const resumeId = crypto.randomUUID();
         const emptyData: ResumeData = {
             profile: {
