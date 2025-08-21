@@ -16,7 +16,7 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
 
   const baseStyles = `
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
       * { 
         margin: 0; 
         padding: 0; 
@@ -119,6 +119,29 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
         margin-top: 10px;
         color: #4b5563;
       }
+      .certificate-item {
+        background: #f9fafb;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border-left: 3px solid #3b82f6;
+        margin-bottom: 8px;
+      }
+      .project-item {
+        background: #f0f9ff;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #e0f2fe;
+        margin-bottom: 10px;
+      }
+      .project-title {
+        font-weight: 600;
+        color: #0369a1;
+        margin-bottom: 4px;
+      }
+      .project-description {
+        font-size: 11px;
+        color: #475569;
+      }
       @media print { 
         body { margin: 0; } 
         .no-print { display: none !important; }
@@ -136,69 +159,127 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
     .header { 
       background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
       color: white; 
-      padding: 20px; 
-      border-radius: 6px; 
+      padding: 25px; 
+      border-radius: 8px; 
       margin-bottom: 25px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     .header h1 { 
-      font-size: 24px; 
+      font-size: 26px; 
       font-weight: 700; 
-      margin-bottom: 8px; 
+      margin-bottom: 10px; 
+      letter-spacing: -0.5px;
     }
     .header .contact-info { 
-      opacity: 0.9; 
+      opacity: 0.95; 
     }
     .section-title { 
       color: #3b82f6; 
       border-color: #3b82f6; 
+      font-weight: 700;
     }
     .skill-tag { 
-      background: #dbeafe; 
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe); 
       color: #1e40af; 
       border-color: #93c5fd;
+      font-weight: 500;
+    }
+    .experience-item {
+      border-left: 3px solid #3b82f6;
+      padding-left: 15px;
+      margin-left: 5px;
+    }
+    .education-item {
+      border-left: 3px solid #8b5cf6;
+      padding-left: 15px;
+      margin-left: 5px;
     }
   `;
 
   const classicStyles = `
     .header { 
       text-align: center; 
-      border-bottom: 3px solid #1f2937; 
-      padding-bottom: 15px; 
+      border-bottom: 4px solid #1f2937; 
+      padding-bottom: 20px; 
       margin-bottom: 25px;
+      background: linear-gradient(to right, #f8fafc, #f1f5f9);
+      padding: 25px;
+      border-radius: 6px;
     }
     .header h1 { 
-      font-size: 28px; 
+      font-size: 30px; 
       font-weight: 700; 
-      margin-bottom: 10px; 
+      margin-bottom: 12px; 
       color: #1f2937; 
+      font-family: 'Roboto', sans-serif;
     }
     .header .contact-info { 
       justify-content: center; 
+      font-weight: 500;
     }
     .section-title { 
       color: #1f2937; 
       border-color: #1f2937; 
       font-weight: 700;
+      font-family: 'Roboto', sans-serif;
+    }
+    .skill-tag { 
+      background: #1f2937; 
+      color: white; 
+      border-color: #374151;
+      font-weight: 500;
+    }
+    .experience-item {
+      border-left: 3px solid #1f2937;
+      padding-left: 15px;
+      margin-left: 5px;
+    }
+    .education-item {
+      border-left: 3px solid #374151;
+      padding-left: 15px;
+      margin-left: 5px;
     }
   `;
 
   const minimalStyles = `
-    body { font-weight: 300; }
+    body { 
+      font-weight: 300; 
+      font-family: 'Inter', sans-serif;
+    }
     .header h1 { 
-      font-size: 32px; 
+      font-size: 34px; 
       font-weight: 100; 
-      margin-bottom: 10px; 
+      margin-bottom: 12px; 
       color: #1f2937; 
+      letter-spacing: -1px;
     }
     .header .contact-info { 
       color: #6b7280; 
+      font-weight: 400;
     }
     .section-title { 
       font-weight: 400; 
-      letter-spacing: 1px; 
+      letter-spacing: 2px; 
       color: #6b7280;
+      border-color: #e5e7eb;
     }
     .job-title { font-weight: 500; }
+    .skill-tag { 
+      background: #f9fafb; 
+      color: #374151; 
+      border-color: #e5e7eb;
+      font-weight: 400;
+    }
+    .experience-item {
+      border-left: 2px solid #e5e7eb;
+      padding-left: 15px;
+      margin-left: 5px;
+    }
+    .education-item {
+      border-left: 2px solid #f3f4f6;
+      padding-left: 15px;
+      margin-left: 5px;
+    }
   `;
 
   const getStyles = () => {
@@ -310,7 +391,7 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
           <div class="section">
             <div class="section-title">Certifications</div>
             ${data.certificates.slice(0, 3).map(cert => `
-              <div class="education-item">
+              <div class="certificate-item">
                 <div class="job-title">${escapeHtml(cert.title)}</div>
                 <div class="company">${escapeHtml(cert.issued_by)}</div>
                 <div class="date-location">${escapeHtml(cert.year)}</div>
