@@ -1,178 +1,120 @@
-'use client'
-import { useState, useEffect } from 'react'
-// import { useAuth } from '@/context/AuthContext'
-import { Plus, FileText, Trash2, Edit, Clock } from 'lucide-react'
-import Link from 'next/link'
+'use client';
+import React, { useState, useEffect } from 'react';
+import { ResumeStorage, StoredResume } from '@/lib/resume-storage';
+import Button from './Button';
+import { FaEye, FaTrash } from 'react-icons/fa6';
+import { FaEdit } from 'react-icons/fa';
 
-interface Resume {
-  id: string
-  createdAt: string
-  updatedAt: string
-  personal?: {
-    name?: string
-  }
-}
-
-export default function ResumeList() {
-  let  user
-  const [resumes, setResumes] = useState<Resume[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const ResumeList: React.FC = () => {
+  const [resumes, setResumes] = useState<StoredResume[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      fetchResumes()
-    }
-  }, [user])
+    loadResumes();
+  }, []);
 
-  const fetchResumes = async () => {
+  const loadResumes = () => {
     try {
-      const response = await fetch('/api/resume')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch resumes')
-      }
-
-      const data = await response.json()
-      setResumes(data.resumes || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const allResumes = ResumeStorage.listAll();
+      setResumes(allResumes);
+    } catch (error) {
+      console.error('Error loading resumes:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const createNewResume = async () => {
-    try {
-      const response = await fetch('/api/resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create resume')
-      }
-
-      const data = await response.json()
-      setResumes([data.resume, ...resumes])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+  const handleDelete = (resumeId: string) => {
+    if (window.confirm('Are you sure you want to delete this resume?')) {
+      ResumeStorage.delete(resumeId);
+      loadResumes();
     }
-  }
+  };
 
-  const deleteResume = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this resume?')) {
-      return
-    }
+  const handleEdit = (resumeId: string) => {
+    window.location.href = `/builder/${resumeId}`;
+  };
 
-    try {
-      const response = await fetch('/api/resume', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete resume')
-      }
-
-      setResumes(resumes.filter(resume => resume.id !== id))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    }
-  }
-
-  if (!user) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-600">Please sign in to manage your resumes.</p>
-        <Link 
-          href="/auth" 
-          className="mt-4 inline-block bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800"
-        >
-          Sign In
-        </Link>
-      </div>
-    )
-  }
+  const handlePreview = (resumeId: string) => {
+    window.location.href = `/builder/${resumeId}/preview`;
+  };
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading your resumes...</p>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
+  }
+
+  if (resumes.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-gray-600 mb-4">No resumes found</p>
+        <Button variant="primary" size="medium" onClick={() => window.location.href = '/builder'}>
+          Create New Resume
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto">
-      
-      <div className="grid ">
-        <h1 className="text-3xl font-bold text-gray-900">My Resumes</h1>
-        <p>chillman</p>
-        <button
-          onClick={createNewResume}
-          className="flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          New Resume
-        </button>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-800">Your Resumes</h2>
+        <Button variant="primary" size="small" onClick={() => window.location.href = '/builder'}>
+          Create New
+        </Button>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600">{error}</p>
-        </div>
-      )}
-
-      {resumes.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No resumes yet</h3>
-          <p className="text-gray-600 mb-6">Create your first resume to get started.</p>
-          <button
-            onClick={createNewResume}
-            className="flex items-center mx-auto px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+      
+      <div className="grid gap-4">
+        {resumes.map((resume) => (
+          <div
+            key={resume.resumeId}
+            className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
           >
-            <Plus className="w-5 h-5 mr-2" />
-            Create First Resume
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {resumes.map((resume) => (
-            <div key={resume.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {resume.personal?.name || 'Untitled Resume'}
-                  </h3>
-                </div>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-800">
+                  {resume.resumeData.profile?.fullname || 'Untitled Resume'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Template: {resume.template.charAt(0).toUpperCase() + resume.template.slice(1)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Created: {new Date(resume.createdOn).toLocaleDateString()}
+                </p>
               </div>
               
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center text-xs text-gray-500">
-                  <Clock className="w-3 h-3 mr-1.5" />
-                  Updated {new Date(resume.updatedAt).toLocaleDateString()}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link href={`/builder?resumeId=${resume.id}`} className="text-blue-600 hover:text-blue-800 p-2">
-                      <Edit className="w-4 h-4" />
-                  </Link>
-                  <button 
-                    onClick={() => deleteResume(resume.id)}
-                    className="text-red-600 hover:text-red-800 p-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="small"
+                  onClick={() => handlePreview(resume.resumeId)}
+                >
+                  <FaEye className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="small"
+                  onClick={() => handleEdit(resume.resumeId)}
+                >
+                  <FaEdit className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="small"
+                  onClick={() => handleDelete(resume.resumeId)}
+                >
+                  <FaTrash className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default ResumeList;

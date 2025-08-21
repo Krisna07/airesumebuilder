@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import MultiStepForm from '@/components/Forms/MultiStepForm';
 import { ResumeData } from '@/types/types';
+import { ResumeStorage } from '@/lib/resume-storage';
 
 const BuilderPage = () => {
   const params = useParams();
@@ -14,19 +15,11 @@ const BuilderPage = () => {
     if (!slug) return;
     if (typeof window === 'undefined') return; // SSR guard
 
-    // Try to load resume data from localStorage
-    const savedData = window.localStorage.getItem(`resume_${slug}`);
+    // Try to load resume data from ResumeStorage
+    const stored = ResumeStorage.load(slug);
 
-    if (savedData) {
-      try {
-        const parsedData: ResumeData = JSON.parse(savedData);
-        setResumeData(parsedData);
-      } catch (error) {
-        console.error('Error parsing resume data:', error);
-        // Redirect to builder if data is corrupted
-        window.location.href = '/builder';
-        return;
-      }
+    if (stored) {
+      setResumeData(stored.resumeData);
     } else {
       // No data found for this UUID, redirect to builder
       console.warn('No resume data found for UUID:', slug);

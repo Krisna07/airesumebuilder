@@ -11,6 +11,7 @@ interface ButtonProps extends VariantProps<typeof buttonStyles> {
   size: "small" | "medium" | "large";
   fullWidth?: boolean;
   disabled?: boolean;
+  className?: string;
 }
 
 const buttonStyles = cva(
@@ -47,11 +48,12 @@ const Button: React.FC<ButtonProps> = ({
   size,
   fullWidth,
   children,
+  className,
   ...props
 }) => {
   return (
     <button
-      className={clsx(buttonStyles({ variant, size, fullWidth }))}
+      className={clsx(buttonStyles({ variant, size, fullWidth }), className)}
       {...props}
     >
       {children}

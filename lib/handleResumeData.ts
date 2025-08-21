@@ -14,18 +14,11 @@ export async function handleResumeDataUpload(file: File) {
         }
         const data = await res.json();
         const resumeId = self.crypto.randomUUID();
-        // Uncomment the following line if ResumeStorage is needed
-        // const { ResumeStorage } = await import('./resume-storage');
+        // Import and use ResumeStorage
+        const { ResumeStorage } = await import('./resume-storage');
 
-        // Save the extracted resume data
-        localStorage.setItem(`resumeData`, JSON.stringify({
-            resumeId: resumeId,
-            template: 'mordern',
-            resumeData: data.data,
-            createdOn: new Date().toISOString()
-        }));
-        localStorage.setItem(`resume_${resumeId}_template`, 'modern');
-        localStorage.setItem(`resume_${resumeId}_created`, new Date().toISOString());
+        // Save the extracted resume data using ResumeStorage
+        ResumeStorage.save(resumeId, 'modern', data.data);
         return {
             status: 200,
             data: {

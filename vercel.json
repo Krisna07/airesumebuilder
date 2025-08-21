@@ -1,0 +1,18 @@
+{
+  "functions": {
+    "app/api/generate/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/generate-simple/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/test-pdf/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "build": {
+    "env": {
+      "GEMINI_API_KEY": "@gemini_api_key"
+    }
+  }
+}
