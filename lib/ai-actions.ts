@@ -1,7 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ResumeData } from "@/types/types";
 
-const api = `${process.env.GEMINI_API_KEY}`;
+const api = process.env.GEMINI_API_KEY;
+
+if (!api) {
+  throw new Error('GEMINI_API_KEY environment variable is not set. Please add it to your .env.local file.');
+}
 
 const genAI = new GoogleGenerativeAI(api);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
