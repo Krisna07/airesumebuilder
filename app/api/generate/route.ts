@@ -2,8 +2,10 @@
 // export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
-import puppeteer from 'puppeteer';
+const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
 export async function POST(req: NextRequest) {
     try {
@@ -32,16 +34,19 @@ export async function POST(req: NextRequest) {
         }
 
         console.log('🚀 Launching browser...');
+        let executablePath;
+        if (isProd) {
+            executablePath = await chromium.executablePath();
+        } else {
+            // Use Puppeteer's own Chromium in dev
+            const puppeteerPkg = await import('puppeteer');
+            executablePath = puppeteerPkg.executablePath();
+        }
+
         const browser = await puppeteer.launch({
+            args: chromium.args,
+            executablePath,
             headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--no-first-run',
-                '--disable-extensions',
-            ]
         });
 
         console.log('📄 Creating new page...');
