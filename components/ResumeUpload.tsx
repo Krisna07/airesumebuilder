@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { UploadCloud, CheckCircle2, XCircle } from 'lucide-react';
 import { handleResumeDataUpload } from '@/lib/handleResumeData';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/context/PopupContext';
 
 export default function ResumeUpload() {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -11,6 +12,7 @@ export default function ResumeUpload() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const navigate = useRouter();
+  const { showToast } = useToast();
 
   const handleFileChange = async (file: File | null) => {
     if (!file) return;
@@ -21,6 +23,7 @@ export default function ResumeUpload() {
 
     if (file.type !== 'application/pdf') {
       setError('Unsupported file type. Please upload a PDF.');
+      showToast('Please upload a PDF file', 'error');
       setLoading(false);
       return;
     }
@@ -29,14 +32,18 @@ export default function ResumeUpload() {
       const result = await handleResumeDataUpload(file);
       if (result.status != 200) {
         console.log(result?.err);
+        showToast('Failed to process resume', 'error');
         return;
       }
       console.log(result.data);
       const resumeName = result.data?.resumeName;
+      showToast('Resume uploaded successfully!', 'success');
       navigate.push(`/builder/${resumeName}`);
       return setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }

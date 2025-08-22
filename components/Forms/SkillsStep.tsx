@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Input from "../Input";
-import Button from "../Button";
+import Button from '../UI/Button';
 import { FaTimes } from "react-icons/fa";
 import { skills } from "@/types/types";
 

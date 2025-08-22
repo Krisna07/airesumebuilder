@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Input from "../Input";
 import { Experience } from "@/types/types"
-import Button from "../Button";
+import Button from '../UI/Button';
 // import "react-quill/dist/quill.snow.css";
 import { FaTimes } from "react-icons/fa";
 import { Trash2 } from "lucide-react";
