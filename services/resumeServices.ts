@@ -1,10 +1,12 @@
 'use client '
 
+import { ResumeStorage } from "@/lib/resume-storage";
+
 
 export function getResumeData(resumeId: string) {
     // Only access localStorage in the browser
     if (typeof window !== 'undefined' && resumeId) {
-        const availableResume = localStorage.getItem(resumeId);
+        const availableResume = localStorage.getItem('resumeData');
         if (availableResume) {
             try {
                 const parsed = JSON.parse(availableResume);
@@ -35,4 +37,30 @@ export function getResumeData(resumeId: string) {
         education: [],
         certificates: []
     };
+}
+
+export function getJobDescription(url: string) {
+    if (!url) {
+        return {
+            status: 404,
+            message: "No url provided"
+        }
+    }
+    try {
+        console.log(url)
+
+
+
+    } catch (error) {
+        return {
+            status: 400,
+            message: JSON.stringify(error)
+        }
+    }
+
+}
+
+export function createResume() {
+    const uuid = ResumeStorage.create();
+    window.location.href = `/builder/${uuid}`;
 }
