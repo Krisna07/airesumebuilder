@@ -179,9 +179,8 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId }
           </div>
         )}
 
-        <div className='w-full grid gap-2 place-items-center relative'>
+        <div className='w-full h-full grid gap-2 place-items-center relative'>
           {renderStep()}
-
           {currentStep != navigations.length + 1 && (
             <div className='mt-6 gap-4 flex justify-between items-center'>
               <Button type='button' variant='secondary' size='small' onClick={handlePrevious} disabled={currentStep === 1}>
