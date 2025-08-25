@@ -19,10 +19,10 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className={`${inter.className} w-full m-[0_auto] place-items-center`}>
-        <Navbar />
-        <section className='w-full grid place-items-center'>
-          <Providers>{children}</Providers>
-        </section>
+        <Providers>
+          <Navbar />
+          <section className='w-full  grid place-items-center'>{children}</section>
+        </Providers>
       </body>
     </html>
   );
