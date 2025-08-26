@@ -12,7 +12,7 @@ type AuthContextType = {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ status: number; message: string }>;
   logout: () => void;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<{ status: number; message: string }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sessionStorage.removeItem('user');
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (email: string, password: string, name?: string): Promise<{ status: number; message: string }> => {
     setLoading(true);
     try {
       const res = await fetch('/api/user', {
@@ -67,11 +67,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       });
-      if (!res.ok) throw new Error('Registration failed');
+      if (!res.ok) {
+        const errorData = await res.json();
+        return { status: res.status, message: errorData.error || 'Registration failed' };
+      }
       const data = await res.json();
       const userObj = { id: data.id, email: data.email, name: data.name };
       setUser(userObj);
       sessionStorage.setItem('user', JSON.stringify(userObj));
+      return { status: 200, message: 'Registration successful' };
     } finally {
       setLoading(false);
     }
