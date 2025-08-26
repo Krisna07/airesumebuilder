@@ -18,11 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body className={`${inter.className} w-full m-[0_auto] place-items-center`}>
-        <Navbar />
-        <section className='w-full grid place-items-center'>
-          <Providers>{children}</Providers>
-        </section>
+      <body className={`${inter.className} max-h-screen w-full `}>
+        <Providers>
+          <Navbar />
+          <main className='w-full min-h-[calc(100vh-4rem)] grid place-items-center '>
+            <section className='w-full min-[800px]:w-[800px]'>{children}</section>
+          </main>
+        </Providers>
       </body>
     </html>
   );

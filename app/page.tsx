@@ -3,24 +3,22 @@ import Link from 'next/link';
 import React from 'react';
 
 const page = () => {
+
   return (
     <div className='w-full max-w-4xl text-center flex flex-col items-center gap-8 justify-center min-h-[60vh] px-4'>
+      {/* announcement banner */}
+      <div className='w-fit pr-4  p-1 bg-gradient-to-br from-indigo-400/50 to-gray-300 rounded-e-full rounded-bl-full border border-dashed'>👋 Hi there, welcome to ai resume builder app</div>
       <div className='space-y-4'>
         <h1 className='text-4xl md:text-5xl font-bold text-gray-900'>AI Resume Builder</h1>
         <p className='text-xl text-gray-600 max-w-2xl'>Create professional resumes that beat ATS systems and match AI-generated job listings. Choose from modern, classic, or minimal templates.</p>
       </div>
 
-      <div className='flex flex-col sm:flex-row gap-4 items-center'>
+      <div className='flex flex-col gap-4 items-center'>
         <Link href={'./builder'}>
           <Button variant='primary' size='large'>
             Start Building
           </Button>
         </Link>
-        {/* <Link href={'./templates'}>
-          <Button variant='secondary' size='large'>
-            View Templates
-          </Button>
-        </Link> */}
       </div>
 
       {/* Feature highlights */}
