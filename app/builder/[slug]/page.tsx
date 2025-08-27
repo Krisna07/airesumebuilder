@@ -4,30 +4,35 @@ import { useParams } from 'next/navigation';
 import MultiStepForm from '@/components/Forms/MultiStepForm';
 import { ResumeData } from '@/types/types';
 import { ResumeStorage } from '@/lib/resume-storage';
+import { useAuth } from '@/context/authContext';
 
-const BuilderPage = () => {
+const BuilderPage: React.FC = () => {
   const params = useParams();
   const slug = params.slug as string;
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const { user } = useAuth();
   useEffect(() => {
     if (!slug) return;
     if (typeof window === 'undefined') return; // SSR guard
 
-    // Try to load resume data from ResumeStorage
-    const stored = ResumeStorage.load(slug);
+    const fetchResume = async () => {
+      // Try to load resume data from ResumeStorage
+      const stored = await ResumeStorage.load(slug);
+      // console.log(stored);
+      if (stored) {
+        setResumeData(stored);
+      } else {
+        // No data found for this UUID, redirect to builder
+        console.warn('No resume data found for UUID:', slug);
+        window.location.href = '/builder';
+        return;
+      }
 
-    if (stored) {
-      setResumeData(stored.resumeData);
-    } else {
-      // No data found for this UUID, redirect to builder
-      console.warn('No resume data found for UUID:', slug);
-      window.location.href = '/builder';
-      return;
-    }
+      setLoading(false);
+    };
 
-    setLoading(false);
+    fetchResume();
   }, [slug]);
 
   if (loading) {
@@ -62,7 +67,7 @@ const BuilderPage = () => {
 
   return (
     <div className='w-full'>
-      <MultiStepForm resumeContent={resumeData} resumeId={slug} />
+      <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user?.id} />
     </div>
   );
 };

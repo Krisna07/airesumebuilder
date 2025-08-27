@@ -16,20 +16,24 @@ import { ResumeStorage } from '@/lib/resume-storage';
 interface MultiStepFormProps {
   resumeContent: ResumeData;
   resumeId: string;
+  userId: string | undefined;
 }
 
-const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId }) => {
+const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
   const [formData, setFormData] = useState<ResumeData>(resumeContent);
   const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
 
   useEffect(() => {
     setFormData(resumeContent);
     // Load saved resume (data and template) for this resumeId
-    const stored = ResumeStorage.load(resumeId);
-    if (stored) {
-      setFormData(stored.resumeData);
-      setSelectedTemplate(stored.template);
-    }
+    const fetchResume = async () => {
+      const stored = await ResumeStorage.load(resumeId);
+      if (stored) {
+        setFormData(stored);
+        setSelectedTemplate(stored.template);
+      }
+    };
+    fetchResume();
   }, [resumeContent, resumeId]);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -37,13 +41,13 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId }
   // Save data and template whenever formData or template changes
   useEffect(() => {
     if (resumeId && formData && selectedTemplate) {
-      ResumeStorage.save(resumeId, selectedTemplate, formData);
+      ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
     }
   }, [formData, selectedTemplate, resumeId]);
 
   const handleNext = async () => {
     // Save current data and template before proceeding
-    ResumeStorage.save(resumeId, selectedTemplate, formData);
+    ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
 
     if (currentStep === 7) {
       // Redirect to preview page with UUID
@@ -55,12 +59,12 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId }
 
   const handlePrevious = () => {
     // Save current data and template before going back
-    ResumeStorage.save(resumeId, selectedTemplate, formData);
+    ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
     setCurrentStep((prevStep) => Math.max(prevStep - 1, 1));
   };
 
   const handleSaveDraft = () => {
-    ResumeStorage.save(resumeId, selectedTemplate, formData);
+    ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
     alert('Draft saved successfully!');
   };
 
@@ -74,7 +78,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId }
       case 1:
         return (
           <FormLayout heading={"Let's start with your details"} subheading={'Provide essential information to proceed.'}>
-            <UserInfoStep data={formData.profile} onChange={(data: Profile) => setFormData({ ...formData, profile: data })} />
+            <UserInfoStep data={formData?.profile} onChange={(data: Profile) => setFormData({ ...formData, profile: data })} />
           </FormLayout>
         );
       case 2:

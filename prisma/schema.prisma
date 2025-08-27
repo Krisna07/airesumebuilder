@@ -15,12 +15,15 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  resumes   Resume[]
 }
 model Resume {
   id            String   @id @default(uuid())
   userId        String
+  user          User     @relation(fields: [userId], references: [id])
   title         String
-  userInfo      Json
+  template      String
+  profile       Json
   experiences   Json
   educations    Json
   skills        Json

@@ -4,8 +4,10 @@ import Link from 'next/link';
 import React from 'react';
 import { File, Grid, Rocket } from 'lucide-react';
 import { createResume } from '@/services/resumeServices';
+import { useAuth } from '@/context/authContext';
 
 const Page = () => {
+  const { user } = useAuth();
   return (
     <section className='w-full min-h-[80vh] sm:h-full grid place-items-center justify-center'>
       <div className='place-items-center gap-4 grid'>
@@ -17,9 +19,11 @@ const Page = () => {
         </div>
 
         <div className='flex flex-col gap-3 w-full items-center'>
-          <Button variant='primary' size='medium' onClick={createResume}>
-            Create New Resume
-          </Button>
+          {user && (
+            <Button variant='primary' size='medium' onClick={() => createResume(user.id)}>
+              Create New Resume
+            </Button>
+          )}
           <div className='flex gap-4 '>
             <Button variant='secondary' size='medium' onClick={() => (window.location.href = `/myresumes`)}>
               <Grid /> View My Resumes
