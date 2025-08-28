@@ -11,11 +11,6 @@ export class ResumeStorage {
     private static storageKey = 'resumeData';
 
     static async save(resumeId: string, userId: string, template: UserResume['template'], resumeData: ResumeData) {
-        console.log({
-            resumeId: resumeId,
-            resumeData: resumeData,
-            template: template
-        })
 
         const saveResumeToDb = await fetch('/api/resume', {
             method: 'PUT',
@@ -27,23 +22,14 @@ export class ResumeStorage {
                 ...resumeData
             })
         }).then((res) => res.json())
+        if (saveResumeToDb.status !== 200) {
+            return {
+                status: saveResumeToDb.status,
+                error: saveResumeToDb.error || 'Failed to save resume',
+                message: saveResumeToDb.message || 'Failed to save resume'
+            };
+        }
         return saveResumeToDb
-
-        // const all = this.loadAll();
-        // const now = new Date().toISOString();
-        // const idx = all.findIndex(r => r.resumeId === resumeId);
-        // const newResume: StoredResume = {
-        //     resumeId,
-        //     template,
-        //     resumeData,
-        //     createdOn: idx === -1 ? now : all[idx].createdOn
-        // };
-        // if (idx === -1) {
-        //     all.push(newResume);
-        // } else {
-        //     all[idx] = newResume;
-        // }
-        // localStorage.setItem(userId, JSON.stringify(all));
     }
 
     static async load(resumeId: string) {
@@ -51,18 +37,30 @@ export class ResumeStorage {
         if (resumeData.status !== 200) {
             throw new Error(resumeData.message || 'Failed to load resume');
         }
-        return resumeData.data;
+        return resumeData;
     }
 
-    // static loadAll(): StoredResume[] {
-    //     const raw = localStorage.getItem(this.storageKey);
-    //     if (!raw) return [];
-    //     try {
-    //         return JSON.parse(raw) as StoredResume[];
-    //     } catch {
-    //         return [];
-    //     }
-    // }
+    static async loadAll(userId: string | null) {
+        if (!userId) return [];
+        try {
+            const response = await fetch(`/api/resume/all?id=${userId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            }).then(res => res.json())
+            if (response.status === 200) {
+                return response.data
+
+            } else {
+                return response
+            }
+        } catch (err) {
+            return {
+                status: 500,
+                error: (err instanceof Error ? err.message : 'Unknown error'),
+                Message: 'Failed to fetch resumes'
+            }
+        }
+    }
 
     // static delete(resumeId: string): void {
     //     const all = this.loadAll().filter(r => r.resumeId !== resumeId);
@@ -88,10 +86,40 @@ export class ResumeStorage {
                 links: [],
                 summary: ''
             },
-            skills: [],
-            experience: [],
-            education: [],
-            certificates: [],
+            skills: [
+                {
+                    type: '',
+                    skills: ['']
+                }
+            ],
+            experiences: [
+                {
+                    title: '',
+                    company: '',
+                    location: '',
+                    startDate: '',
+                    endDate: '',
+                    current: false,
+                    responsibilities: ['']
+                }
+            ],
+            educations: [
+                {
+                    degree: '',
+                    university: '',
+                    startDate: '',
+                    endDate: '',
+                    current: false,
+                    location: ''
+                }
+            ],
+            certificates: [
+                {
+                    title: '',
+                    issued_by: '',
+                    year: ''
+                }
+            ],
             ...data
         };
         const result = await this.save(resumeId, userId, template, emptyData);

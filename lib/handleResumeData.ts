@@ -1,6 +1,6 @@
 
 
-export async function handleResumeDataUpload(file: File) {
+export async function handleResumeDataUpload(file: File, userId: string) {
     try {
         const text = await extractTextFromPdf(file)
         const res = await fetch('/api/ai/extract-resume', {
@@ -18,7 +18,7 @@ export async function handleResumeDataUpload(file: File) {
         const { ResumeStorage } = await import('./resume-storage');
 
         // Save the extracted resume data using ResumeStorage
-        ResumeStorage.save(resumeId, 'modern', data.data);
+        await ResumeStorage.save(resumeId, userId, 'modern', data.data);
         return {
             status: 200,
             data: {

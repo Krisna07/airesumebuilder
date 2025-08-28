@@ -23,7 +23,9 @@ export async function GET(req: NextRequest) {
         // For GET, use query params, not req.json()
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id') ?? undefined;
+        console.log(`Fetching resume with id: ${id}`);
         const resume = await prisma.resume.findFirst({ where: { id } })
+        console.log(resume);
         return NextResponse.json({
             status: 200,
             data: {
@@ -41,7 +43,8 @@ export async function GET(req: NextRequest) {
     } catch (err) {
         return NextResponse.json({
             status: 500,
-            error: (err instanceof Error ? err.message : 'Unknown error')
+            error: (err instanceof Error ? err.message : 'Unknown error'),
+            message: ' Internal server error'
         });
     }
 }
@@ -51,24 +54,23 @@ export async function PUT(req: NextRequest) {
     try {
         const resumeData: Resume = await req.json();
         const resumeId  = resumeData.id || randomUUID();
-        const existing = await prisma.resume.findUnique({ where: { id: resumeId } })
+        const existing = await prisma.resume.findFirst({ where: { id: resumeId } })
         if (!existing) {
           const newResume = {
             id: resumeId,
             userId: resumeData.userId,
             title: resumeData.title || '',
-                template: resumeData.template ?? 'Classic',
-                profile: JSON.stringify(resumeData.profile || {}),
-                experiences: JSON.stringify(resumeData.experiences || []),
-                educations: JSON.stringify(resumeData.educations || []),
-                skills: JSON.stringify(resumeData.skills || []),
-                certificates: JSON.stringify(resumeData.certificates || []),
+              template: resumeData.template ?? 'Classic',
+              profile: JSON.stringify(resumeData.profile || {}),
+              experiences: JSON.stringify(resumeData.experiences || []),
+              educations: JSON.stringify(resumeData.educations || []),
+              skills: JSON.stringify(resumeData.skills || []),
+              certificates: JSON.stringify(resumeData.certificates || []),
         };
         const createdResume = await prisma.resume.create({ data: newResume });
          return NextResponse.json({
             status: 200,
-            data: {
-                resume:{
+             data: {
                     id: createdResume.id,
                     title: createdResume.title,
                     template: createdResume.template,
@@ -78,33 +80,33 @@ export async function PUT(req: NextRequest) {
                     skills: typeof createdResume.skills === "string"  ? JSON.parse(createdResume.skills) : [],
                     certificates: typeof createdResume.certificates === "string"  ? JSON.parse(createdResume.certificates) : [],
                 },
-                message: "Resume created successfully."
-            }
+             message: "Resume created successfully."
+
         });
         }
         const updatedResume = await prisma.resume.update({
             where: { id: resumeData.id },
             data: {
-            userId: resumeData.userId,
-            title: resumeData.title || '',
-            template: resumeData.template ?? 'Classic',
-            profile: JSON.stringify(resumeData.profile || {}),
-            experiences: JSON.stringify(resumeData.experiences || []),
-            educations: JSON.stringify(resumeData.educations || []),
-            skills: JSON.stringify(resumeData.skills || []),
-            certificates: JSON.stringify(resumeData.certificates || []),
+                userId: resumeData.userId,
+                title: resumeData.title,
+                template: resumeData.template,
+                profile: JSON.stringify(resumeData.profile),
+                experiences: JSON.stringify(resumeData.experiences),
+                educations: JSON.stringify(resumeData.educations),
+                skills: JSON.stringify(resumeData.skills),
+                certificates: JSON.stringify(resumeData.certificates),
             }
         });
-        // console.log(updatedResume)
+
         return NextResponse.json({
             status: 200,
             data: {
                 id: updatedResume.id,
-                resume: {
+                data: {
                     id: updatedResume.id,
                     title: updatedResume.title,
                     template: updatedResume.template,
-                    profile: typeof updatedResume.profile === "string"  ? JSON.parse(updatedResume.profile) : {},
+                    profile: typeof updatedResume.profile === "string" ? JSON.parse(updatedResume.profile) : {},
                     experiences: typeof updatedResume.experiences === "string"  ? JSON.parse(updatedResume.experiences) : [],
                     educations: typeof updatedResume.educations === "string"  ? JSON.parse(updatedResume.educations) : [],
                     skills: typeof updatedResume.skills === "string"  ? JSON.parse(updatedResume.skills) : [],
@@ -116,7 +118,8 @@ export async function PUT(req: NextRequest) {
     } catch (err) {
         return NextResponse.json({
             status: 500,
-            error: (err instanceof Error ? err.message : 'Unknown error')
+            error: (err instanceof Error ? err.message : 'Unknown error'),
+            message: ' Internal server error'
         });
     }
 }

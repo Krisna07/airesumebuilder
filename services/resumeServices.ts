@@ -61,11 +61,20 @@ export function getJobDescription(url: string) {
 }
 
 export async function createResume(userId: string) {
-    const uuid = await ResumeStorage.create(userId);
-    // console.log(uuid)
-    window.location.href = `/builder/${uuid}`;
+    const response = await ResumeStorage.create(userId);
+    console.log(response)
+    if (response.error) {
+        console.log(response.error);
+        return
+    }
+    if (response.status !== 200) {
+        console.log(response.message);
+        return
+    }
+
+    window.location.href = `/builder/${response.data.id}`;
     return {
-        uuid
+        response
     }
 
 }
@@ -85,6 +94,25 @@ export async function getResume(resumeId: string) {
             status: 404,
             error: err,
             message: 'resume not found'
+        }
+    }
+}
+
+export async function getAllResumes(userId: string) {
+    try {
+        const resumes = await fetch(`/api/resume/all?userId=${userId}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        }).then(res => res.json())
+        return {
+            status: 200,
+            data: resumes.data
+        }
+    } catch (err) {
+        return {
+            status: 500,
+            error: (err instanceof Error ? err.message : 'Unknown error'),
+            Message: 'Failed to fetch resumes'
         }
     }
 }

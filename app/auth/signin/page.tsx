@@ -25,12 +25,10 @@ const Page: React.FC = () => {
     if (response?.status !== 200) {
       return toast.showToast(response?.message, 'error', 2000);
     }
+    toast.showToast(response.message, 'success', 3000);
+    return (window.location.href = '/builder');
   };
 
-  const { user } = useAuth();
-  if (user) {
-    return (window.location.href = '/builder');
-  }
   return (
     <div className='w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
       <h2 className='text-6xl font-bold'>Welcome back</h2>

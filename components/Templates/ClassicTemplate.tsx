@@ -7,7 +7,7 @@ interface ClassicTemplateProps {
 }
 
 const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ data }) => {
-  const { profile, skills, experience, education, certificates } = data;
+  const { profile, skills, experiences, educations, certificates } = data;
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
@@ -41,14 +41,14 @@ const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ data }) => {
           </section>
         )}
 
-        {/* Experience */}
-        {experience && experience.length > 0 && (
+        {/* Experiences */}
+        {experiences && experiences.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">
-              Professional Experience
+              Professional Experiences
             </h2>
             <div className="space-y-6">
-              {experience.map((exp, index) => (
+              {experiences.map((exp, index) => (
                 <div key={index}>
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
                     <div>
@@ -73,14 +73,14 @@ const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ data }) => {
           </section>
         )}
 
-        {/* Education */}
-        {education && education.length > 0 && (
+        {/* Educations */}
+        {educations && educations.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">
-              Education
+              Educations
             </h2>
             <div className="space-y-4">
-              {education.map((edu, index) => (
+              {educations.map((edu, index) => (
                 <div key={index} className="flex flex-col md:flex-row md:justify-between md:items-start">
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">{edu.degree}</h3>

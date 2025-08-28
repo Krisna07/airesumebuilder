@@ -19,14 +19,17 @@ const PreviewPage = () => {
     if (typeof window === 'undefined') return;
 
     try {
-      const stored = ResumeStorage.load(slug);
-      if (stored) {
-        setResumeData(stored.resumeData);
-      } else {
-        console.warn('No resume data found for UUID:', slug);
-        window.location.href = '/builder';
-        return;
-      }
+      const fetchResume = async () => {
+        const stored = await ResumeStorage.load(slug);
+        if (stored) {
+          setResumeData(stored.data);
+        } else {
+          console.warn('No resume data found for UUID:', slug);
+          window.location.href = '/builder';
+          return;
+        }
+      };
+      fetchResume();
     } catch (error) {
       console.error('Error loading resume data:', error);
       window.location.href = '/builder';
@@ -36,11 +39,11 @@ const PreviewPage = () => {
     setLoading(false);
   }, [slug]);
 
- let resumeTemplate
- 
+  let resumeTemplate;
+
   const handleDownloadPDF = async () => {
     if (!resumeData) return;
-   resumeTemplate = ResumeStorage.load(slug)?.template
+    resumeTemplate = await ResumeStorage.load(slug);
     try {
       console.log('🔄 Starting PDF download...');
 

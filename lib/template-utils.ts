@@ -14,7 +14,7 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
     .header { margin-bottom: 20px;  }
     .section { margin-bottom: 18px;  }
     .section-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .experience-item, .education-item { margin-bottom: 15px; page-break-inside: avoid; }
+    .experiences-item, .educations-item { margin-bottom: 15px; page-break-inside: avoid; }
     .job-title { font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
     .company { font-size: 12px; font-weight: 500; color: #4b5563; margin-bottom: 2px; }
     .date-location { font-size: 11px; color: #6b7280; margin-bottom: 6px; font-style: italic; }
@@ -39,8 +39,8 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
       .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.5px; }
       .section-title { color: #3b82f6; border-color: #3b82f6; font-weight: 700; }
       .skill-tag { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; border-color: #93c5fd; font-weight: 500; }
-      .experience-item { border-left: 3px solid #3b82f6; padding-left: 15px; margin-left: 5px; }
-      .education-item { border-left: 3px solid #8b5cf6; padding-left: 15px; margin-left: 5px; }
+      .experiences-item { border-left: 3px solid #3b82f6; padding-left: 15px; margin-left: 5px; }
+      .educations-item { border-left: 3px solid #8b5cf6; padding-left: 15px; margin-left: 5px; }
     `,
     classic: `
       .header { text-align: center; border-bottom: 4px solid #1f2937; padding: 25px; margin-bottom: 25px; border-radius: 6px; background: linear-gradient(to right, #f8fafc, #f1f5f9); }
@@ -48,8 +48,8 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
       .header .contact-info { justify-content: center; font-weight: 500; }
       .section-title { color: #1f2937; border-color: #1f2937; font-weight: 700; font-family: 'Roboto', sans-serif; }
       .skill-tag { background: #1f2937; color: white; border-color: #374151; font-weight: 500; }
-      .experience-item { border-left: 3px solid #1f2937; padding-left: 15px; margin-left: 5px; }
-      .education-item { border-left: 3px solid #374151; padding-left: 15px; margin-left: 5px; }
+      .experiences-item { border-left: 3px solid #1f2937; padding-left: 15px; margin-left: 5px; }
+      .educations-item { border-left: 3px solid #374151; padding-left: 15px; margin-left: 5px; }
     `,
     minimal: `
       body { font-weight: 300; font-family: 'Inter', sans-serif; }
@@ -58,8 +58,8 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
       .section-title { font-weight: 400; letter-spacing: 2px; color: #6b7280; border-color: #e5e7eb; }
       .job-title { font-weight: 500; }
       .skill-tag { background: #f9fafb; color: #374151; border-color: #e5e7eb; font-weight: 400; }
-      .experience-item { border-left: 2px solid #e5e7eb; padding-left: 15px; margin-left: 5px; }
-      .education-item { border-left: 2px solid #f3f4f6; padding-left: 15px; margin-left: 5px; }
+      .experiences-item { border-left: 2px solid #e5e7eb; padding-left: 15px; margin-left: 5px; }
+      .educations-item { border-left: 2px solid #f3f4f6; padding-left: 15px; margin-left: 5px; }
     `
   };
 
@@ -70,8 +70,8 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
 
   const safeJoin = (arr: string[] | undefined) => arr?.join('') || '';
 
-  const renderExperience = (exp: Experience) => `
-    <div class="experience-item">
+  const renderExperiencesexperiences = (exp: Experience) => `
+    <div class="experiences-item">
       <div class="job-title">${escapeHtml(exp.title)}</div>
       <div class="company">${escapeHtml(exp.company)}</div>
       <div class="date-location">${escapeHtml(exp.location)} • ${escapeHtml(exp.startDate)} - ${exp.current ? 'Present' : escapeHtml(exp.endDate)}</div>
@@ -81,8 +81,8 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
     </div>
   `;
 
-  const renderEducation = (edu: Education) => `
-    <div class="education-item">
+  const rendereducations = (edu: Education) => `
+    <div class="educations-item">
       <div class="job-title">${escapeHtml(edu.degree)}</div>
       <div class="company">${escapeHtml(edu.university)}</div>
       <div class="date-location">${escapeHtml(edu.location)} • ${escapeHtml(edu.startDate)} - ${edu.current ? 'Present' : escapeHtml(edu.endDate)}</div>
@@ -112,17 +112,17 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
           ${data.profile.summary ? `<div class="summary">${escapeHtml(data.profile.summary)}</div>` : ''}
         </div>
 
-        ${data.experience?.length ? `
+        ${data.experiences?.length ? `
           <div class="section">
             <div class="section-title">Professional Experience</div>
-            ${safeJoin(data.experience.slice(0, 4).map(renderExperience))}
+            ${safeJoin(data.experiences.slice(0, 4).map(renderExperiencesexperiences))}
           </div>
         ` : ''}
 
-        ${data.education?.length ? `
+        ${data.educations?.length ? `
           <div class="section">
-            <div class="section-title">Education</div>
-            ${safeJoin(data.education.slice(0, 3).map(renderEducation))}
+            <div class="section-title">educations</div>
+            ${safeJoin(data.educations.slice(0, 3).map(rendereducations))}
           </div>
         ` : ''}
 

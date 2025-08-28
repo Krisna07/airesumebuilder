@@ -13,7 +13,12 @@ export async function POST(req: NextRequest) {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: 'User already exists.' }, { status: 409 });
+      return NextResponse.json(
+        {
+          status: 409,
+          message: 'User already exists.'
+        }
+      )
     }
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -25,9 +30,16 @@ export async function POST(req: NextRequest) {
         name,
       },
     });
-    return NextResponse.json({ id: user.id, email: user.email, name: user.name }, { status: 201 });
+    return NextResponse.json({
+      data: { id: user.id, email: user.email, name: user.name },
+      message: 'User created successfully',
+      status: 200
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+    return NextResponse.json({
+      message: 'Internal server error, cannot create user',
+      error: JSON.stringify(error),
+      status: 500
+    });
   }
 }

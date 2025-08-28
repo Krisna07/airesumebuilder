@@ -3,7 +3,6 @@ import Link from 'next/link';
 import React from 'react';
 
 const page = () => {
-
   return (
     <div className='w-full max-w-4xl text-center flex flex-col items-center gap-8 justify-center min-h-[60vh] px-4'>
       {/* announcement banner */}

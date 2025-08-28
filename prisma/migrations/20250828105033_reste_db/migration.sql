@@ -15,7 +15,8 @@ CREATE TABLE "public"."Resume" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "userInfo" JSONB NOT NULL,
+    "template" TEXT NOT NULL,
+    "profile" JSONB NOT NULL,
     "experiences" JSONB NOT NULL,
     "educations" JSONB NOT NULL,
     "skills" JSONB NOT NULL,
@@ -28,3 +29,6 @@ CREATE TABLE "public"."Resume" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
+
+-- AddForeignKey
+ALTER TABLE "public"."Resume" ADD CONSTRAINT "Resume_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

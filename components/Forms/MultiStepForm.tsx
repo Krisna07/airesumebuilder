@@ -24,13 +24,12 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
 
   useEffect(() => {
-    setFormData(resumeContent);
     // Load saved resume (data and template) for this resumeId
     const fetchResume = async () => {
       const stored = await ResumeStorage.load(resumeId);
       if (stored) {
-        setFormData(stored);
-        setSelectedTemplate(stored.template);
+        setFormData(stored.data);
+        setSelectedTemplate(stored?.data.template);
       }
     };
     fetchResume();
@@ -90,14 +89,14 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       case 3:
         return (
           <FormLayout heading={'Add your Experience'} subheading={'Provide your work experience'}>
-            <ExperienceStep data={formData.experience} onChange={(data: Experience[]) => setFormData({ ...formData, experience: data })} />
+            <ExperienceStep data={formData.experiences} onChange={(data: Experience[]) => setFormData({ ...formData, experiences: data })} />
           </FormLayout>
         );
 
       case 4:
         return (
           <FormLayout heading={'Add your Educations'} subheading={'Provide all your academic qualifications.'}>
-            <EducationStep data={formData.education} onChange={(data: Education[]) => setFormData({ ...formData, education: data })} />
+            <EducationStep data={formData.educations} onChange={(data: Education[]) => setFormData({ ...formData, educations: data })} />
           </FormLayout>
         );
       case 5:

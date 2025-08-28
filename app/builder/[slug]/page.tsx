@@ -9,23 +9,21 @@ import { useAuth } from '@/context/authContext';
 const BuilderPage: React.FC = () => {
   const params = useParams();
   const slug = params.slug as string;
-  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [resumeData, setResumeData] = useState<ResumeData>();
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   useEffect(() => {
     if (!slug) return;
-    if (typeof window === 'undefined') return; // SSR guard
 
     const fetchResume = async () => {
       // Try to load resume data from ResumeStorage
       const stored = await ResumeStorage.load(slug);
-      // console.log(stored);
+      console.log(stored);
       if (stored) {
-        setResumeData(stored);
+        setResumeData(stored.data);
       } else {
         // No data found for this UUID, redirect to builder
         console.warn('No resume data found for UUID:', slug);
-        window.location.href = '/builder';
         return;
       }
 
@@ -47,22 +45,17 @@ const BuilderPage: React.FC = () => {
   }
 
   if (!resumeData) {
-    if (typeof window !== 'undefined') {
-      return (
-        <div className='w-full min-h-[60vh] flex items-center justify-center'>
-          <div className='text-center'>
-            <h2 className='text-2xl font-bold text-gray-800 mb-4'>Resume Not Found</h2>
-            <p className='text-gray-600 mb-6'>The resume you&#39;re looking for doesn&#39;t exist or has been deleted.</p>
-            <button onClick={() => (window.location.href = '/builder')} className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
-              Back to Builder
-            </button>
-          </div>
+    return (
+      <div className='w-full min-h-[60vh] flex items-center justify-center'>
+        <div className='text-center'>
+          <h2 className='text-2xl font-bold text-gray-800 mb-4'>Resume Not Found</h2>
+          <p className='text-gray-600 mb-6'>The resume you&#39;re looking for doesn&#39;t exist or has been deleted.</p>
+          <button onClick={() => (window.location.href = '/builder')} className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+            Back to Builder
+          </button>
         </div>
-      );
-    } else {
-      // SSR fallback
-      return null;
-    }
+      </div>
+    );
   }
 
   return (

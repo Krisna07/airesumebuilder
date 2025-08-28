@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-
 type User = {
   id: string;
   email: string;
@@ -24,31 +23,45 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Load user from sessionStorage on mount
   useEffect(() => {
+    setLoading(true);
     const stored = sessionStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/user/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       if (!res.ok) {
         const errorData = await res.json();
-        return { status: res.status, message: errorData.error || 'Login failed' };
+        return {
+          status: errorData.status,
+          message: errorData.error || 'Login failed'
+        };
       }
       const data = await res.json();
-      const userObj = { id: data.id, email: data.email, name: data.name };
+      const userObj = {
+        id: data.data.id,
+        email: data.data.email,
+        name: data.data.name
+      };
       setUser(userObj);
       sessionStorage.setItem('user', JSON.stringify(userObj));
-      return { status: 200, message: 'Login successful' };
+      return {
+        status: 200,
+        message: 'Login successful'
+      };
     } finally {
       setLoading(false);
     }
@@ -62,20 +75,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (email: string, password: string, name?: string): Promise<{ status: number; message: string }> => {
     setLoading(true);
     try {
-      const res = await fetch('/api/user', {
+      const res = await fetch('/api/user/newuser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       });
       if (!res.ok) {
         const errorData = await res.json();
-        return { status: res.status, message: errorData.error || 'Registration failed' };
+        return {
+          status: errorData.status,
+          message: errorData.message || 'Registration failed'
+        };
       }
       const data = await res.json();
-      const userObj = { id: data.id, email: data.email, name: data.name };
+      const userObj = {
+        id: data.data.id,
+        email: data.data.email,
+        name: data.data.name
+      };
       setUser(userObj);
       sessionStorage.setItem('user', JSON.stringify(userObj));
-      return { status: 200, message: 'Registration successful' };
+      return { status: 200, message: data.message };
     } finally {
       setLoading(false);
     }
