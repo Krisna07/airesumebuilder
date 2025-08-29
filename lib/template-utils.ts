@@ -131,7 +131,7 @@ export function generateTemplateHTML(template: string, data: ResumeData): string
         ${data.educations?.length ? `
           <div class="section">
             <div class="section-title">educations</div>
-            ${safeJoin(data.educations.slice(0, 3).map(rendereducations))}
+            ${safeJoin(data.educations.slice(0, 3).map(renderEducations))}
           </div>
         ` : ''}
 
