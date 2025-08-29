@@ -20,7 +20,7 @@ const Page: React.FC = () => {
     e.preventDefault();
 
     switch (true) {
-      case !form.password && !form.password:
+      case !form.email && !form.password:
         return toast.showToast('🙈 No value provided for user and password', 'error', 3000);
       case !form.email:
         return toast.showToast('📧 Email is missing', 'error', 3000);
