@@ -8,7 +8,12 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password, name } = await req.json();
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Email and password are required.',
+          status: 400
+        }
+      );
     }
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -16,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           status: 409,
-          message: 'User already exists.'
+          error: 'User already exists.'
         }
       )
     }
@@ -32,12 +37,10 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({
       data: { id: user.id, email: user.email, name: user.name },
-      message: 'User created successfully',
       status: 200
     });
   } catch (error) {
     return NextResponse.json({
-      message: 'Internal server error, cannot create user',
       error: JSON.stringify(error),
       status: 500
     });

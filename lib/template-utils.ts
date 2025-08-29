@@ -1,16 +1,13 @@
-import { Education, Experience, ResumeData, UserResume } from '@/types/types';
+import { Education, Experience, ResumeData } from '@/types/types';
 
-export function generateTemplateHTML(template: UserResume['template'], data: ResumeData): string {
+export function generateTemplateHTML(template: string, data: ResumeData): string {
   if (!data?.profile) throw new Error('Profile data is required');
-  if (!['modern', 'classic', 'minimal'].includes(template)) {
-    throw new Error(`Invalid template: ${template}`);
-  }
 
   const baseStyles = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333; font-size: 12px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; max-width: 210mm; margin: 0 auto; background: white; }
-    .container { max-width: 190mm; margin: 0 auto; padding: 15mm; min-height: 297mm; }
+    .container { max-width: 190mm; margin: 0 auto; padding: 10mm; min-height: 297mm; }
     .header { margin-bottom: 20px;  }
     .section { margin-bottom: 18px;  }
     .section-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -33,35 +30,47 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
     @page { size: A4; margin: 10mm; }
   `;
 
-  const templateStyles: Record<UserResume['template'], string> = {
-    modern: `
-      .header {padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+  const getTemplateStyles = (template: string) => {
+    switch (template) {
+      case 'modern':
+        // Modern template styles
+        return ` .header {padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
       .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.5px; }
       .section-title { color: #3b82f6; border-color: #3b82f6; font-weight: 700; }
       .skill-tag { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; border-color: #93c5fd; font-weight: 500; }
       .experiences-item { border-left: 3px solid #3b82f6; padding-left: 15px; margin-left: 5px; }
-      .educations-item { border-left: 3px solid #8b5cf6; padding-left: 15px; margin-left: 5px; }
-    `,
-    classic: `
-      .header { text-align: center; border-bottom: 4px solid #1f2937; padding: 25px; margin-bottom: 25px; border-radius: 6px; background: linear-gradient(to right, #f8fafc, #f1f5f9); }
+      .educations-item { border-left: 3px solid #8b5cf6; padding-left: 15px; margin-left: 5px; }`;
+      case 'minimal':
+        // Minimal template styles
+        return ` .header { text-align: center; border-bottom: 4px solid #1f2937; padding: 25px; margin-bottom: 25px; border-radius: 6px; background: linear-gradient(to right, #f8fafc, #f1f5f9); }
       .header h1 { font-size: 30px; font-weight: 700; margin-bottom: 12px; color: #1f2937; font-family: 'Roboto', sans-serif; }
       .header .contact-info { justify-content: center; font-weight: 500; }
       .section-title { color: #1f2937; border-color: #1f2937; font-weight: 700; font-family: 'Roboto', sans-serif; }
       .skill-tag { background: #1f2937; color: white; border-color: #374151; font-weight: 500; }
       .experiences-item { border-left: 3px solid #1f2937; padding-left: 15px; margin-left: 5px; }
-      .educations-item { border-left: 3px solid #374151; padding-left: 15px; margin-left: 5px; }
-    `,
-    minimal: `
-      body { font-weight: 300; font-family: 'Inter', sans-serif; }
+      .educations-item { border-left: 3px solid #374151; padding-left: 15px; margin-left: 5px; }`
+      case 'classic':
+        return ` body { font-weight: 300; font-family: 'Inter', sans-serif; }
       .header h1 { font-size: 34px; font-weight: 100; margin-bottom: 12px; color: #1f2937; letter-spacing: -1px; }
       .header .contact-info { color: #6b7280; font-weight: 400; }
       .section-title { font-weight: 400; letter-spacing: 2px; color: #6b7280; border-color: #e5e7eb; }
       .job-title { font-weight: 500; }
       .skill-tag { background: #f9fafb; color: #374151; border-color: #e5e7eb; font-weight: 400; }
       .experiences-item { border-left: 2px solid #e5e7eb; padding-left: 15px; margin-left: 5px; }
-      .educations-item { border-left: 2px solid #f3f4f6; padding-left: 15px; margin-left: 5px; }
-    `
-  };
+      .educations-item { border-left: 2px solid #f3f4f6; padding-left: 15px; margin-left: 5px; }`
+      default:
+        // Classic template styles
+        return ` body { font-weight: 300; font-family: 'Inter', sans-serif; }
+      .header h1 { font-size: 34px; font-weight: 100; margin-bottom: 12px; color: #1f2937; letter-spacing: -1px; }
+      .header .contact-info { color: #6b7280; font-weight: 400; }
+      .section-title { font-weight: 400; letter-spacing: 2px; color: #6b7280; border-color: #e5e7eb; }
+      .job-title { font-weight: 500; }
+      .skill-tag { background: #f9fafb; color: #374151; border-color: #e5e7eb; font-weight: 400; }
+      .experiences-item { border-left: 2px solid #e5e7eb; padding-left: 15px; margin-left: 5px; }
+      .educations-item { border-left: 2px solid #f3f4f6; padding-left: 15px; margin-left: 5px; }`
+    }
+  }
 
   const escapeHtml = (text = ''): string =>
     text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -102,7 +111,7 @@ export function generateTemplateHTML(template: UserResume['template'], data: Res
     <head>
       <meta charset="utf-8">
       <title>${escapeHtml(data.profile.fullname)} - Resume</title>
-      <style>${baseStyles}${templateStyles[template]}</style>
+      <style>${baseStyles}${getTemplateStyles(template)}</style>
     </head>
     <body>
       <div class="container">

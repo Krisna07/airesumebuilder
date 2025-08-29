@@ -4,6 +4,10 @@ export interface User {
   name?: string;
 }
 export interface ResumeData {
+  id: string,
+  userId: string,
+  title: string,
+  template: string,
   profile: Profile;
   skills: skills[];
   experiences: Experience[];

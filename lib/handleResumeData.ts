@@ -1,3 +1,4 @@
+import { ResumeService } from '@/services/resumeServices';
 
 
 export async function handleResumeDataUpload(file: File, userId: string) {
@@ -15,10 +16,10 @@ export async function handleResumeDataUpload(file: File, userId: string) {
         const data = await res.json();
         const resumeId = self.crypto.randomUUID();
         // Import and use ResumeStorage
-        const { ResumeStorage } = await import('./resume-storage');
+        // const { ResumeStorage } = await import('./resume-storage');
 
         // Save the extracted resume data using ResumeStorage
-        await ResumeStorage.save(resumeId, userId, 'modern', data.data);
+        await ResumeService.save(resumeId, userId, 'modern', data.data);
         return {
             status: 200,
             data: {

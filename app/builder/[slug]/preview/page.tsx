@@ -1,17 +1,19 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { ResumeData } from '@/types/types';
-import { ResumeStorage } from '@/lib/resume-storage';
+import { ResumeData, UserResume } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
+import { useAuth } from '@/context/authContext';
+import { ResumeService } from '@/services/resumeServices';
+import { Download, Edit, Plus } from 'lucide-react';
 
 const PreviewPage = () => {
   const params = useParams();
+  const { user } = useAuth();
   const slug = params.slug as string;
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
-
+  const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
   const [loading, setLoading] = useState(true);
-  console.log(slug);
   useEffect(() => {
     if (!slug) return;
 
@@ -20,7 +22,7 @@ const PreviewPage = () => {
 
     try {
       const fetchResume = async () => {
-        const stored = await ResumeStorage.load(slug);
+        const stored = await ResumeService.getSingle(slug);
         if (stored) {
           setResumeData(stored.data);
         } else {
@@ -43,7 +45,7 @@ const PreviewPage = () => {
 
   const handleDownloadPDF = async () => {
     if (!resumeData) return;
-    resumeTemplate = await ResumeStorage.load(slug);
+    resumeTemplate = await ResumeService.getSingle(slug);
     try {
       console.log('🔄 Starting PDF download...');
 
@@ -89,7 +91,19 @@ const PreviewPage = () => {
     }
   };
 
+  const templates: { id: UserResume['template']; name: string; description: string; icon: string }[] = [
+    { id: 'modern', name: 'Modern', description: 'Clean design with gradient header', icon: '🎨' },
+    { id: 'classic', name: 'Classic', description: 'Traditional professional layout', icon: '📄' },
+    { id: 'minimal', name: 'Minimal', description: 'Simple, elegant design', icon: '✨' }
+  ];
 
+  const handleTemplateChange = async (templateId: UserResume['template']) => {
+    if (!resumeData) return;
+    setSelectedTemplate(templateId);
+    if (typeof window !== 'undefined' && user) {
+      await ResumeService.save(user.id, slug, templateId, resumeData);
+    }
+  };
   // Loading state
   if (loading) {
     return (
@@ -137,48 +151,42 @@ const PreviewPage = () => {
   return (
     <div className='min-h-screen  py-8'>
       <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-4'>
-        <div className='flex justify-center gap-4 flex-wrap'>
-          <button onClick={handleDownloadPDF} className='px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md'>
-            📄 Download PDF
+        <div className='flex justify-center gap-4 flex-wrap text-[14px]'>
+          <button onClick={handleDownloadPDF} className='px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md flex items-center gap-2'>
+            <Download size={16} /> Download
           </button>
-          {/* <Button
-                      onClick={async () => {
-                          try {
-                              const response = await fetch('/api/test-pdf');
-                              if (response.ok) {
-                                  const blob = await response.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = 'test.pdf';
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
-                              } else {
-                                  alert('Test PDF generation failed');
-                              }
-                          } catch (error) {
-                              console.error('Test error:', error);
-                              alert('Test failed');
-                          }
-                      } }
-                      className='px-8 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium shadow-md' children={undefined} variant={'primary'} size={'small'}          >
-            🧪 Test PDF
-          </Button> */}
-          <button onClick={() => (window.location.href = `/builder/${slug}`)} className='px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md'>
-            ✏️ Edit Resume
+
+          <button
+            onClick={() => (window.location.href = `/builder/${slug}`)}
+            className='px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2'
+          >
+            <Edit size={16} /> Edit Resume
           </button>
-          <button onClick={() => (window.location.href = '/builder')} className='px-8 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md'>
-            ➕ New Resume
+          <button
+            onClick={() => (window.location.href = '/builder')}
+            className='px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors font-medium shadow-md flex items-center gap-2'
+          >
+            <Plus size={16} /> New Resume
           </button>
         </div>
-        {/* Page Header */}
-        <div className='text-center mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900 mb-2'>Resume Preview</h1>
-          <p className='text-gray-600'>Choose a template and preview your resume</p>
+        <div className='w-full grid grid-cols-3 gap-4'>
+          {templates.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => handleTemplateChange(template.id)}
+              className={`p-2 rounded-lg border-2 transition-all duration-200 text-left ${
+                selectedTemplate === template.id ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
+              }`}
+            >
+              <div className='flex items-center gap-3 justify-center'>
+                <span className='text-2xl '>{template.icon}</span>
+                <h3 className={`font-semibold ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}>{template.name}</h3>
+              </div>
+              <p className='text-sm text-gray-600 max-[600]:block hidden'>{template.description}</p>
+            </button>
+          ))}
         </div>
-        <ResumePreview slug={slug} resumeData={resumeData} />
+        <ResumePreview resumeData={resumeData} template={selectedTemplate} />
       </div>
     </div>
   );

@@ -6,9 +6,9 @@ import React, { useState } from 'react';
 
 const Page: React.FC = () => {
   const [form, setForm] = useState<{
-    username: string;
+    email: string;
     password: string;
-  }>({ username: '', password: '' });
+  }>({ email: '', password: '' });
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -18,10 +18,19 @@ const Page: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.username || !form.password) {
-      return toast.showToast('missing data', 'info', 3000);
+
+    switch (true) {
+      case !form.password && !form.password:
+        return toast.showToast('🙈 No value provided for user and password', 'error', 3000);
+      case !form.email:
+        return toast.showToast('📧 Email is missing', 'error', 3000);
+      case !form.password:
+        return toast.showToast('🔐 Password is missing', 'error', 3000);
+      default:
+        break;
     }
-    const response: { status: number; message: string } = await login(form.username, form.password);
+
+    const response: { status: number; message: string } = await login(form.email, form.password);
     if (response?.status !== 200) {
       return toast.showToast(response?.message, 'error', 2000);
     }
@@ -31,17 +40,17 @@ const Page: React.FC = () => {
 
   return (
     <div className='w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-      <h2 className='text-6xl font-bold'>Welcome back</h2>
+      <h2 className='text-[2rem] font-bold'>Welcome back</h2>
       <p>
         New to resume builder ?{' '}
         <a href='/auth/newuser' className='underline text-blue-600'>
           Join now
         </a>{' '}
       </p>
-      <form onSubmit={handleSubmit} className='w-full lg:w-[600px] grid gap-4  md:w-[300px]  p-4 font-semibold '>
+      <form onSubmit={handleSubmit} className='w-full lg:w-[600px] grid gap-4    p-4 font-semibold '>
         <div className='grid gap-2'>
-          <label className=''>Email Address or Username</label>
-          <input type='text' name='username' value={form.username} onChange={handleChange} className=' font-normal p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
+          <label className=''>Email Address</label>
+          <input type='email' name='email' value={form.email} onChange={handleChange} className='font-normal p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400 rounded-md' />
         </div>
         <div className='grid gap-2'>
           <label className=''>Password</label>

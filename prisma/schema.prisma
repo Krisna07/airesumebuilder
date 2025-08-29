@@ -17,22 +17,18 @@ model User {
   updatedAt DateTime @updatedAt
   resumes   Resume[]
 }
+
 model Resume {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  title         String
-  template      String
-  profile       Json
-  experiences   Json
-  educations    Json
-  skills        Json
-  certificates  Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  template     String
+  profile      Json
+  experiences  Json
+  educations   Json
+  skills       Json
+  certificates Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
 }
-
-
-
-
-

@@ -3,9 +3,9 @@ import Button from '@/components/UI/Button';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { File, Plus, Rocket, User } from 'lucide-react';
-import { createResume } from '@/services/resumeServices';
 import { useAuth } from '@/context/authContext';
-import { ResumeStorage } from '@/lib/resume-storage';
+import { ResumeService } from '@/services/resumeServices';
+import { useToast } from '@/context/PopupContext';
 
 interface AllReturnedResume {
   id: string;
@@ -15,11 +15,12 @@ interface AllReturnedResume {
 }
 const Page = () => {
   const { user, loading } = useAuth();
+  const toast = useToast();
   const [resumes, setResumes] = useState<AllReturnedResume[]>([]);
 
   useEffect(() => {
     if (user) {
-      ResumeStorage.loadAll(user.id).then((res) => {
+      ResumeService.getAll(user.id).then((res) => {
         if (res.error) {
           return console.log(res.error);
         }
@@ -37,6 +38,13 @@ const Page = () => {
     );
   }
   if (user) {
+    const handleCreateResume = async () => {
+      const response = await ResumeService.create(user.id);
+      if (response.error) {
+        toast.showToast(response.error, 'error', 3000);
+      }
+      return (window.location.href = `/builder/${response.data.id}`);
+    };
     return (
       <section className='w-full min-h-[80vh] sm:h-full grid place-items-center justify-center'>
         <div className='place-items-center gap-4 grid'>
@@ -50,7 +58,8 @@ const Page = () => {
                     onClick={() => (window.location.href = `/builder/${resume?.id}`)}
                     className='min-w-[200px] h-64 shadow-[0_0_2px_0_gray] grid place-items-center rounded-br-3xl rounded-2xl hover:scale-[1.02] transition-all ease-in-out'
                   >
-                    No data available
+                    <iframe className='w-full h-full'></iframe>
+                    <span className='first-letter:uppercase'>{resume.template}</span>
                   </div>
                 ))}
               </div>
@@ -65,7 +74,7 @@ const Page = () => {
           )}
 
           <div className='flex flex-col min-[500px]:flex-row gap-3 w-full items-center justify-center'>
-            <Button variant='primary' size='medium' onClick={() => createResume(user.id)}>
+            <Button variant='primary' size='medium' onClick={handleCreateResume}>
               <Plus /> Create New Resume
             </Button>
             <Link href={'/builder/build'}>

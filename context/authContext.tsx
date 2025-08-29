@@ -43,14 +43,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      if (!res.ok) {
-        const errorData = await res.json();
+      const data = await res.json();
+      if (data?.status !== 200) {
         return {
-          status: errorData.status,
-          message: errorData.error || 'Login failed'
+          status: data.status,
+          message: data.error || 'Login failed'
         };
       }
-      const data = await res.json();
       const userObj = {
         id: data.data.id,
         email: data.data.email,
@@ -80,14 +79,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       });
-      if (!res.ok) {
-        const errorData = await res.json();
+      const data = await res.json();
+      if (data.status !== 200) {
+        const errorData = data;
+        console.log(errorData);
         return {
           status: errorData.status,
-          message: errorData.message || 'Registration failed'
+          message: errorData.error || 'Registration failed'
         };
       }
-      const data = await res.json();
+
       const userObj = {
         id: data.data.id,
         email: data.data.email,

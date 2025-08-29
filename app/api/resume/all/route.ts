@@ -24,22 +24,19 @@ export async function GET(req: NextRequest) {
                     title: resume.title,
                     template: resume.template,
                     updatedAt: resume.updatedAt
-                })),
-                message: "Resumes fetched successfully"
+                }))
             });
         } else {
             return NextResponse.json({
                 status: 404,
-                data: [],
-                message: "No resumes found"
+                data: []
             });
         }
 
     } catch (err) {
         return NextResponse.json({
             status: 500,
-            error: err,
-            message: 'Internal server error'
+            error: err instanceof Error ? err.message : 'Unknown error'
         })
 
     }

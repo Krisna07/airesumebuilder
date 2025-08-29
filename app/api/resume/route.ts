@@ -25,7 +25,13 @@ export async function GET(req: NextRequest) {
         const id = searchParams.get('id') ?? undefined;
         console.log(`Fetching resume with id: ${id}`);
         const resume = await prisma.resume.findFirst({ where: { id } })
-        console.log(resume);
+        if (!resume) {
+            return NextResponse.json({
+                status: 404,
+                error: "Resume not found"
+            });
+        }
+        // console.log(resume);
         return NextResponse.json({
             status: 200,
             data: {
@@ -43,8 +49,7 @@ export async function GET(req: NextRequest) {
     } catch (err) {
         return NextResponse.json({
             status: 500,
-            error: (err instanceof Error ? err.message : 'Unknown error'),
-            message: ' Internal server error'
+            error: (err instanceof Error ? err.message : 'Unknown error')
         });
     }
 }
@@ -79,9 +84,8 @@ export async function PUT(req: NextRequest) {
                     educations: typeof createdResume.educations === "string"  ? JSON.parse(createdResume.educations) : [],
                     skills: typeof createdResume.skills === "string"  ? JSON.parse(createdResume.skills) : [],
                     certificates: typeof createdResume.certificates === "string"  ? JSON.parse(createdResume.certificates) : [],
-                },
-             message: "Resume created successfully."
-
+                 updated: createdResume.updatedAt,
+             },
         });
         }
         const updatedResume = await prisma.resume.update({
@@ -111,15 +115,14 @@ export async function PUT(req: NextRequest) {
                     educations: typeof updatedResume.educations === "string"  ? JSON.parse(updatedResume.educations) : [],
                     skills: typeof updatedResume.skills === "string"  ? JSON.parse(updatedResume.skills) : [],
                     certificates: typeof updatedResume.certificates === "string"  ? JSON.parse(updatedResume.certificates) : [],
-                },
-                message: "Resume updated successfully."
+                    updated: updatedResume.updatedAt,
+                }
             }
         });
     } catch (err) {
         return NextResponse.json({
             status: 500,
-            error: (err instanceof Error ? err.message : 'Unknown error'),
-            message: ' Internal server error'
+            error: (err instanceof Error ? err.message : 'Unknown error')
         });
     }
 }

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import UserInfoStep from './UserInfoStep';
 import SkillsStep from './SkillsStep';
 import ExperienceStep from './ExperienceStep';
@@ -10,44 +10,28 @@ import Button from '../UI/Button';
 import FormLayout from './FomLayout';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import JobDescription from './JobDescription';
-import { UserResume } from '@/types/types';
-import { ResumeStorage } from '@/lib/resume-storage';
+import { ResumeService } from '@/services/resumeServices';
+import { useToast } from '@/context/PopupContext';
 
 interface MultiStepFormProps {
   resumeContent: ResumeData;
   resumeId: string;
-  userId: string | undefined;
+  userId: string;
 }
 
 const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
   const [formData, setFormData] = useState<ResumeData>(resumeContent);
-  const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
-
-  useEffect(() => {
-    // Load saved resume (data and template) for this resumeId
-    const fetchResume = async () => {
-      const stored = await ResumeStorage.load(resumeId);
-      if (stored) {
-        setFormData(stored.data);
-        setSelectedTemplate(stored?.data.template);
-      }
-    };
-    fetchResume();
-  }, [resumeContent, resumeId]);
-
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(resumeContent?.template);
   const [currentStep, setCurrentStep] = useState(1);
-
-  // Save data and template whenever formData or template changes
-  useEffect(() => {
-    if (resumeId && formData && selectedTemplate) {
-      ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
-    }
-  }, [formData, selectedTemplate, resumeId]);
+  const toast = useToast();
 
   const handleNext = async () => {
     // Save current data and template before proceeding
-    ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
-
+    const res = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    if (res.error) {
+      console.log(res.error);
+      return;
+    }
     if (currentStep === 7) {
       // Redirect to preview page with UUID
       window.location.href = `/builder/${resumeId}/preview`;
@@ -56,21 +40,19 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     }
   };
 
-  const handlePrevious = () => {
+  const handlePrevious = async () => {
     // Save current data and template before going back
-    ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
+    console.log(`saving data fromData`, formData, userId);
+
+    await ResumeService.save(userId, resumeId, selectedTemplate, formData);
     setCurrentStep((prevStep) => Math.max(prevStep - 1, 1));
   };
 
-  const handleSaveDraft = () => {
-    ResumeStorage.save(userId ? userId : '', resumeId, selectedTemplate, formData);
-    alert('Draft saved successfully!');
+  const handleSaveDraft = async () => {
+    console.log(`saving data fromData`, formData, userId);
+    await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    toast.showToast('Draft saved successfully!', 'success');
   };
-
-  // const handleSaveDraft = async (item:{name:string ,value:any}) => {
-  //   localStorage.setItem()
-
-  // };
 
   const renderStep = () => {
     switch (currentStep) {
@@ -159,11 +141,11 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   };
   const navigations = ['Profile', 'Skill', 'Experience', 'Education', 'Certificates', 'Job Description', 'Template'];
   return (
-    <div className='w-full grid place-items-center transition-all ease-in-out duration-300 '>
-      <div className='w-full  grid gap-2 place-items-start p-2 box-border '>
+    <div className='w-full min-[800px]:h-full grid place-items-center transition-all ease-in-out duration-300 '>
+      <div className='w-full grid gap-2 place-items-start p-2 box-border '>
         {currentStep != navigations.length + 1 && (
           <div className='w-full flex items-center justify-center gap-[12px]'>
-            {navigations.map((item, index) => (
+            {navigations.map((item: string, index: number) => (
               <div
                 onClick={() => setCurrentStep(index + 1)}
                 key={index}
@@ -176,19 +158,21 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                 >
                   {index + 1}
                 </div>
-                <span className={`${index + 1 === currentStep ? 'max-[650px]:block' : 'max-[650px]:hidden'}`}>{item}</span>
+                <span className={`${index + 1 === currentStep ? 'max-[800px]:block' : 'max-[800px]:hidden'}`}>{item}</span>
               </div>
             ))}
           </div>
         )}
 
-        <div className='w-full h-full grid gap-2 place-items-center relative'>
+        <div className='w-full  grid gap-2 place-items-center relative'>
           {renderStep()}
           {currentStep != navigations.length + 1 && (
             <div className='mt-6 gap-4 flex justify-between items-center'>
-              <Button type='button' variant='secondary' size='small' onClick={handlePrevious} disabled={currentStep === 1}>
-                <FaChevronLeft /> {currentStep === 7 ? 'Review' : 'Previous'}
-              </Button>
+              {currentStep > 1 && (
+                <Button type='button' variant='secondary' size='small' onClick={handlePrevious} disabled={currentStep === 1}>
+                  <FaChevronLeft /> {currentStep === 7 ? 'Review' : 'Previous'}
+                </Button>
+              )}
 
               <div className='flex gap-2'>
                 {/* Save Draft Button - available on all steps except completion */}

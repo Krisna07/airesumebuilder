@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import MultiStepForm from '@/components/Forms/MultiStepForm';
 import { ResumeData } from '@/types/types';
-import { ResumeStorage } from '@/lib/resume-storage';
 import { useAuth } from '@/context/authContext';
+import { ResumeService } from '@/services/resumeServices';
 
 const BuilderPage: React.FC = () => {
   const params = useParams();
@@ -14,22 +14,17 @@ const BuilderPage: React.FC = () => {
   const { user } = useAuth();
   useEffect(() => {
     if (!slug) return;
-
     const fetchResume = async () => {
       // Try to load resume data from ResumeStorage
-      const stored = await ResumeStorage.load(slug);
-      console.log(stored);
-      if (stored) {
-        setResumeData(stored.data);
-      } else {
-        // No data found for this UUID, redirect to builder
-        console.warn('No resume data found for UUID:', slug);
+      const stored = await ResumeService.getSingle(slug);
+      if (stored.error) {
+        setLoading(false);
         return;
       }
-
+      setResumeData(stored.data);
       setLoading(false);
+      return;
     };
-
     fetchResume();
   }, [slug]);
 
@@ -44,7 +39,7 @@ const BuilderPage: React.FC = () => {
     );
   }
 
-  if (!resumeData) {
+  if (!resumeData || !user) {
     return (
       <div className='w-full min-h-[60vh] flex items-center justify-center'>
         <div className='text-center'>
@@ -57,12 +52,7 @@ const BuilderPage: React.FC = () => {
       </div>
     );
   }
-
-  return (
-    <div className='w-full'>
-      <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user?.id} />
-    </div>
-  );
+  return <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user.id} />;
 };
 
 export default BuilderPage;
