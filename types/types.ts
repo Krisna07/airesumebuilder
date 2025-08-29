@@ -1,18 +1,17 @@
 export interface User {
   id: string;
   email: string;
-  avatar: string;
-  verified: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  profile?: Profile;
-  resume?: ResumeData;
+  name?: string;
 }
 export interface ResumeData {
+  id: string,
+  userId: string,
+  title: string,
+  template: string,
   profile: Profile;
   skills: skills[];
-  experience: Experience[];
-  education: Education[];
+  experiences: Experience[];
+  educations: Education[];
   certificates: Certificates[];
 }
 

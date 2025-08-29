@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "prisma": "prisma migrate deploy",
+    "postinstall": "npx puppeteer browsers install chrome"
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
@@ -14,6 +16,7 @@
     "db:seed": "prisma db seed",
     "prisma:status": "prisma migrate status",
     "postinstall": "prisma generate && npx puppeteer browsers install chrome"
+
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

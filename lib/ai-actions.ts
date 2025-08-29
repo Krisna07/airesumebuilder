@@ -62,7 +62,7 @@ export async function GenerateResume(userdata?: ResumeData, data?: string, jobDe
   Links: ${userdata.profile.links}
   
   Work Experience:
-  ${userdata.experience
+  ${userdata.experiences
         .map((exp) => `
     - Position: ${exp.title}
       Company: ${exp.company}
@@ -74,7 +74,7 @@ export async function GenerateResume(userdata?: ResumeData, data?: string, jobDe
         .join("\n")}
   
   Education:
-  ${userdata.education
+  ${userdata.educations
         .map((edu) => `
     - Degree: ${edu.degree}
       Location: ${edu.location}
@@ -113,7 +113,7 @@ export async function GenerateResume(userdata?: ResumeData, data?: string, jobDe
       }],
       "summary": string  // Provide a brief summary (max 50 words) aligning with the user's profile
     },
-    "experience": [
+    "experiences": [
       {
         "title": string,
         "company": string,
@@ -124,7 +124,7 @@ export async function GenerateResume(userdata?: ResumeData, data?: string, jobDe
         "responsibilities": [string]  // List at least 5 key points of responsibilities
       }
     ],
-    "education": [
+    "educations": [
       {
         "degree": string,
         "university": string,

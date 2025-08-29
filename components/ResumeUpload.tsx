@@ -4,8 +4,10 @@ import { UploadCloud, CheckCircle2, XCircle } from 'lucide-react';
 import { handleResumeDataUpload } from '@/lib/handleResumeData';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/context/PopupContext';
+import { useAuth } from '@/context/authContext';
 
 export default function ResumeUpload() {
+  const { user } = useAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +30,13 @@ export default function ResumeUpload() {
       return;
     }
 
+    if (!user) {
+      window.location.href = '/builder';
+      return;
+    }
+
     try {
-      const result = await handleResumeDataUpload(file);
+      const result = await handleResumeDataUpload(file, user?.id);
       if (result.status != 200) {
         console.log(result?.err);
         showToast('Failed to process resume', 'error');
