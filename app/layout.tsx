@@ -22,7 +22,7 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className='w-full min-h-[calc(100vh-4rem)] grid place-items-center '>
-            <section className='w-full min-[800px]:w-[800px]'>{children}</section>
+            <section className='w-full min-[800px]:w-[800px] h-full'>{children}</section>
           </main>
         </Providers>
       </body>

@@ -7,7 +7,7 @@ interface MinimalTemplateProps {
 }
 
 const MinimalTemplate: React.FC<MinimalTemplateProps> = ({ data }) => {
-  const { profile, skills, experience, education, certificates } = data;
+  const { profile, skills, experiences, educations, certificates } = data;
   console.log(data);
 
   return (
@@ -34,12 +34,12 @@ const MinimalTemplate: React.FC<MinimalTemplateProps> = ({ data }) => {
         {profile.summary && <p className='text-gray-700 leading-relaxed max-w-3xl'>{profile.summary}</p>}
       </div>
 
-      {/* Experience */}
-      {experience && experience.length > 0 && (
+      {/* Experiences */}
+      {experiences && experiences.length > 0 && (
         <section className='grid gap-2'>
-          <h2 className='text-lg  text-gray-900  tracking-wide font-bold'>EXPERIENCE</h2>
+          <h2 className='text-lg  text-gray-900  tracking-wide font-bold'>EXPERIENCEs</h2>
           <div className='grid gap-2'>
-            {experience.map((exp, index) => (
+            {experiences.map((exp, index) => (
               <div key={index}>
                 <div className='flex flex-col md:flex-row md:justify-between md:items-baseline mb-3'>
                   <div>
@@ -69,12 +69,12 @@ const MinimalTemplate: React.FC<MinimalTemplateProps> = ({ data }) => {
         </section>
       )}
 
-      {/* Education */}
-      {education && education.length > 0 && (
+      {/* Educations */}
+      {educations && educations.length > 0 && (
         <section className=''>
-          <h2 className='text-lg  text-gray-900 tracking-wide font-bold'>EDUCATION</h2>
+          <h2 className='text-lg  text-gray-900 tracking-wide font-bold'>EDUCATIONs</h2>
           <div className='space-y-2'>
-            {education.map((edu, index) => (
+            {educations.map((edu, index) => (
               <div key={index}>
                 <div className='flex flex-col md:flex-row md:justify-between md:items-baseline'>
                   <div>

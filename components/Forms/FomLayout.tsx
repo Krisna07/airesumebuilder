@@ -12,9 +12,9 @@ const FormLayout: React.FC<FormLayoutProps> = ({
   subheading,
 }) => {
   return (
-    <div className='w-full min-[800px]:w-[800px]   p-2   gap-2  grid   shadow-[0_0_4px_0_gray] rounded-lg text-left'>
-      <div className='w-full h-fit sticky top-0 p-4 bg-white z-20'>
-        <div className='flex items-center gap-[8px]'>
+    <div className='w-full max-[650px]:w-full max-w-[800px] min-[800px]:min-h-[600px]  p-2   gap-2  grid   shadow-[0_0_4px_0_gray] rounded-lg text-left'>
+      <div className='w-full h-full sticky top-0 md:p-4 bg-white z-20'>
+        <div className='flex items-center gap-[8px] '>
           <h2 className='text-xl font-[600]'>{heading}</h2>
         </div>
         <p>{subheading}</p>
