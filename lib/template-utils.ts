@@ -79,7 +79,7 @@ export function generateTemplateHTML(template: string, data: ResumeData): string
 
   const safeJoin = (arr: string[] | undefined) => arr?.join('') || '';
 
-  const renderExperiencesexperiences = (exp: Experience) => `
+  const renderExperiences = (exp: Experience) => `
     <div class="experiences-item">
       <div class="job-title">${escapeHtml(exp.title)}</div>
       <div class="company">${escapeHtml(exp.company)}</div>
@@ -90,7 +90,7 @@ export function generateTemplateHTML(template: string, data: ResumeData): string
     </div>
   `;
 
-  const rendereducations = (edu: Education) => `
+  const renderEducations = (edu: Education) => `
     <div class="educations-item">
       <div class="job-title">${escapeHtml(edu.degree)}</div>
       <div class="company">${escapeHtml(edu.university)}</div>
