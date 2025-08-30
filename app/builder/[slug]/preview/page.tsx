@@ -1,129 +1,159 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ResumeData, UserResume } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
 import { Download, Edit, Plus } from 'lucide-react';
+import { useToast } from '@/context/PopupContext';
+import Button from '@/components/UI/Button';
+
+const templates: {
+  id: UserResume['template'];
+  name: string;
+  description: string;
+  icon: string;
+}[] = [
+  { id: 'modern', name: 'Modern', description: 'Clean design with gradient header', icon: '🎨' },
+  { id: 'classic', name: 'Classic', description: 'Traditional professional layout', icon: '📄' },
+  { id: 'minimal', name: 'Minimal', description: 'Simple, elegant design', icon: '✨' },
+];
+
+const sanitizeFile = (s: string) =>
+  s
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^\w.\-]+/g, '');
 
 const PreviewPage = () => {
   const params = useParams();
-  const { user } = useAuth();
   const slug = params.slug as string;
+  const { user } = useAuth();
+  const toast = useToast();
+
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (!slug) return;
+    let active = true;
+    if (!slug || typeof window === 'undefined') return;
 
-    // Ensure we're on the client side
-    if (typeof window === 'undefined') return;
+    (async () => {
+      try {
+        const response = await ResumeService.getSingle(slug);
+        const data = await response.json();
 
-    try {
-      const fetchResume = async () => {
-        const stored = await ResumeService.getSingle(slug);
-        if (stored) {
-          setResumeData(stored.data);
-        } else {
-          console.warn('No resume data found for UUID:', slug);
-          window.location.href = '/builder';
+        if (!active) return;
+
+        if (!response.ok || !data?.data) {
+          toast.showToast(`No resume data found, redirecting…`, 'warning', 2500);
+          setLoading(false);
+          setTimeout(() => (window.location.href = '/builder'), 600);
           return;
         }
-      };
-      fetchResume();
-    } catch (error) {
-      console.error('Error loading resume data:', error);
-      window.location.href = '/builder';
-      return;
-    }
 
-    setLoading(false);
-  }, [slug]);
-
-  let resumeTemplate;
-
-  const handleDownloadPDF = async () => {
-    if (!resumeData) return;
-    resumeTemplate = await ResumeService.getSingle(slug);
-    try {
-      console.log('🔄 Starting PDF download...');
-
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          resumeData,
-          template: resumeTemplate
-        })
-      });
-
-      console.log('📡 Response status:', response.status);
-
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        console.log('📄 Content type:', contentType);
-
-        if (contentType?.includes('application/pdf')) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${resumeData.profile.fullname || 'Resume'}_${resumeTemplate}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-          console.log('✅ PDF downloaded successfully');
-        } else {
-          throw new Error('Invalid response type: ' + contentType);
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('❌ PDF generation error:', errorData);
-        alert(`Error: ${errorData.details || errorData.error || 'PDF generation failed'}`);
+        setResumeData(data.data);
+        // If you store template with the resume, you could set it here.
+        // setSelectedTemplate(data.data.template ?? 'modern');
+      } catch (err) {
+        console.error('Error loading resume data:', err);
+        toast.showToast('Error loading resume. Redirecting…', 'error', 2500);
+        setTimeout(() => (window.location.href = '/builder'), 600);
+      } finally {
+        if (active) setLoading(false);
       }
-    } catch (error) {
-      console.error('❌ PDF download error:', error);
-      alert('Error generating PDF. Please try again.');
-    }
-  };
+    })();
 
-  const templates: { id: UserResume['template']; name: string; description: string; icon: string }[] = [
-    { id: 'modern', name: 'Modern', description: 'Clean design with gradient header', icon: '🎨' },
-    { id: 'classic', name: 'Classic', description: 'Traditional professional layout', icon: '📄' },
-    { id: 'minimal', name: 'Minimal', description: 'Simple, elegant design', icon: '✨' }
-  ];
+    return () => {
+      active = false;
+    };
+  }, [slug, toast]);
 
   const handleTemplateChange = async (templateId: UserResume['template']) => {
     if (!resumeData) return;
     setSelectedTemplate(templateId);
     if (typeof window !== 'undefined' && user) {
-      await ResumeService.save(user.id, slug, templateId, resumeData);
+      try {
+        await ResumeService.save(user.id, slug, templateId, resumeData);
+        toast.showToast('Template updated', 'success', 1500);
+      } catch {
+        toast.showToast('Failed to save template', 'error', 2000);
+      }
     }
   };
-  // Loading state
+
+  const handleDownloadPDF = async () => {
+    if (!resumeData) return;
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData,
+          template: selectedTemplate, // FIX: pass the actual template id/string
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ PDF generation error:', errorData);
+        toast.showToast(
+          errorData?.details || errorData?.error || 'PDF generation failed',
+          'error',
+          3000,
+        );
+        return;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        throw new Error(`Invalid response type: ${contentType}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const name = sanitizeFile(resumeData.profile.fullname || 'Resume');
+      a.href = url;
+      a.download = `${name}_${selectedTemplate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.showToast('PDF downloaded', 'success', 1500);
+    } catch (error) {
+      console.error('❌ PDF download error:', error);
+      toast.showToast('Error generating PDF. Please try again.', 'error', 3000);
+    }
+  };
+
+  // Loading
   if (loading) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-          <p className='text-gray-600'>Loading preview...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading preview...</p>
         </div>
       </div>
     );
   }
 
-  // No data state
+  // No data
   if (!resumeData) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <h2 className='text-2xl font-bold text-gray-800 mb-4'>No Resume Data</h2>
-          <p className='text-gray-600 mb-6'>Please complete your resume before previewing.</p>
-          <button onClick={() => (window.location.href = '/builder')} className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
+          <p className="text-gray-600 mb-6">Please complete your resume before previewing.</p>
+          <button
+            onClick={() => (window.location.href = '/builder')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Back to Builder
           </button>
         </div>
@@ -131,17 +161,23 @@ const PreviewPage = () => {
     );
   }
 
-  // Incomplete data state
-  const hasMinimumData = resumeData.profile.fullname && resumeData.profile.email;
+  // Minimum data check
+  const hasMinimumData = !!(resumeData.profile.fullname && resumeData.profile.email);
   if (!hasMinimumData) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <h2 className='text-2xl font-bold text-gray-800 mb-4'>Incomplete Resume</h2>
-          <p className='text-gray-600 mb-6'>Please complete at least your name and email before previewing.</p>
-          <button onClick={() => (window.location.href = `/builder/${slug}`)} className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+      <div className="h-full bg-gray-50 flex items-center justify-center">
+        <div className="text-center flex flex-col items-center justify-center p-2">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Incomplete Resume</h2>
+          <p className="text-gray-600 mb-6">
+            Please complete at least your name and email before previewing.
+          </p>
+          <Button
+            variant="secondary"
+            size="medium"
+            onClick={() => (window.location.href = `/builder/${slug}`)}
+          >
             Continue Editing
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -149,44 +185,59 @@ const PreviewPage = () => {
 
   // Main preview page
   return (
-    <div className='min-h-screen  py-8'>
-      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-4'>
-        <div className='flex justify-center gap-4 flex-wrap text-[14px]'>
-          <button onClick={handleDownloadPDF} className='px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md flex items-center gap-2'>
+    <div className="min-h-screen py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
+        {/* Actions */}
+        <div className="flex justify-center gap-3 flex-wrap text-[14px]">
+          <button
+            onClick={handleDownloadPDF}
+            className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md flex items-center gap-2"
+          >
             <Download size={16} /> Download
           </button>
 
           <button
             onClick={() => (window.location.href = `/builder/${slug}`)}
-            className='px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2'
+            className="px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
           >
             <Edit size={16} /> Edit Resume
           </button>
+
           <button
             onClick={() => (window.location.href = '/builder')}
-            className='px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors font-medium shadow-md flex items-center gap-2'
+            className="px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
           >
             <Plus size={16} /> New Resume
           </button>
         </div>
-        <div className='w-full grid grid-cols-3 gap-4'>
-          {templates.map((template) => (
+
+        {/* Template picker */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {templates.map(t => (
             <button
-              key={template.id}
-              onClick={() => handleTemplateChange(template.id)}
-              className={`p-2 rounded-lg border-2 transition-all duration-200 text-left ${
-                selectedTemplate === template.id ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
+              key={t.id}
+              onClick={() => handleTemplateChange(t.id)}
+              className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                selectedTemplate === t.id
+                  ? 'border-blue-500 bg-blue-50 shadow-lg'
+                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
               }`}
             >
-              <div className='flex items-center gap-3 justify-center'>
-                <span className='text-2xl '>{template.icon}</span>
-                <h3 className={`font-semibold ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}>{template.name}</h3>
+              <div className="flex items-center gap-3 justify-center">
+                <span className="text-2xl">{t.icon}</span>
+                <h3
+                  className={`font-semibold ${selectedTemplate === t.id ? 'text-blue-700' : 'text-gray-800'}`}
+                >
+                  {t.name}
+                </h3>
               </div>
-              <p className='text-sm text-gray-600 max-[600]:block hidden'>{template.description}</p>
+              <p className="text-sm text-gray-600 mt-1 hidden sm:block">{t.description}</p>
             </button>
           ))}
         </div>
-        <ResumePreview resumeData={resumeData} template={selectedTemplate} />
+
+        {/* Preview */}
+        <ResumePreview resumeData={resumeData} template={selectedTemplate} height="82vh" />
       </div>
     </div>
   );

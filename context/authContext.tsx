@@ -1,4 +1,6 @@
+import { UserService } from '@/services/userService';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useToast } from './PopupContext';
 
 type User = {
   id: string;
@@ -6,12 +8,26 @@ type User = {
   name?: string;
 };
 
+const userService = new UserService();
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ status: number; message: string }>;
+  login: (email: string, password: string) => void;
   logout: () => void;
-  register: (email: string, password: string, name?: string) => Promise<{ status: number; message: string }>;
+  register: (email: string, password: string, name?: string) => void;
+};
+
+const formValidation = async (email: string, password: string) => {
+  switch (true) {
+    case !password:
+      return 'Password not provided';
+    case !email:
+      return 'Email not provided';
+    case !email && !password:
+      return 'Email and Password not added';
+    default:
+      break;
+  }
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +40,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const toast = useToast();
   // Load user from sessionStorage on mount
   useEffect(() => {
     setLoading(true);
@@ -37,33 +53,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     setLoading(true);
-    try {
-      const res = await fetch('/api/user/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (data?.status !== 200) {
-        return {
-          status: data.status,
-          message: data.error || 'Login failed'
-        };
-      }
-      const userObj = {
-        id: data.data.id,
-        email: data.data.email,
-        name: data.data.name
-      };
-      setUser(userObj);
-      sessionStorage.setItem('user', JSON.stringify(userObj));
-      return {
-        status: 200,
-        message: 'Login successful'
-      };
-    } finally {
+    const error = await formValidation(email, password);
+    if (error) {
       setLoading(false);
+      return toast.showToast(error, 'warning', 3000);
     }
+
+    const response = await userService.loginUser(email, password);
+
+    const data = await response.json();
+    if (!response.ok) {
+      toast.showToast(data.error, 'error', 3000);
+      return setLoading(false);
+    }
+    const userObj = data.data;
+    sessionStorage.setItem('user', JSON.stringify(userObj));
+    toast.showToast('Logging in', 'success', 3000);
+    setLoading(false);
+    return (window.location.href = '/builder');
   };
 
   const logout = () => {
@@ -71,35 +78,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sessionStorage.removeItem('user');
   };
 
-  const register = async (email: string, password: string, name?: string): Promise<{ status: number; message: string }> => {
+  const register = async (email: string, password: string, name?: string) => {
     setLoading(true);
-    try {
-      const res = await fetch('/api/user/newuser', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
-      });
-      const data = await res.json();
-      if (data.status !== 200) {
-        const errorData = data;
-        console.log(errorData);
-        return {
-          status: errorData.status,
-          message: errorData.error || 'Registration failed'
-        };
-      }
-
-      const userObj = {
-        id: data.data.id,
-        email: data.data.email,
-        name: data.data.name
-      };
-      setUser(userObj);
-      sessionStorage.setItem('user', JSON.stringify(userObj));
-      return { status: 200, message: data.message };
-    } finally {
+    const error = await formValidation(email, password);
+    if (error) {
       setLoading(false);
+      return toast.showToast(error, 'warning', 3000);
     }
+    const response = await userService.createUser(email, password, name);
+    const data = await response.json();
+    if (!response.ok) {
+      toast.showToast(data.error, 'error', 3000);
+      return setLoading(false);
+    }
+    const userObj = data.data;
+    sessionStorage.setItem('user', JSON.stringify(userObj));
+    toast.showToast('User created successfully', 'success', 3000);
+    setLoading(false);
+    return (window.location.href = '/builder');
   };
 
   return <AuthContext.Provider value={{ user, loading, login, logout, register }}>{children}</AuthContext.Provider>;

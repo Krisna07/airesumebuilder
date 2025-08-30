@@ -9,35 +9,23 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
         if (!id) {
-            return NextResponse.json({
-                status: 400,
-                error: "Missing 'id' parameter"
-            });
+            return NextResponse.json({ error: "Missing 'id' parameter" }, { status: 400 });
         }
         const allResumes = await prisma.resume.findMany({ where: { userId: id } });
-        allResumes.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-        if (allResumes.length) {
+        const activeResumes = allResumes.filter(resume => !resume.deleted);
+        activeResumes.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
             return NextResponse.json({
-                status: 200,
-                data: allResumes.map(resume => ({
+                data: activeResumes.map(resume => ({
                     id: resume.id,
                     title: resume.title,
                     template: resume.template,
                     updatedAt: resume.updatedAt
                 }))
-            });
-        } else {
-            return NextResponse.json({
-                status: 404,
-                data: []
-            });
+            }, { status: 200 });
         }
-
-    } catch (err) {
-        return NextResponse.json({
-            status: 500,
-            error: err instanceof Error ? err.message : 'Unknown error'
-        })
+    catch (err) {
+        return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
 
     }
 }

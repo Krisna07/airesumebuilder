@@ -1,11 +1,9 @@
-// import { useAuth } from "@/context/authContext";
-
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
-
 const prisma = new PrismaClient();
+
 type Resume = {
     id?: string,
     userId: string,
@@ -25,15 +23,11 @@ export async function GET(req: NextRequest) {
         const id = searchParams.get('id') ?? undefined;
         console.log(`Fetching resume with id: ${id}`);
         const resume = await prisma.resume.findFirst({ where: { id } })
-        if (!resume) {
-            return NextResponse.json({
-                status: 404,
-                error: "Resume not found"
-            });
+        if (!resume || resume.deleted) {
+            return NextResponse.json({ error: "Resume not found" }, { status: 404 });
         }
         // console.log(resume);
         return NextResponse.json({
-            status: 200,
             data: {
                id:resume?.id, 
                title:resume?.title, 
@@ -45,12 +39,12 @@ export async function GET(req: NextRequest) {
                certificates:resume?.certificates ? JSON.parse(resume.certificates as string) : [],
                updated: resume?.updatedAt,
             }
-        });
+        }, { status: 200 });
     } catch (err) {
         return NextResponse.json({
-            status: 500,
+
             error: (err instanceof Error ? err.message : 'Unknown error')
-        });
+        }, { status: 500 });
     }
 }
 
@@ -74,7 +68,7 @@ export async function PUT(req: NextRequest) {
         };
         const createdResume = await prisma.resume.create({ data: newResume });
          return NextResponse.json({
-            status: 200,
+
              data: {
                     id: createdResume.id,
                     title: createdResume.title,
@@ -86,7 +80,7 @@ export async function PUT(req: NextRequest) {
                     certificates: typeof createdResume.certificates === "string"  ? JSON.parse(createdResume.certificates) : [],
                  updated: createdResume.updatedAt,
              },
-        });
+         }, { status: 200 });
         }
         const updatedResume = await prisma.resume.update({
             where: { id: resumeData.id },
@@ -103,7 +97,6 @@ export async function PUT(req: NextRequest) {
         });
 
         return NextResponse.json({
-            status: 200,
             data: {
                 id: updatedResume.id,
                 data: {
@@ -118,11 +111,29 @@ export async function PUT(req: NextRequest) {
                     updated: updatedResume.updatedAt,
                 }
             }
-        });
+        }, { status: 201 });
     } catch (err) {
-        return NextResponse.json({
-            status: 500,
-            error: (err instanceof Error ? err.message : 'Unknown error')
+        return NextResponse.json({ error: (err instanceof Error ? err.message : 'Unknown error') }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get('id') ?? undefined;
+        if (!id) {
+            return NextResponse.json({ error: "Resume ID is required" }, { status: 400 });
+        }
+        const existing = await prisma.resume.findFirst({ where: { id } })
+        if (!existing) {
+            return NextResponse.json({ error: "Resume not found" }, { status: 404 });
+        }
+        await prisma.resume.update({
+            where: { id: existing.id },
+            data: { deleted: true }
         });
+        return NextResponse.json({ data: "Resume deleted successfully" }, { status: 200 });
+    } catch (err) {
+        return NextResponse.json({ error: (err instanceof Error ? err.message : 'Unknown error') }, { status: 500 });
     }
 }
