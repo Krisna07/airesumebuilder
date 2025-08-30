@@ -1,7 +1,6 @@
 'use client';
 import Button from '@/components/UI/Button';
 import { useAuth } from '@/context/authContext';
-import { useToast } from '@/context/PopupContext';
 import React, { useState } from 'react';
 
 const Page: React.FC = () => {
@@ -14,28 +13,10 @@ const Page: React.FC = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
   const { login, loading } = useAuth();
-  const toast = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    switch (true) {
-      case !form.email && !form.password:
-        return toast.showToast('🙈 No value provided for user and password', 'error', 3000);
-      case !form.email:
-        return toast.showToast('📧 Email is missing', 'error', 3000);
-      case !form.password:
-        return toast.showToast('🔐 Password is missing', 'error', 3000);
-      default:
-        break;
-    }
-
-    const response: { status: number; message: string } = await login(form.email, form.password);
-    if (response?.status !== 200) {
-      return toast.showToast(response?.message, 'error', 2000);
-    }
-    toast.showToast(response.message, 'success', 3000);
-    return (window.location.href = '/builder');
+    await login(form.email, form.password);
   };
 
   return (

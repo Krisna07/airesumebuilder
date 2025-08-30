@@ -8,39 +8,35 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
     if (!email || !password) {
-      return NextResponse.json({
-        status: 400,
-        error: 'Email and password are required.'
-      });
+      return NextResponse.json(
+        { error: 'Email and password are required.' },
+        { status: 400 }
+      );
     }
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({
-        status: 401,
-        error: 'User not found, please register.'
-      });
+      return NextResponse.json(
+        { error: 'User not found, please register.' },
+        { status: 401 }
+      );
     }
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return NextResponse.json(
-        {
-          status: 401,
-          error: 'Invalid credentials.'
-        }
+        { error: 'Invalid credentials.' },
+        { status: 401 }
       );
     }
-    return NextResponse.json({
-      status: 200,
-      data: {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      }
-    });
+    return NextResponse.json(
+      { data: { id: user.id, email: user.email, name: user.name } },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json({
-      error: JSON.stringify(error),
-      status: 500
+      error: JSON.stringify(error)
+    },
+      {
+        status: 500
     });
   }
 }

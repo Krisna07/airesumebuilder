@@ -16,12 +16,11 @@ const BuilderPage: React.FC = () => {
     if (!slug) return;
     const fetchResume = async () => {
       // Try to load resume data from ResumeStorage
-      const stored = await ResumeService.getSingle(slug);
-      if (stored.error) {
-        setLoading(false);
-        return;
+      const response = await ResumeService.getSingle(slug);
+      const data = await response.json();
+      if (response.ok) {
+        setResumeData(data.data);
       }
-      setResumeData(stored.data);
       setLoading(false);
       return;
     };

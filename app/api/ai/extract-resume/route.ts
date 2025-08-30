@@ -5,8 +5,6 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { text } = body;
-        console.log(text)
-
         if (!text) {
             return NextResponse.json({ error: 'No text provided' }, { status: 400 });
         }
@@ -15,7 +13,6 @@ export async function POST(req: NextRequest) {
         const structuredData = await GenerateResume(undefined, text);
 
         if (!structuredData) {
-
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
         }
         return NextResponse.json({

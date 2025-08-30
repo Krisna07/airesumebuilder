@@ -3,7 +3,7 @@ import { ResumeData } from "@/types/types";
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
         try {
-            const saveResumeToDb = await fetch('/api/resume', {
+            const response = await fetch('/api/resume', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -12,22 +12,10 @@ export class ResumeService {
                     userId: userId,
                     template: template
                 })
-            }).then((res) => res.json())
-            if (saveResumeToDb.status !== 200) {
-                return {
-                    status: saveResumeToDb.status,
-                    error: saveResumeToDb.error || 'Failed to save resume',
-                };
-            }
-            return {
-                status: 200,
-                data: saveResumeToDb.data
-            }
+            })
+            return response
         } catch (error) {
-            return {
-                status: 500,
-                error: (error instanceof Error ? error.message : 'Unknown error'),
-            };
+            throw error
         }
     }
 
@@ -36,45 +24,22 @@ export class ResumeService {
             const response = await fetch(`/api/resume?id=${resumeId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-            }).then(res => res.json())
-            console.log(response)
-            if (response.status !== 200) {
-                return {
-                    status: response.status,
-                    error: response.error || 'Failed to fetch resume',
-                };
-            }
-            return {
-                status: 200,
-                data: response.data
-            }
-        } catch (err) {
-            return {
-                status: 404,
-                error: JSON.stringify(err),
-            }
+            })
+            return response
+        } catch (error) {
+            throw error
         }
     }
 
     static async getAll(userId: string | null) {
-        if (!userId) return [];
         try {
             const response = await fetch(`/api/resume/all?id=${userId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-            }).then(res => res.json())
-            if (response.status === 200) {
-                return response.data
-
-            } else {
-                return response
-            }
-        } catch (err) {
-            return {
-                status: 500,
-                error: (err instanceof Error ? err.message : 'Unknown error'),
-                Message: 'Failed to fetch resumes'
-            }
+            })
+            return response
+        } catch (error) {
+            throw error
         }
     }
 
@@ -130,49 +95,32 @@ export class ResumeService {
             ],
             ...data
         };
-        const result = await this.save(userId, resumeId, selectedTemplate, emptyData);
-        return {
-            ...result,
-        };
+        const response = await this.save(userId, resumeId, selectedTemplate, emptyData);
+        return response
+    }
+
+    static async uploadResume(file: File, userId: string) {
+        try {
+            const text = await extractTextFromPdf(file)
+            const respone = await fetch('/api/ai/extract-resume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await respone.json();
+            if (!respone.ok) {
+                throw new Error(data.error || 'Failed to extract resume data.');
+            }
+
+            const resumeId = self.crypto.randomUUID();
+            const saveResume = await ResumeService.save(userId, resumeId, 'modern', data.data);
+            return saveResume
+        } catch (error) {
+            throw error
+        }
     }
 
 }
-
-// export function getResumeData(resumeId: string) {
-//     // Only access localStorage in the browser
-//     if (typeof window !== 'undefined' && resumeId) {
-//         const availableResume = localStorage.getItem('resumeData');
-//         if (availableResume) {
-//             try {
-//                 const parsed = JSON.parse(availableResume);
-//                 return {
-//                     profile: parsed.profile || '',
-//                     skills: parsed.skills || [],
-//                     experience: parsed.experience || [],
-//                     education: parsed.education || [],
-//                     certificates: parsed.certificates || []
-//                 };
-//             } catch {
-//                 // Invalid JSON, fall through to default
-//             }
-//         }
-//     }
-//     return {
-
-//         profile: {
-//             fullname: '',
-//             email: '',
-//             phone: '',
-//             location: '',
-//             links: [{ type: '', url: '' }],
-//             summary: ''
-//         },
-//         skills: [],
-//         experience: [],
-//         education: [],
-//         certificates: []
-//     };
-// }
 
 export function getJobDescription(url: string) {
     if (!url) {
@@ -195,59 +143,44 @@ export function getJobDescription(url: string) {
 
 }
 
-// export async function createResume(userId: string) {
-//     const response = await ResumeStorage.create(userId);
-//     console.log(response)
-//     if (response.error) {
-//         console.log(response.error);
-//         return
-//     }
-//     if (response.status !== 200) {
-//         console.log(response.message);
-//         return
-//     }
+const extractTextFromPdf = async (file: File): Promise<string> => {
+    // Dynamic import to avoid SSR issues
+    const pdfjsLib = await import('pdfjs-dist');
 
-//     window.location.href = `/builder/${response.data.id}`;
-//     return {
-//         response
-//     }
+    // Set up the worker source for pdfjs-dist
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
-// }
-
-// export async function getResume(resumeId: string) {
-//     try {
-//         const resume = await fetch(`/api/resume?id=${resumeId}`, {
-//             method: 'GET',
-//             headers: { 'Content-Type': 'application/json' },
-//         }).then(res => res.json())
-//         return {
-//             status: 200,
-//             data: resume.data
-//         }
-//     } catch (err) {
-//         return {
-//             status: 404,
-//             error: err,
-//             message: 'resume not found'
-//         }
-//     }
-// }
-
-// export async function getAllResumes(userId: string) {
-//     try {
-//         const resumes = await fetch(`/api/resume/all?userId=${userId}`, {
-//             method: 'GET',
-//             headers: { 'Content-Type': 'application/json' },
-//         }).then(res => res.json())
-//         return {
-//             status: 200,
-//             data: resumes.data
-//         }
-//     } catch (err) {
-//         return {
-//             status: 500,
-//             error: (err instanceof Error ? err.message : 'Unknown error'),
-//             Message: 'Failed to fetch resumes'
-//         }
-//     }
-// }
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        reader.onload = async (event) => {
+            if (!event.target?.result) {
+                return reject(new Error('Failed to read file.'));
+            }
+            try {
+                const pdf = await pdfjsLib.getDocument({ data: event.target.result as ArrayBuffer }).promise;
+                let text = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text +=
+                        content.items
+                            .map((item) => {
+                                if ('str' in item) {
+                                    return item.str;
+                                }
+                                return '';
+                            })
+                            .join(' ') + '\n';
+                }
+                resolve(text);
+            } catch (error) {
+                console.error('Error parsing PDF:', error);
+                reject(new Error('Could not parse the PDF file.'));
+            }
+        };
+        reader.onerror = () => {
+            reject(new Error('Error reading file.'));
+        };
+        reader.readAsArrayBuffer(file);
+    });
+};

@@ -4,11 +4,7 @@ import React from 'react'
 
 const page = () => {
 
-  return (
-    <div className='w-full h-[90vh] grid place-items-center'>
-        <div><ResumeUpload /></div>
-    </div>
-  )
+  return <ResumeUpload />;
 }
 
 export default page

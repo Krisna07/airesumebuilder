@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+#prittier styling 
+prettier.config.js
+
 # vercel
 .vercel
 
@@ -46,4 +49,7 @@ dev.db-journal
 prisma/dev.db
 prisma/dev.db-journal
 
+#prisma data
 /lib/generated/prisma
+
+
