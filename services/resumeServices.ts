@@ -31,6 +31,18 @@ export class ResumeService {
         }
     }
 
+    static async delete(resumeId: string) {
+        try {
+            const response = await fetch(`/api/resume?id=${resumeId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            return response
+        } catch (error) {
+            throw error
+        }
+    }
+
     static async getAll(userId: string | null) {
         try {
             const response = await fetch(`/api/resume/all?id=${userId}`, {
