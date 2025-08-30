@@ -27,9 +27,9 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
   const handleNext = async () => {
     // Save current data and template before proceeding
-    const res = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
-    if (res.error) {
-      console.log(res.error);
+    const response = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    if (!response.ok) {
+      toast.showToast(response.statusText, 'error', 3000);
       return;
     }
     if (currentStep === 7) {
