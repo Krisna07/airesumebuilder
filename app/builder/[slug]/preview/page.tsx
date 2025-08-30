@@ -6,7 +6,7 @@ import { ResumeData, UserResume } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
-import { Download, Edit, Plus } from 'lucide-react';
+import { Download, Edit, Plus, Trash } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
 
@@ -131,6 +131,15 @@ const PreviewPage = () => {
     }
   };
 
+  const handleDelete = async (resumeId: string) => {
+    const response = await ResumeService.delete(resumeId);
+    if (!response.ok) {
+      toast.showToast('Error deleting resume', 'error', 3000);
+      return;
+    }
+    toast.showToast(`Resume deleted successfully`, 'success', 3000);
+    return (window.location.href = '/builder');
+  };
   // Loading
   if (loading) {
     return (
@@ -208,6 +217,13 @@ const PreviewPage = () => {
             className="px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
           >
             <Plus size={16} /> New Resume
+          </button>
+
+          <button
+            onClick={() => handleDelete(resumeData.id)}
+            className="px-4 py-1 bg-red-200 text-gray-800 rounded-lg hover:bg-red-400 transition-colors font-medium shadow-md flex items-center gap-2"
+          >
+            <Trash size={16} /> Delete
           </button>
         </div>
 
