@@ -54,15 +54,18 @@ export async function POST(req: NextRequest) {
         await page.setContent(content, { waitUntil: 'load' });
 
         console.log('🖨️ Generating PDF...');
+        // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
+        const pageGap = body.pageGap || {
+            top: '4mm',
+            bottom: '4mm',
+            left: '10mm',
+            right: '10mm',
+        };
+
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
-            margin: {
-                top: '20mm',
-                bottom: '20mm',
-                left: '15mm',
-                right: '15mm',
-            },
+            margin: pageGap,
             preferCSSPageSize: false,
             displayHeaderFooter: false,
         });

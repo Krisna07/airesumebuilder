@@ -113,6 +113,7 @@ export async function PUT(req: NextRequest) {
             }
         }, { status: 201 });
     } catch (err) {
+        console.log(err)
         return NextResponse.json({ error: (err instanceof Error ? err.message : 'Unknown error') }, { status: 500 });
     }
 }

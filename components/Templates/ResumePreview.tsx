@@ -74,7 +74,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   const srcDoc = useMemo(() => {
     if (!data) return '';
     // previewMode = true so iframe HTML stays A4-clean but can include tiny screen-only tweaks if desired
-    return generateTemplateHTML(template, data, true);
+    return generateTemplateHTML(template, data);
   }, [data, template]);
 
   if (loading) {
