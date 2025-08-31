@@ -6,7 +6,7 @@ import { ResumeData, UserResume } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
-import { Download, Edit, Plus, Trash } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
 
@@ -56,6 +56,7 @@ const PreviewPage = () => {
         }
 
         setResumeData(data.data);
+        setSelectedTemplate(data.data.template);
         // If you store template with the resume, you could set it here.
         // setSelectedTemplate(data.data.template ?? 'modern');
       } catch (err) {
@@ -140,6 +141,46 @@ const PreviewPage = () => {
     toast.showToast(`Resume deleted successfully`, 'success', 3000);
     return (window.location.href = '/builder');
   };
+
+  const [regenerating, setRegenerating] = useState<boolean>(false);
+  const handleRegerate = async (resumeData: ResumeData) => {
+    setRegenerating(true);
+    const response = await ResumeService.regenerate(resumeData);
+    const data = await response.json();
+    if (!response.ok) {
+      toast.showToast('Error regenerating resume', 'error', 3000);
+      return setRegenerating(false);
+    }
+    const updatedResume = await ResumeService.save(
+      resumeData.userId,
+      resumeData.id,
+      resumeData.template,
+      data.resume,
+    );
+    if (!updatedResume.ok) {
+      setRegenerating(false);
+      return toast.showToast(
+        'Error saving the resume, the data isnot saved to database',
+        'warning',
+        4000,
+      );
+    }
+
+    setResumeData({
+      id: resumeData.id,
+      userId: resumeData.userId,
+      title: resumeData.title,
+      template: resumeData.template,
+      profile: data.resume.profile,
+      skills: data.resume.skills,
+      experiences: data.resume.experices,
+      educations: data.resume.educations,
+      certificates: data.resume.certificates,
+    });
+
+    toast.showToast(`Resume has been regenerated Successfully`, 'success', 3000);
+    return setRegenerating(false);
+  };
   // Loading
   if (loading) {
     return (
@@ -197,7 +238,7 @@ const PreviewPage = () => {
     <div className="min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
         {/* Actions */}
-        <div className="flex justify-center gap-3 flex-wrap text-[14px]">
+        <div className="flex justify-center gap-1 gap-y-2 md:gap-3 flex-wrap text-[14px]">
           <button
             onClick={handleDownloadPDF}
             className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md flex items-center gap-2"
@@ -225,21 +266,28 @@ const PreviewPage = () => {
           >
             <Trash size={16} /> Delete
           </button>
+          <button
+            onClick={() => handleRegerate(resumeData)}
+            className={`px-4 py-1 bg-green-200 text-gray-800 rounded-lg hover:bg-green-400 transition-colors font-medium shadow-md flex items-center gap-2 ${regenerating ? 'animate-pulse' : ''}`}
+            disabled={regenerating ? true : false}
+          >
+            <Bot size={16} /> {regenerating ? 'Generating...' : 'Re-Generate'}
+          </button>
         </div>
 
         {/* Template picker */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="w-full grid grid-cols-3 gap-4">
           {templates.map(t => (
             <button
               key={t.id}
               onClick={() => handleTemplateChange(t.id)}
-              className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+              className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${
                 selectedTemplate === t.id
                   ? 'border-blue-500 bg-blue-50 shadow-lg'
                   : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
               }`}
             >
-              <div className="flex items-center gap-3 justify-center">
+              <div className="flex items-center gap-3 justify-left">
                 <span className="text-2xl">{t.icon}</span>
                 <h3
                   className={`font-semibold ${selectedTemplate === t.id ? 'text-blue-700' : 'text-gray-800'}`}
@@ -251,9 +299,10 @@ const PreviewPage = () => {
             </button>
           ))}
         </div>
-
+        <div className={`${regenerating ? 'blur-sm animate-pulse' : ''} `}>
+          <ResumePreview resumeData={resumeData} template={selectedTemplate} height="82vh" />
+        </div>
         {/* Preview */}
-        <ResumePreview resumeData={resumeData} template={selectedTemplate} height="82vh" />
       </div>
     </div>
   );
