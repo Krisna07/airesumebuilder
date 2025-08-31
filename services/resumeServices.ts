@@ -132,6 +132,23 @@ export class ResumeService {
         }
     }
 
+    static async regenerate(resumeData: ResumeData) {
+        try {
+            const response = await fetch('/api/ai/generate-resume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resume: resumeData,
+                    jobDescription: "Recreate the resume based on the existing data"
+                })
+            });
+            return response
+        } catch (error) {
+            throw error
+        }
+
+    }
+
 }
 
 export function getJobDescription(url: string) {
