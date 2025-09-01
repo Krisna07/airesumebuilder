@@ -299,10 +299,10 @@ const PreviewPage = () => {
             </button>
           ))}
         </div>
-        <div className={`${regenerating ? 'blur-sm animate-pulse' : ''} w-fit`}>
-          <ResumePreview resumeData={resumeData} template={selectedTemplate} height="82vh" />
-        </div>
-        {/* Preview */}
+          
+            <ResumePreview resumeData={resumeData} template={selectedTemplate} regenerating={regenerating} height="82vh" />
+          
+        
       </div>
     </div>
   );

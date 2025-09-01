@@ -11,6 +11,7 @@ type ResumePreviewProps = {
   template: string;
   /** Optional: target height for the preview container (default: 80vh) */
   height?: string | number;
+  regenerating?:boolean;
 };
 
 const PAGE_WIDTH_PX = 794; // ~210mm at 96dpi
@@ -21,6 +22,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   resumeId,
   template,
   height = '60vh',
+  regenerating
 }) => {
   const [data, setData] = useState<ResumeData | undefined>(resumeData);
   const [loading, setLoading] = useState(!resumeData && !!resumeId);
@@ -30,6 +32,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   // Fetch when only id is provided
   useEffect(() => {
     let active = true;
+    if(resumeData){
+      return setData(resumeData)
+    }
+    // console.log(data)
     const fetchResume = async (id: string) => {
       setLoading(true);
       try {
@@ -94,7 +100,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="w-full overflow-hidden flex justify-center">
+    <div ref={containerRef} className="overflow-hidden flex justify-center relative">
+      {/* {regenerating ?<div className='w-full h-full absolute'></div>:<div></div>} */}
       <div
         style={{
           width: PAGE_WIDTH_PX * scale,
@@ -102,6 +109,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
+      className={`${regenerating ? 'blur-sm animate-pulse' : ''}`}
       >
         <iframe
           title="Resume Preview"

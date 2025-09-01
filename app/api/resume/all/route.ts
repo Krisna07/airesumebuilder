@@ -12,15 +12,23 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Missing 'id' parameter" }, { status: 400 });
         }
         const allResumes = await prisma.resume.findMany({ where: { userId: id } });
-        const activeResumes = allResumes.filter(resume => !resume.deleted);
+        if (!allResumes) {
+            return NextResponse.json({ error: "No resumes found" }, { status: 404 });
+        }
+        const activeResumes = allResumes && allResumes.filter(resume => !resume.deleted);
         activeResumes.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
             return NextResponse.json({
                 data: activeResumes.map(resume => ({
-                    id: resume.id,
-                    title: resume.title,
-                    template: resume.template,
-                    updatedAt: resume.updatedAt
+                    id: resume?.id,
+                    title: resume?.title,
+                    template: resume?.template,
+                    profile: resume?.profile ? JSON.parse(resume.profile as string) : {},
+                    skills: resume?.skills ? JSON.parse(resume.skills as string) : [],
+                    experiences: resume?.experiences ? JSON.parse(resume.experiences as string) : [],
+                    educations: resume?.educations ? JSON.parse(resume.educations as string) : [],
+                    certificates: resume?.certificates ? JSON.parse(resume.certificates as string) : [],
+                    updated: resume?.updatedAt,
                 }))
             }, { status: 200 });
         }

@@ -98,13 +98,7 @@ export class ResumeService {
                     location: ''
                 }
             ],
-            certificates: [
-                {
-                    title: '',
-                    issued_by: '',
-                    year: ''
-                }
-            ],
+            certificates: [],
             ...data
         };
         const response = await this.save(userId, resumeId, selectedTemplate, emptyData);

@@ -68,7 +68,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
                 <FaTimes color='red' onClick={() => removeType(type || 'General')} />
               </h3>
               {/* Remove type button */}
-              <div className='flex items-center gap-2'>
+              <div className='flex flex-wrap items-center gap-2'>
                 {skills?.length &&
                   skills?.map((skill, i) => (
                     <span key={i} className='bg-gray-300 whitespace-nowrap flex items-center gap-2 px-2 rounded-full leading-4 py-1'>

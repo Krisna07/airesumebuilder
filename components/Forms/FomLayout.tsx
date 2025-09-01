@@ -19,7 +19,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({
         </div>
         <p>{subheading}</p>
       </div>
-      <div className="max-w-full pt-0 relative grid gap-2 overflow-auto">{children}</div>
+      <div className="max-w-full pt-0 relative grid gap-2 overflow-auto px-2">{children}</div>
     </div>
   );
 };
