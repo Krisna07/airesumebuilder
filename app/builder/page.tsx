@@ -18,6 +18,7 @@ const Page = () => {
   const { user, loading } = useAuth();
   const toast = useToast();
   const [resumes, setResumes] = useState<AllReturnedResume[]>([]);
+  const [creating, setCreating] = useState<boolean>(false);
 
   useEffect(() => {
     if (user) {
@@ -43,13 +44,15 @@ const Page = () => {
   }
   if (user) {
     const handleCreateResume = async () => {
+      setCreating(true)
       const response = await ResumeService.create(user.id);
       const data = await response.json();
       if (!response.ok) {
         toast.showToast(response.statusText, 'error', 3000);
-        return;
+        return setCreating(false);
       }
-      return (window.location.href = `/builder/${data.data.id}`);
+       (window.location.href = `/builder/${data.data.id}`);
+      return setCreating(false)
     };
     return (
       <section className=" min-h-[80vh] sm:h-full w-full ">
@@ -101,7 +104,7 @@ const Page = () => {
           )}
 
           <div className="flex  gap-3 w-full items-center justify-center sticky bottom-0 bg-white p-2 md:relative">
-            <Button variant="primary" size="medium" onClick={handleCreateResume}>
+            <Button variant="primary" size="medium" onClick={handleCreateResume} disabled={creating?true:false} className={`${creating?"animate-pulse blur-sm":""}`} >
               <Plus /> Add New
             </Button>
             <Link href={'/builder/build'}>
