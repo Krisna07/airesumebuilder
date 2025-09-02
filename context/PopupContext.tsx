@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, createContext, useContext, useCallback } from "react";
+import { createPortal } from 'react-dom';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -19,8 +20,12 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+// Renders children AND a portal-based toast layer so z-index isn't trapped by parent stacking contexts.
 export function ToastProvider({ children }: { children: React.ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => { setMounted(true); }, []);
 
     const hideToast = useCallback((id: string) => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
@@ -52,7 +57,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     return (
         <ToastContext.Provider value={{ toasts, showToast, hideToast, clearAllToasts }}>
             {children}
-            <ToastContainer />
+            {mounted && createPortal(<ToastContainer />, document.body)}
         </ToastContext.Provider>
     );
 }
@@ -72,7 +77,7 @@ function ToastContainer() {
     if (toasts.length === 0) return null;
 
     return (
-        <div className="fixed top-4 right-4 z-50 space-y-2">
+        <div className="fixed top-4 right-4 z-[9999] space-y-2 pointer-events-none">
             {toasts.map((toast) => (
                 <ToastItem key={toast.id} toast={toast} onClose={() => hideToast(toast.id)} />
             ))}
@@ -97,7 +102,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     };
 
     const getToastStyles = () => {
-        const baseStyles = "flex items-center justify-between p-4 rounded-lg shadow-lg max-w-sm w-full transform transition-all duration-300 ease-in-out";
+    const baseStyles = "pointer-events-auto flex items-center justify-between p-4 rounded-lg shadow-lg max-w-sm w-full transform transition-all duration-300 ease-in-out relative z-[1]";
         const visibilityStyles = isVisible 
             ? "translate-x-0 opacity-100" 
             : "translate-x-full opacity-0";

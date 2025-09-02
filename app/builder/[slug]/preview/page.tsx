@@ -318,17 +318,26 @@ const PreviewPage = () => {
             </button>
           ))}
         </div>  
-            <div className="relative">
-              <ResumePreview resumeData={resumeData} template={selectedTemplate} regenerating={regenerating} height="82vh" />  
-              {deleting && (
-                <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-sm">
-                  <div className="flex flex-col items-center gap-3 text-sky-600">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="text-sm font-medium">Deleting…</span>
-                  </div>
-                </div>
-              )}
-            </div>  
+        <div className="relative w-full h-[82vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm" id="resumeViewport">
+          {/* Optional inner wrapper to constrain width / center */}
+          <div className="mx-auto max-w-[900px]">
+            <ResumePreview
+              resumeData={resumeData}
+              template={selectedTemplate}
+              regenerating={regenerating}
+              /* Let container control height & scrolling */
+            />
+          </div>
+          {deleting && (
+            <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3 text-sky-600">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="text-sm font-medium">Deleting…</span>
+              </div>
+            </div>
+          )}
+        </div>  
+           
       </div>
       <ConfirmDialog
         open={showConfirm}

@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Custom keyframes for builder loading enhancements */
+@keyframes fade-in-soft { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fade-scale { from { opacity:0; transform: scale(.98); } to { opacity:1; transform: scale(1); } }
+@keyframes shimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.anim-fade-in-soft { animation: fade-in-soft .4s ease-out both; }
+.anim-fade-scale { animation: fade-scale .45s cubic-bezier(.4,.6,.2,1) both; }
+.skeleton-shimmer { background: linear-gradient(110deg,#f4f4f4 8%,#e8e8e8 18%,#f4f4f4 33%); background-size:200% 100%; animation: shimmer 1.4s linear infinite; }
+
+
 /* :root {
   --background: #ffffff;
   --foreground: #171717;

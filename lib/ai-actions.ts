@@ -8,58 +8,160 @@ if (!api) {
 }
 
 const genAI = new GoogleGenerativeAI(api);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// Central model instances
+// analyzeModel: faster, smaller output
+const analyzeModel = genAI.getGenerativeModel({
+  model: "gemini-2.0-flash",
+  generationConfig: {
+    temperature: 0.3,
+    topP: 0.9,
+    maxOutputTokens: 768,
+  },
+});
+// resumeModel: allow a bit more room for full structured resume JSON
+const resumeModel = genAI.getGenerativeModel({
+  model: "gemini-2.0-flash",
+  generationConfig: {
+    temperature: 0.35, // slightly higher for richer bullets
+    topP: 0.9,
+    maxOutputTokens: 2048,
+  },
+});
 
-export async function analyseResumeToJobDescription(userdata?: ResumeData, jobDescription?: string) {
-  const prompt = `You are an expert technical recruiter.
-Analyze the resume JSON and job description text.
-
-Return ONLY valid JSON (no backticks) matching this schema:
-{
-  "jobDescription": string,
-  "role": string, // inferred primary role / job title (concise)
-  "matchingPercentage": number, // 0-100 integer
-  "description": string, // 1-3 sentence professional summary of candidate vs role
-  "suggestions": string[], // actionable improvement bullet points
-  "missingKeywords": string[], // important keywords absent or weakly represented
-  "strengths": string[] // notable strengths / differentiators
+/**
+ * Robustly extract the first JSON object from a model response.
+ * Strips code fences, trims noise, and throws on parse errors.
+ */
+function extractFirstJsonObject(raw?: string) {
+  if (!raw) throw new Error("Empty AI response");
+  const cleaned = raw
+    .replace(/```(json)?/gi, "")
+    // Remove any leading noise before the first '{'
+    .replace(/^[^{]*{/, "{")
+    .trim();
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
+  if (first === -1 || last === -1 || last <= first) {
+    throw new Error("No JSON object delimiters found");
+  }
+  const slice = cleaned.slice(first, last + 1);
+  return robustParseJson(slice);
 }
 
-Rules:
-- matchingPercentage must be a number 0-100 (no % sign).
-- role should be short (max 60 chars) and not generic like "Professional".
-- suggestions should be specific (start with a verb) and not duplicates.
-- If data insufficient use empty array for lists.
+// Attempt to repair common minor JSON issues (trailing commas, dangling quotes)
+function robustParseJson(str: string) {
+  const attempts: string[] = [];
+  const record = (s: string) => attempts.push(s);
+  let current = str;
+  try {
+    return JSON.parse(current);
+  } catch (e) {
+    record("initial: " + (e as Error).message);
+  }
+  // Remove trailing commas before } or ]
+  current = current.replace(/,(\s*[}\]])/g, "$1");
+  try {
+    return JSON.parse(current);
+  } catch (e) {
+    record("after trailing comma removal: " + (e as Error).message);
+  }
+  // Remove any control characters that may slip in
+  current = current.replace(/[\u0000-\u001F]+/g, "");
+  try {
+    return JSON.parse(current);
+  } catch (e) {
+    record("after control char strip: " + (e as Error).message);
+  }
+  // Heuristic: balance braces/brackets if obviously short by appending
+  const openBraces = (current.match(/{/g) || []).length;
+  const closeBraces = (current.match(/}/g) || []).length;
+  const openBrackets = (current.match(/\[/g) || []).length;
+  const closeBrackets = (current.match(/]/g) || []).length;
+  if (openBraces > closeBraces) current += "}".repeat(openBraces - closeBraces);
+  if (openBrackets > closeBrackets) current += "]".repeat(openBrackets - closeBrackets);
+  try {
+    return JSON.parse(current);
+  } catch (e) {
+    record("after balance attempt: " + (e as Error).message);
+  }
+  // If still failing, throw aggregated diagnostics
+  throw new Error(
+    "Failed to parse AI JSON after repairs. Diagnostics: " + attempts.join(" | ")
+  );
+}
 
-Resume Data JSON:
-${JSON.stringify(userdata || {}, null, 2)}
+/** Basic shape guard (non-exhaustive) to keep downstream flow stable */
+function coerceArrayStrings(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v) => typeof v === "string");
+  return [];
+}
 
-Job Description Text:
-${jobDescription || ''}
+// ---- ANALYZE RESUME ----
 
-Output JSON:`;
+export async function analyseResumeToJobDescription(
+  userdata?: ResumeData,
+  jobDescription?: string
+) {
+  // Compact the resume to reduce tokens (remove undefined / large arrays if empty)
+  const compactResume = userdata
+    ? {
+      ...userdata,
+      experiences: userdata.experiences?.slice(0, 8), // cap to avoid runaway tokens
+      educations: userdata.educations?.slice(0, 5),
+      certificates: userdata.certificates?.slice(0, 10),
+      skills: userdata.skills?.slice(0, 20),
+    }
+    : {};
+
+  const prompt = `SYSTEM: You are an expert technical recruiter. Return only strict JSON.
+SCHEMA (keys & constraints):
+{
+  "jobDescription": string, // normalized copy of input JD (trimmed)
+  "role": string, // inferred concise primary target role (<=60 chars)
+  "matchingPercentage": number, // integer 0-100 (no % sign)
+  "description": string, // 1-3 sentence summary of candidate vs role
+  "suggestions": string[], // actionable verbs, unique, max 8
+  "missingKeywords": string[], // high-signal terms absent or weak, max 12
+  "strengths": string[] // notable differentiators, max 8
+}
+RULES:
+- Output ONLY JSON. No prose. No explanations.
+- If a list would be empty, return [].
+- Do not fabricate technologies not implied by resume.
+- matchingPercentage must correlate with coverage of core responsibilities & keywords.
+- Avoid generic role names (e.g. "Professional"). Prefer "Senior Frontend Engineer", etc.
+
+RESUME_JSON:
+${JSON.stringify(compactResume)}
+
+JOB_DESCRIPTION_TEXT:\n${(jobDescription || "").slice(0, 6000)}
+
+OUTPUT:`;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await analyzeModel.generateContent(prompt);
     const response = await result.response;
-    const text = (await response.text())?.trim();
-    if (!text) throw new Error('Empty AI response');
-    // Strip code fences if model added them
-    const cleaned = text
-      .replace(/^```json/i, '')
-      .replace(/^```/, '')
-      .replace(/```$/, '')
-      .trim();
-    // Find first and last braces to guard against prose leakage
-    const first = cleaned.indexOf('{');
-    const last = cleaned.lastIndexOf('}');
-    if (first === -1 || last === -1) throw new Error('No JSON object found in AI response');
-    const jsonSlice = cleaned.slice(first, last + 1);
-    const parsed = JSON.parse(jsonSlice);
+    const raw = (await response.text())?.trim();
+    const parsed = extractFirstJsonObject(raw);
+    // Light coercion to maintain shape stability
+    if (parsed) {
+      parsed.suggestions = coerceArrayStrings(parsed.suggestions);
+      parsed.missingKeywords = coerceArrayStrings(parsed.missingKeywords);
+      parsed.strengths = coerceArrayStrings(parsed.strengths);
+      if (typeof parsed.matchingPercentage !== "number") {
+        // Fallback simple heuristic if model drifted
+        parsed.matchingPercentage = 0;
+      } else {
+        parsed.matchingPercentage = Math.max(
+          0,
+          Math.min(100, Math.round(parsed.matchingPercentage))
+        );
+      }
+    }
     return parsed;
   } catch (error) {
-    console.error('Error analyzing resume:', error);
-    throw new Error('Failed to analyze resume');
+    console.error("Error analyzing resume:", error);
+    throw new Error("Failed to analyze resume");
   }
 }
 
@@ -68,139 +170,42 @@ export async function GenerateResume(
   data?: string,
   jobDescription?: string
 ) {
-  const prompt = `You are an expert resume writer.
+  // Prefer structured JSON over verbose markdown to reduce hallucinations.
+  const sourceResume = userdata
+    ? JSON.stringify(userdata)
+    : JSON.stringify({ raw: data });
 
-Using the information below, generate a professional and well-structured resume. Tailor the resume to align with the provided job description.
-
----
-
-### Candidate Information:
-${userdata ? `
-**Name:** ${userdata.profile.fullname}  
-**Email:** ${userdata.profile.email}  
-**Phone:** ${userdata.profile.phone}  
-**Links:** ${userdata.profile.links}
-
-**Work Experience:**
-${userdata.experiences.map((exp) => `
-- **Position:** ${exp.title}  
-  **Company:** ${exp.company}  
-  **Duration:** ${exp.startDate} to ${exp.endDate ? exp.endDate : "current"}  
-  **Current Role:** ${exp.current ? "Yes" : "No"}  
-  **Responsibilities:**  
-  ${exp.responsibilities?.map((r) => `  - ${r}`).join("\n")}
-`).join("\n")}
-
-**Education:**
-${userdata.educations.map((edu) => `
-- **Degree:** ${edu.degree}  
-  **University:** ${edu.university}  
-  **Location:** ${edu.location}  
-  **Start Date:** ${edu.startDate}  
-  **End Date:** ${edu.endDate}  
-  **Currently Enrolled:** ${edu.current ? "Yes" : "No"}
-`).join("\n")}
-
-**Certifications:**
-${userdata.certificates.map((cert) => `
-- **Title:** ${cert.title}  
-  **Issued By:** ${cert.issued_by}  
-  **Year:** ${cert.year}
-`).join("\n")}
-
-**Skills:** ${userdata.skills.join(", ")}
-` : `${data}`}
-
----
-
-### Job Description:
-${jobDescription || "No job description provided."}
-
----
-
-### Output Requirements:
-
-Return the resume in **valid JSON format** matching this structure:
-
-\`\`\`json
+  const prompt = `SYSTEM: You are a senior resume writer. Produce ONLY valid JSON for a tailored resume.
+SCHEMA:
 {
-  "profile": {
-    "fullname": string,
-    "email": string,
-    "phone": string,
-    "location": string,
-    "links": [
-      {
-        "type": string, // e.g., "LinkedIn", "GitHub"
-        "url": string
-      }
-    ],
-    "summary": string // Career summary, max 80 words
-  },
-  "experiences": [
-    {
-      "title": string,
-      "company": string,
-      "location": string,
-      "startDate": string, // Format: "Month-Year"
-      "endDate": string, // "Month-Year" or "current"
-      "current": boolean,
-      "responsibilities": [string] // At least 5 detailed bullet points
-    }
-  ],
-  "educations": [
-    {
-      "degree": string,
-      "university": string,
-      "location": string,
-      "startDate": string, // "Month-Year"
-      "endDate": string, // "Month-Year" or "current"
-      "current": boolean
-    }
-  ],
-  "skills": [
-    {
-      "type": string, // e.g., "Frontend", "Backend", "Tools"
-      "skills": string[] // Grouped and relevant to the profile
-    }
-  ],
-  "certificates": [
-    {
-      "title": string,
-      "issued_by": string,
-      "year": string
-    }
-  ]
+  "profile": {"fullname": string, "email": string, "phone": string, "location": string, "links": [{"type": string, "url": string}], "summary": string },
+  "experiences": [{"title": string, "company": string, "location": string, "startDate": string, "endDate": string, "current": boolean, "responsibilities": string[]}],
+  "educations": [{"degree": string, "university": string, "location": string, "startDate": string, "endDate": string, "current": boolean}],
+  "skills": [{"type": string, "skills": string[]}],
+  "certificates": [{"title": string, "issued_by": string, "year": string}]
 }
-\`\`\`
+RULES:
+- Dates format: Mon-YYYY (e.g. Jan-2024)
+- summary max ~80 words.
+- Each experience: >=5 strong quantified bullet responsibilities starting with a verb.
+- Group skills into meaningful categories; at least 10 total skills across groups.
+- Derive link type from URL host (e.g. github.com => "GitHub").
+- If job description missing, still return valid JSON.
+- No extra commentary, ONLY JSON.
 
----
+SOURCE_RESUME_JSON:
+${sourceResume}
 
-### Guidelines:
+JOB_DESCRIPTION_TEXT:\n${(jobDescription || "").slice(0, 6000)}
 
-- Use the 'Month-Year' format for all dates (e.g., "Jan-2024").
-- Break down **at least 10 relevant skills** into types based on the employment and other details (e.g., Frontend, Backend, Tools).
-- Ensure each experience includes **at least 5 strong responsibility bullet points**.
-- Write a brief, tailored **summary** (max 80 words) that captures the candidate’s expertise.
-- Extract link types (e.g., "LinkedIn", "GitHub") from the URLs.
-- Focus on aligning the resume with the provided job description.
-
----
-
-Return **only** the JSON result with no extra explanations or formatting.`;
+OUTPUT:`;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await resumeModel.generateContent(prompt);
     const response = await result.response;
-
-    const text = await response.text();
-
-    if (text) {
-      const jsonResponse = text.split("```json")[1]?.split("```")[0];
-      return JSON.parse(jsonResponse);
-    } else {
-      throw new Error("Response text does not contain valid JSON format");
-    }
+    const raw = await response.text();
+    const parsed = extractFirstJsonObject(raw);
+    return parsed;
   } catch (error) {
     console.error("Error generating resume:", error);
     throw new Error("Failed to generate resume");
@@ -209,33 +214,20 @@ Return **only** the JSON result with no extra explanations or formatting.`;
 
 
 export async function extractUrlData(url: string) {
-  const prompt = `Extract the following data from the URL provided:
-  
-  URL: ${url}
-  
-  Please provide the extracted data in JSON format with the following structure:
-  
-  {
-    "title": string, // The title of the page
-    "description": string, // A brief description of the content
-    "image": string, // URL of an image associated with the content
-    "keywords": string[] // List of keywords related to the content
-  }
-  
-  Ensure that the extracted data is accurate and relevant to the content of the page.`;
-
+  const prompt = `SYSTEM: Extract concise metadata for the URL. Return ONLY JSON.
+SCHEMA: {"title": string, "description": string, "image": string, "keywords": string[]}
+RULES:
+- description <= 30 words.
+- keywords: unique lowercase phrases (max 12) ordered by relevance.
+- If image unknown use empty string.
+- No commentary.
+URL: ${url}
+OUTPUT:`;
   try {
-    const result = await model.generateContent(prompt);
+    const result = await analyzeModel.generateContent(prompt);
     const response = await result.response;
-    console.log("Response:", response);
-
-    const text = await response.text();
-    if (text) {
-      const jsonResponse = text.split("`json")[1]?.split("`")[0];
-      return JSON.parse(jsonResponse);
-    } else {
-      throw new Error("Response text does not contain valid JSON format");
-    }
+    const raw = await response.text();
+    return extractFirstJsonObject(raw);
   } catch (error) {
     console.error("Error extracting URL data:", error);
     throw new Error("Failed to extract URL data");
