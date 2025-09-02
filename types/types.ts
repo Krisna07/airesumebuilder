@@ -13,6 +13,8 @@ export interface ResumeData {
   experiences: Experience[];
   educations: Education[];
   certificates: Certificates[];
+  matchingScore?: number;
+  analyzedAt?: string | Date;
 }
 
 export interface skills {
@@ -60,4 +62,7 @@ export interface AnalysisResult {
   description: string;
   matchingPercentage: number;
   suggestions: string[];
+  role?: string;
+  missingKeywords?: string[];
+  strengths?: string[];
 }

@@ -2,11 +2,12 @@
 import Button from '@/components/UI/Button';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
-import { File, Plus, Rocket, User } from 'lucide-react';
+import { File, Plus, Rocket, User, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
-import { useToast } from '@/context/PopupContext';
+import {  useToast } from '@/context/PopupContext';
 import ResumePreview from '@/components/Templates/ResumePreview';
+import ConfirmDialog from '@/components/UI/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { ResumeData } from '@/types/types';
 
@@ -16,12 +17,109 @@ import { ResumeData } from '@/types/types';
 //   title: string;
 //   updatedAt: string;
 // }
+
+interface PreviewContainerProps {
+  resume: ResumeData;
+  index: number;
+  toast: ReturnType<typeof useToast>;
+  onDeleted: (id: string) => void;
+}
+
+const PreviewContainer: React.FC<PreviewContainerProps> = ({ resume, index, toast, onDeleted }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isGone, setIsGone] = useState(false);
+
+  const hasMinimumData = (r: ResumeData) => !!(r.profile.fullname && r.profile.email);
+
+  const performDelete = async () => {
+    setIsDeleting(true);
+    const response = await ResumeService.delete(resume.id);
+    if (!response.ok) {
+      toast.showToast('Error deleting resume', 'error', 3000);
+      setIsDeleting(false);
+      return;
+    }
+    toast.showToast('Resume deleted', 'success', 2500);
+    // animate out then notify parent
+    setIsGone(true);
+    setTimeout(() => onDeleted(resume.id), 350);
+  };
+
+  return (
+    <>
+      <div
+        tabIndex={0}
+        key={index}
+        className={`group relative min-h-[300px] w-full max-w-[250px] overflow-hidden rounded-2xl border border-transparent p-2 shadow-[0_0_4px_0_gray] select-none transition-all duration-300 focus-within:shadow-[0_4px_12px_-1px_rgba(56,189,248,0.4)] hover:shadow-[0_4px_12px_-1px_rgba(56,189,248,0.4)] ${isGone ? 'opacity-0 scale-90 pointer-events-none' : ''}`}
+      >
+        {typeof resume.matchingScore === 'number' && (
+          <div className="absolute top-2 left-2 z-10 rounded-full bg-white/90 backdrop-blur px-2 py-1 text-[11px] font-medium shadow border border-sky-200 flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+            {Math.round(resume.matchingScore)}%
+          </div>
+        )}
+        <div className={`absolute inset-0 -z-10 transition-all duration-500 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] ${isDeleting ? 'grayscale blur-sm opacity-70' : ''}`}>
+          <ResumePreview template={resume.template} resumeData={resume} />
+        </div>
+        <div className={`absolute inset-x-0 bottom-0 flex translate-y-full gap-2 p-3 transition-all duration-500 ease-out group-hover:translate-y-0 group-focus-within:translate-y-0 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
+          {hasMinimumData(resume) && (
+            <Button
+              onClick={() => (window.location.href = `/builder/${resume.id}/preview`)}
+              variant="primary"
+              size="small"
+              className="flex-1"
+            >
+              Preview
+            </Button>
+          )}
+          <Button
+            onClick={() => (window.location.href = `/builder/${resume.id}`)}
+            variant="secondary"
+            size="small"
+            className="flex-1"
+          >
+            Edit
+          </Button>
+          {!hasMinimumData(resume) && (
+            <Button
+              onClick={() => setShowConfirm(true)}
+              variant="danger"
+              size="small"
+              className="flex items-center gap-1"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Del
+            </Button>
+          )}
+        </div>
+        {isDeleting && (
+          <div className="absolute inset-0 z-10 grid place-items-center bg-white/70 backdrop-blur-sm">
+            <Loader2 className="h-7 w-7 animate-spin text-sky-500" />
+          </div>
+        )}
+      </div>
+      <ConfirmDialog
+        open={showConfirm}
+        onCancel={() => (!isDeleting ? setShowConfirm(false) : null)}
+        onConfirm={performDelete}
+        loading={isDeleting}
+        title="Delete Resume?"
+        message={<span>Delete this incomplete resume? <br/>This action cannot be undone.</span>}
+        confirmText="Delete"
+      />
+    </>
+  );
+};
+
+
+
 const Page = () => {
   const { user, loading } = useAuth();
   const toast = useToast();
   const [resumes, setResumes] = useState<ResumeData[]>([]);
   const [creating, setCreating] = useState<boolean>(false);
   const [loadingResume, setLoadingResume] = useState<boolean>(false)
+  const [initialFetched, setInitialFetched] = useState(false);
   const route = useRouter()
 
   useEffect(() => {
@@ -35,12 +133,13 @@ const Page = () => {
            setResumes([]);
           return setLoadingResume(false)
         }
-        setResumes(data.data);
-        return setLoadingResume(false)
+  setResumes(data.data);
+  setInitialFetched(true);
+  return setLoadingResume(false)
       };
       fetchAllResume();
     }
-  }, [user]);
+  }, [user, toast]);
 
   if (loading || loadingResume) {
     return (
@@ -63,96 +162,77 @@ const Page = () => {
       setCreating(false);
     };
 
-      // Minimum data check
-  const hasMinimumData =(resume:ResumeData)=>{
-      if(!resume.profile.fullname || !resume.profile.email){
-        return false
-      }
-      return true
-  } 
+ 
 
-    const handleDelete = async (resumeId: string) => {
-      const response = await ResumeService.delete(resumeId);
-      if (!response.ok) {
-        toast.showToast('Error deleting resume', 'error', 3000);
-        return;
-      }
-      toast.showToast(`Resume deleted successfully`, 'success', 3000);
-      return (window.location.href = '/builder');
-    };
     return (
-      <section className=" min-h-[80vh] sm:h-full w-full ">
-        <div className="w-full h-full grid place-items-center gap-4  ">
-          {resumes?.length ? (
+      <section className=" md:min-h-[80vh] h-full w-full grid place-items-center ">
+         <div className={`w-full ${resumes?.length?'place-self-start':"md:place-self-end "} grid gap-4`}> {resumes?.length ? (
             <>
               <div className="w-full flex items-center justify-between   px-4">
                 <h3 className="w-full text-left font-medium text-3xl">
                   All Resumes <span className="font-bold text-[12px]">{resumes.length} in total</span>
                 </h3>
               </div>
-              <div className=" w-full h-fit grid grid-cols-2 md:grid-cols-3 gap-4 px-4">
+              <div className="w-full h-fit grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4">
                 {resumes.map((resume, index) => (
-                  <div
-                    key={index}
-                    tabIndex={0} /* allows focus on tap for mobile */
-                    className="min-h-[300px] max-w-[250px] overflow-hidden grid place-items-center rounded-2xl shadow-[0_0_4px_0_gray] select-none relative group hover:shadow-[1px_2px_2px_1px_skyblue] focus-within:shadow-[1px_2px_2px_1px_skyblue] cursor-pointer"
-                  >
-                    <div className="w-full h-full select-none absolute -z-10 transition-all duration-300 group-hover:blur-[1.5px] group-hover:scale-[1.1] group-focus-within:scale-[1.1]  group-focus-within:blur-[1.5px]">
-                      <ResumePreview resumeId={resume.id} template={resume.template} />
-                    </div>
-                    <div className="flex gap-2 relative -bottom-[100%] transition-all ease-in-out duration-900 group-hover:bottom-0 group-focus-within:bottom-0">
-                    {hasMinimumData(resume) ?  <Button
-                        onClick={() => (window.location.href = `/builder/${resume?.id}/preview`)}
-                        variant="primary"
-                        size="small"
-                      >
-                        Preview
-                      </Button>: 
-                       <Button
-                        onClick={() => handleDelete(resume.id)}
-                        variant="danger"
-                        size="small"
-                      >
-                        Delete
-                      </Button>}
-                      <Button
-                        onClick={() => (window.location.href = `/builder/${resume?.id}`)}
-                        variant="secondary"
-                        size="small"
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
+                  <PreviewContainer
+                    resume={resume}
+                    toast={toast}
+                    index={index}
+                    key={resume.id}
+                    onDeleted={(id) => setResumes(prev => prev.filter(r => r.id !== id))}
+                  />
+                 
                 ))}
               </div>
             </>
           ) : (
-           loadingResume ? (
-              <div className="w-full grid place-items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-              </div>
-            ) : (
-              <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2  text-center flex items-center justify-center gap-2 ">
-                  Lets get started <Rocket className="animate-pulse" />
-                </h1>
-                <p className="text-gray-600">Create a new resume or work with existing ones</p>
-              </div>
-            )
-          )}
+            <>
+              {loadingResume && !initialFetched ? (
+                <div className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[300px] max-w-[250px] w-full animate-pulse rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-inner"
+                    >
+                      <div className="h-full w-full bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_10px,#eee_10px,#eee_20px)] opacity-60" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center mb-6 px-4">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-2">
+                    Lets get started <Rocket className="animate-pulse" />
+                  </h1>
+                  <p className="text-gray-600 max-w-md mx-auto">Create your first resume to begin. You can always add, edit, preview or delete drafts later.</p>
+                </div>
+              )}
+            </>
+          )}</div>
 
-          <div className="flex  gap-3 w-full items-center justify-center sticky bottom-0 bg-white p-2 md:relative">
-            <Button variant="primary" size="medium" onClick={handleCreateResume} disabled={creating?true:false} className={`${creating?"animate-pulse":""}`} >
-              {creating?"Creating Resume....":<><Plus /> Add New</>}
+          <div className="w-full  grid place-items-center place-self-end md:place-self-start sticky bottom-0 p-4 gap-2 ">
+          <div className='flex gap-2 items-center'>  
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={handleCreateResume}
+              disabled={creating}
+              className={`${creating ? 'animate-pulse' : ''}`}
+            >
+              {creating ? (
+                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Creating...</span>
+              ) : (
+                <span className="flex items-center gap-2"><Plus className="h-4 w-4" /> Add New</span>
+              )}
             </Button>
-            <Link href={'/builder/build'}>
-              <Button variant="secondary" size="medium" className="w-full">
+            <Link href={'/builder/build'} className="flex-1">
+              <Button variant="secondary" size="medium">
                 <File /> Upload Existing PDF
               </Button>
             </Link>
+            </div>
           </div>
-        </div>
+        {/* </div> */}
       </section>
     );
   }

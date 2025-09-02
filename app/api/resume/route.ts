@@ -38,6 +38,10 @@ export async function GET(req: NextRequest) {
                educations:resume?.educations ? JSON.parse(resume.educations as string) : [],
                certificates:resume?.certificates ? JSON.parse(resume.certificates as string) : [],
                updated: resume?.updatedAt,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                matchingScore: (resume as any)?.matchingScore ?? null,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                analyzedAt: (resume as any)?.analyzedAt ?? null,
             }
         }, { status: 200 });
     } catch (err) {
@@ -79,6 +83,10 @@ export async function PUT(req: NextRequest) {
                     skills: typeof createdResume.skills === "string"  ? JSON.parse(createdResume.skills) : [],
                     certificates: typeof createdResume.certificates === "string"  ? JSON.parse(createdResume.certificates) : [],
                  updated: createdResume.updatedAt,
+                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                 matchingScore: (createdResume as any)?.matchingScore ?? null,
+                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                 analyzedAt: (createdResume as any)?.analyzedAt ?? null,
              },
          }, { status: 200 });
         }
@@ -109,6 +117,10 @@ export async function PUT(req: NextRequest) {
                     skills: typeof updatedResume.skills === "string"  ? JSON.parse(updatedResume.skills) : [],
                     certificates: typeof updatedResume.certificates === "string"  ? JSON.parse(updatedResume.certificates) : [],
                     updated: updatedResume.updatedAt,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                    matchingScore: (updatedResume as any)?.matchingScore ?? null,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                    analyzedAt: (updatedResume as any)?.analyzedAt ?? null,
                 }
             }
         }, { status: 201 });

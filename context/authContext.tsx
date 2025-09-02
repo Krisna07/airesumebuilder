@@ -17,10 +17,14 @@ type AuthContextType = {
   register: (email: string, password: string, name?: string) => void;
 };
 
+
+
 const formValidation = async (email: string, password: string) => {
   switch (true) {
     case !password:
       return 'Password not provided';
+    case password.length<6:
+      return 'Password length requirement did not match'
     case !email:
       return 'Email not provided';
     case !email && !password:
