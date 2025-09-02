@@ -1,8 +1,10 @@
+
 import React, { useState } from "react";
 import Input from "../Input";
 import Button from '../UI/Button';
 import { FaTimes } from "react-icons/fa";
 import { skills } from "@/types/types";
+import { useToast } from "@/context/PopupContext";
 
 interface SkillsStepProps {
   data: skills[];
@@ -13,6 +15,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
   const [skillsList, setSkills] = useState<skills[]>(data);
   const [skill, setSkill] = useState<string>('');
   const [type, setType] = useState<string>('');
+  const toast = useToast()
 
   const addSkill = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +28,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
           setSkills(updatedSkills);
           updateSkills(updatedSkills);
         } else {
-          console.log('Duplicate skill for this type');
+          toast.showToast('Duplicate skill', 'warning', 3000)
         }
       } else {
         // If the type does not exist, create a new entry
@@ -36,7 +39,8 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
       setSkill(''); // Clear the skill input
       // Clear the type input
     } else {
-      console.log('Skill cannot be empty');
+                toast.showToast('Skills cannot be empty', 'warning', 3000)
+
     }
   };
 

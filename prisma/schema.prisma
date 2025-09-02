@@ -28,6 +28,8 @@ model Resume {
   educations   Json
   skills       Json
   certificates Json
+  matchingScore Float?  @db.DoublePrecision
+  analyzedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id])

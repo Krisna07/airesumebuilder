@@ -11,44 +11,56 @@ const genAI = new GoogleGenerativeAI(api);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export async function analyseResumeToJobDescription(userdata?: ResumeData, jobDescription?: string) {
+  const prompt = `You are an expert technical recruiter.
+Analyze the resume JSON and job description text.
 
+Return ONLY valid JSON (no backticks) matching this schema:
+{
+  "jobDescription": string,
+  "role": string, // inferred primary role / job title (concise)
+  "matchingPercentage": number, // 0-100 integer
+  "description": string, // 1-3 sentence professional summary of candidate vs role
+  "suggestions": string[], // actionable improvement bullet points
+  "missingKeywords": string[], // important keywords absent or weakly represented
+  "strengths": string[] // notable strengths / differentiators
+}
 
-  const prompt = `Analyze the following resume data and job description to provide a detailed analysis:
+Rules:
+- matchingPercentage must be a number 0-100 (no % sign).
+- role should be short (max 60 chars) and not generic like "Professional".
+- suggestions should be specific (start with a verb) and not duplicates.
+- If data insufficient use empty array for lists.
 
-  Resume Data:
-  ${JSON.stringify(userdata, null, 2)}
+Resume Data JSON:
+${JSON.stringify(userdata || {}, null, 2)}
 
-  Job Description:
-  ${jobDescription}
+Job Description Text:
+${jobDescription || ''}
 
-  Please provide a comprehensive analysis that includes:
-  - A brief description of the candidate's qualifications.
-  - The percentage match between the resume and the job description.
-  - Suggestions for improving the resume to better fit the job description.
-
-  Please provide the analysis in JSON format with the following structure:{
-  "jobDescription": string, // The job description provided
-  "matchingPercentage": number, // Percentage match between the resume and job description
-  "description": string, // Brief description of the candidate's qualifications
-  "suggestions": string[], // List of suggestions for improving the resume
-  `;
+Output JSON:`;
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
-
-    const text = await response.text();
-    if (text) {
-      const jsonResponse = text.split("`json")[1]?.split("`")[0];
-      return JSON.parse(jsonResponse);
-    } else {
-      throw new Error("Response text does not contain valid JSON format");
-    }
+    const text = (await response.text())?.trim();
+    if (!text) throw new Error('Empty AI response');
+    // Strip code fences if model added them
+    const cleaned = text
+      .replace(/^```json/i, '')
+      .replace(/^```/, '')
+      .replace(/```$/, '')
+      .trim();
+    // Find first and last braces to guard against prose leakage
+    const first = cleaned.indexOf('{');
+    const last = cleaned.lastIndexOf('}');
+    if (first === -1 || last === -1) throw new Error('No JSON object found in AI response');
+    const jsonSlice = cleaned.slice(first, last + 1);
+    const parsed = JSON.parse(jsonSlice);
+    return parsed;
   } catch (error) {
-    console.error("Error analyzing resume:", error);
-    throw new Error("Failed to analyze resume");
+    console.error('Error analyzing resume:', error);
+    throw new Error('Failed to analyze resume');
   }
-
 }
 
 export async function GenerateResume(

@@ -42,14 +42,13 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
   const handlePrevious = async () => {
     // Save current data and template before going back
-    console.log(`saving data fromData`, formData, userId);
 
     await ResumeService.save(userId, resumeId, selectedTemplate, formData);
     setCurrentStep((prevStep) => Math.max(prevStep - 1, 1));
   };
 
   const handleSaveDraft = async () => {
-    console.log(`saving data fromData`, formData, userId);
+   
     await ResumeService.save(userId, resumeId, selectedTemplate, formData);
     toast.showToast('Draft saved successfully!', 'success');
   };
@@ -90,7 +89,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       case 6:
         return (
           <FormLayout heading={"Let's add Job description"} subheading={'Provide detail job description with roles and responsibilities.'}>
-            <JobDescription />
+            <JobDescription resumeId={resumeId} />
           </FormLayout>
         );
       case 7:

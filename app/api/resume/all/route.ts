@@ -20,15 +20,19 @@ export async function GET(req: NextRequest) {
 
             return NextResponse.json({
                 data: activeResumes.map(resume => ({
-                    id: resume?.id,
-                    title: resume?.title,
-                    template: resume?.template,
-                    profile: resume?.profile ? JSON.parse(resume.profile as string) : {},
-                    skills: resume?.skills ? JSON.parse(resume.skills as string) : [],
-                    experiences: resume?.experiences ? JSON.parse(resume.experiences as string) : [],
-                    educations: resume?.educations ? JSON.parse(resume.educations as string) : [],
-                    certificates: resume?.certificates ? JSON.parse(resume.certificates as string) : [],
-                    updated: resume?.updatedAt,
+                    id: resume.id,
+                    title: resume.title,
+                    template: resume.template,
+                    profile: resume.profile ? JSON.parse(resume.profile as string) : {},
+                    skills: resume.skills ? JSON.parse(resume.skills as string) : [],
+                    experiences: resume.experiences ? JSON.parse(resume.experiences as string) : [],
+                    educations: resume.educations ? JSON.parse(resume.educations as string) : [],
+                    certificates: resume.certificates ? JSON.parse(resume.certificates as string) : [],
+                    updated: resume.updatedAt,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                    matchingScore: (resume as any).matchingScore ?? null,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                    analyzedAt: (resume as any).analyzedAt ?? null,
                 }))
             }, { status: 200 });
         }

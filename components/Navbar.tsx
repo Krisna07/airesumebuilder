@@ -9,25 +9,22 @@ import { LogIn, LogOut } from 'lucide-react';
 const Navbar = () => {
   const [menu, setMenu] = useState<boolean>(false);
   const { user, logout } = useAuth();
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLDivElement | null>(null); // wrapper that contains trigger + dropdown
   // const { theme, handleThemeChange } = useTheme();
   // console.log(theme);
   useEffect(() => {
+    if (!menu) return; // only attach listeners when open
+
     const handleClickOutside = (event: MouseEvent) => {
-      console.log(menu);
-      if (menuRef.current && !(menuRef.current as HTMLElement).contains((event.target as HTMLElement)?.parentElement)) {
+      if (!menuRef.current) return;
+      const target = event.target as HTMLElement;
+      if (!menuRef.current.contains(target)) {
         setMenu(false);
       }
     };
-
-    const handleScroll = () => {
-      setMenu(false);
-    };
-
-    if (menu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('scroll', handleScroll);
-    }
+    const handleScroll = () => setMenu(false);
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('scroll', handleScroll);
@@ -52,10 +49,19 @@ const Navbar = () => {
             <Sun className={`w-4 h-4 m-1  ${theme.isDark ? 'opacity-0' : ''} transition-all ease-in-out duration-300 relative z-50`} />
             <Moon className={`w-4 h-4 m-1  ${theme.isDark ? '' : 'opacity-0'} transition-all ease-in-out duration-300 relative z-50`} />
           </div> */}
-          <div className='min-w-[40px] h-[40px] relative  transition-all ease-in-out duration-500 flex items-center justify-center font-bold text-[24px] rounded-full px-2 bg-gray-200'>
-            <FaUser onClick={() => setMenu(!menu)} />
+          <div ref={menuRef} className='min-w-[40px] h-[40px] relative transition-all ease-in-out duration-500 flex items-center justify-center font-bold text-[24px] rounded-full px-2 bg-gray-200 '>
+            <button
+              type='button'
+              aria-haspopup='menu'
+              aria-expanded={menu}
+              aria-label='User menu'
+              onClick={() => setMenu(prev => !prev)}
+              className='w-full h-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full'
+            >
+              <FaUser />
+            </button>
             {menu && (
-              <div ref={menuRef} className='min-w-fit grid absolute top-[calc(100%+12px)] z-[100] py-1 bg-gray-300 rounded right-0 text-sm font-normal divide-y divide-gray-800/50 '>
+              <div className='min-w-fit grid absolute top-[calc(100%+12px)] z-[100] py-1 bg-gray-300 rounded right-0 text-sm font-normal divide-y divide-gray-800/50 shadow-lg border border-gray-400/30 animate-fade-in overflow-hidden' role='menu'>
                 <li className='min-w-[150px] flex items-center justify content-between gap-2 p-2 '>
                   <div className='bg-blue-300 w-6 h-6 rounded-full inline-block '></div>
                   {user ? (
@@ -72,12 +78,17 @@ const Navbar = () => {
                 </li>
                 {user && (
                   <>
-                    <li className='flex items-center justify content-between gap-2 p-1'>
+                    <Link href={'/builder'} className='flex items-center justify content-between gap-2 p-1'>
                       <FaDashcube /> Dashboard
-                    </li>
+                    </Link>
                   </>
                 )}
-                <li className='flex items-center justify content-between gap-2 p-1' onClick={() => (user ? logout() : (window.location.href = 'auth/signin'))}>
+                <li className='flex items-center justify content-between gap-2 p-1 cursor-pointer hover:bg-gray-200/70 transition-colors'
+                  role='menuitem'
+                  onClick={() => {
+                    if (user) logout(); else window.location.href = 'auth/signin';
+                    setMenu(false);
+                  }}>
                   {user ? (
                     <>
                       <LogOut /> Sign out

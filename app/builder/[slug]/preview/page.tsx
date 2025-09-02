@@ -6,9 +6,10 @@ import { ResumeData, UserResume } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
+import ConfirmDialog from '@/components/UI/ConfirmDialog';
 
 const templates: {
   id: UserResume['template'];
@@ -31,11 +32,14 @@ const PreviewPage = () => {
   const params = useParams();
   const slug = params.slug as string;
   const { user } = useAuth();
-  const toast = useToast();
+  const { showToast } = useToast();
 
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<UserResume['template']>('modern');
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -49,7 +53,7 @@ const PreviewPage = () => {
         if (!active) return;
 
         if (!response.ok || !data?.data) {
-          toast.showToast(`No resume data found, redirecting…`, 'warning', 2500);
+          showToast(`No resume data found, redirecting…`, 'warning', 2500);
           setLoading(false);
           setTimeout(() => (window.location.href = '/builder'), 600);
           return;
@@ -61,7 +65,7 @@ const PreviewPage = () => {
         // setSelectedTemplate(data.data.template ?? 'modern');
       } catch (err) {
         console.error('Error loading resume data:', err);
-        toast.showToast('Error loading resume. Redirecting…', 'error', 2500);
+        showToast('Error loading resume. Redirecting…', 'error', 2500);
         setTimeout(() => (window.location.href = '/builder'), 600);
       } finally {
         if (active) setLoading(false);
@@ -71,7 +75,10 @@ const PreviewPage = () => {
     return () => {
       active = false;
     };
-  }, [slug, toast]);
+    // We intentionally only depend on slug; showToast is stable enough and including it can trigger
+    // unwanted re-fetch loops (e.g., after deletion redirect flashes 404 fetch attempts).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   const handleTemplateChange = async (templateId: UserResume['template']) => {
     if (!resumeData) return;
@@ -79,9 +86,9 @@ const PreviewPage = () => {
     if (typeof window !== 'undefined' && user) {
       try {
         await ResumeService.save(user.id, slug, templateId, resumeData);
-        toast.showToast('Template updated', 'success', 1500);
+  showToast('Template updated', 'success', 1500);
       } catch {
-        toast.showToast('Failed to save template', 'error', 2000);
+  showToast('Failed to save template', 'error', 2000);
       }
     }
   };
@@ -102,7 +109,7 @@ const PreviewPage = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ PDF generation error:', errorData);
-        toast.showToast(
+  showToast(
           errorData?.details || errorData?.error || 'PDF generation failed',
           'error',
           3000,
@@ -125,21 +132,27 @@ const PreviewPage = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.showToast('PDF downloaded', 'success', 1500);
+  showToast('PDF downloaded', 'success', 1500);
     } catch (error) {
       console.error('❌ PDF download error:', error);
-      toast.showToast('Error generating PDF. Please try again.', 'error', 3000);
+  showToast('Error generating PDF. Please try again.', 'error', 3000);
     }
   };
 
-  const handleDelete = async (resumeId: string) => {
-    const response = await ResumeService.delete(resumeId);
+  const performDelete = async () => {
+    if (!resumeData) return;
+    setDeleting(true);
+    const response = await ResumeService.delete(resumeData.id);
     if (!response.ok) {
-      toast.showToast('Error deleting resume', 'error', 3000);
+      showToast('Error deleting resume', 'error', 3000);
+      setDeleting(false);
       return;
     }
-    toast.showToast(`Resume deleted successfully`, 'success', 3000);
-    return (window.location.href = '/builder');
+    showToast('Resume deleted', 'success', 2200);
+    setFadeOut(true);
+    setTimeout(() => {
+      window.location.href = '/builder';
+    }, 320);
   };
 
   const [regenerating, setRegenerating] = useState<boolean>(false);
@@ -148,7 +161,7 @@ const PreviewPage = () => {
     const response = await ResumeService.regenerate(resumeData);
     const data = await response.json();
     if (!response.ok) {
-      toast.showToast('Error regenerating resume', 'error', 3000);
+  showToast('Error regenerating resume', 'error', 3000);
       return setRegenerating(false);
     }
     const updatedResume = await ResumeService.save(
@@ -159,7 +172,7 @@ const PreviewPage = () => {
     );
     if (!updatedResume.ok) {
       setRegenerating(false);
-      return toast.showToast(
+  return showToast(
         'Error saving the resume, the data isnot saved to database',
         'warning',
         4000,
@@ -178,16 +191,21 @@ const PreviewPage = () => {
       certificates: data.resume.certificates,
     });
 
-    toast.showToast(`Resume has been regenerated Successfully`, 'success', 3000);
+  showToast(`Resume has been regenerated Successfully`, 'success', 3000);
     return setRegenerating(false);
   };
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading preview...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-5xl grid gap-8">
+          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="grid grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+            ))}
+          </div>
+          <div className="h-[70vh] w-full rounded-2xl border border-dashed border-gray-300 bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_12px,#eee_12px,#eee_24px)] animate-pulse" />
         </div>
       </div>
     );
@@ -235,13 +253,14 @@ const PreviewPage = () => {
 
   // Main preview page
   return (
-    <div className="min-h-screen py-8">
+    <div className={`min-h-screen py-8 relative transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
         {/* Actions */}
         <div className="flex justify-center gap-1 gap-y-2 md:gap-3 flex-wrap text-[14px]">
           <button
             onClick={handleDownloadPDF}
-            className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md flex items-center gap-2"
+            disabled={deleting}
+            className={`px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
           >
             <Download size={16} /> Download
           </button>
@@ -261,21 +280,21 @@ const PreviewPage = () => {
           </button>
 
           <button
-            onClick={() => handleDelete(resumeData.id)}
-            className="px-4 py-1 bg-red-200 text-gray-800 rounded-lg hover:bg-red-400 transition-colors font-medium shadow-md flex items-center gap-2"
+            onClick={() => setShowConfirm(true)}
+            disabled={deleting}
+            className={`px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-400'}`}
           >
-            <Trash size={16} /> Delete
+            {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash size={16} />} {deleting ? 'Deleting' : 'Delete'}
           </button>
           <button
             onClick={() => handleRegerate(resumeData)}
-            className={`px-4 py-1 bg-green-200 text-gray-800 rounded-lg hover:bg-green-400 transition-colors font-medium shadow-md flex items-center gap-2 ${regenerating ? 'animate-pulse' : ''}`}
-            disabled={regenerating ? true : false}
+            className={`px-4 py-1 bg-green-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${regenerating ? 'animate-pulse' : 'hover:bg-green-400'} ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={regenerating || deleting}
           >
             <Bot size={16} /> {regenerating ? 'Generating...' : 'Re-Generate'}
           </button>
         </div>
 
-        {/* Template picker */}
         <div className="w-full grid grid-cols-3 gap-4">
           {templates.map(t => (
             <button
@@ -298,12 +317,28 @@ const PreviewPage = () => {
               <p className="text-sm text-gray-600 mt-1 hidden sm:block">{t.description}</p>
             </button>
           ))}
-        </div>
-          
-            <ResumePreview resumeData={resumeData} template={selectedTemplate} regenerating={regenerating} height="82vh" />
-          
-        
+        </div>  
+            <div className="relative">
+              <ResumePreview resumeData={resumeData} template={selectedTemplate} regenerating={regenerating} height="82vh" />  
+              {deleting && (
+                <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-sm">
+                  <div className="flex flex-col items-center gap-3 text-sky-600">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span className="text-sm font-medium">Deleting…</span>
+                  </div>
+                </div>
+              )}
+            </div>  
       </div>
+      <ConfirmDialog
+        open={showConfirm}
+        onCancel={() => (!deleting ? setShowConfirm(false) : null)}
+        onConfirm={performDelete}
+        loading={deleting}
+        title="Delete Resume?"
+        message={<span>Are you sure you want to delete this resume?<br/>This action cannot be undone.</span>}
+        confirmText="Delete"
+      />
     </div>
   );
 };
