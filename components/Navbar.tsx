@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FaDashcube, FaUser } from 'react-icons/fa6';
 import { useAuth } from '@/context/authContext';
 import { LogIn, LogOut } from 'lucide-react';
@@ -32,10 +33,17 @@ const Navbar = () => {
   }, [menu]);
 
   return (
-    <nav className='w-full grid place-items-center sticky top-0 my-1 transition-all ease-in-out shadow bg-white'>
+    <nav className='w-full grid place-items-center sticky top-0 my-1 transition-all ease-in-out shadow bg-white z-[99]'>
       <div className='min-[800px]:w-[800px] w-full p-2 px-2  flex items-center justify-between'>
-        <Link href='/' className='w-[40px] h-[40px] flex items-center justify-center font-bold text-[32px] rounded-full mask-radial-from-neutral-500  bg-gray-500'>
-          R
+        <Link href='/' className='w-[40px] h-[40px] flex items-center justify-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
+          <Image
+            src="/icon.svg"
+            alt="AI Resume Builder"
+            width={32}
+            height={32}
+            priority
+            className='rounded-md'
+          />
         </Link>
         <div className='flex items-center gap-8 font-[500]'>
           <Link href='/' className='hover:text-gray-600'>
