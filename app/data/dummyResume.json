@@ -1,0 +1,146 @@
+{
+    "title": "Full Stack Developer",
+    "matchingScore": null,
+    "analyzedAt": null,
+    "profile": {
+        "fullname": "Jordan Taylor",
+        "role": "Full Stack Developer",
+        "email": "jordan.taylor@example.com",
+        "phone": "+1 555 123 4567",
+        "location": "Remote / New York, USA",
+        "website": "https://jordant.dev",
+        "linkedin": "https://linkedin.com/in/jordantaylor",
+        "github": "https://github.com/jordant",
+        "summary": "Full stack engineer with 5+ years building scalable, user‑centric web applications. Focused on clean architecture, performance, and developer experience."
+    },
+    "skills": [
+        {
+            "type": "Technical",
+            "skills": [
+                "TypeScript",
+                "React",
+                "Next.js",
+                "Node.js",
+                "Express",
+                "Prisma",
+                "PostgreSQL",
+                "REST APIs",
+                "GraphQL",
+                "Tailwind CSS",
+                "Jest",
+                "Playwright",
+                "Docker",
+                "CI/CD"
+            ]
+        },
+        {
+            "type": "Soft Skills",
+            "skills": [
+                "Mentorship",
+                "Agile Collaboration",
+                "Code Review",
+                "Problem Solving",
+                "Communication"
+            ]
+        }
+    ],
+    "experiences": [
+        {
+            "title": "Senior Full Stack Developer",
+            "company": "NovaTech Systems",
+            "location": "Remote",
+            "startDate": "2023-02",
+            "endDate": "Present",
+            "responsibilities": [
+                "Architected modular Next.js platform reducing page load by 38%.",
+                "Implemented role‑based access and audit logging improving security posture.",
+                "Led migration from REST to hybrid REST/GraphQL API improving client flexibility.",
+                "Introduced automated testing pipeline (unit + e2e) raising coverage to 82%."
+            ]
+        },
+        {
+            "title": "Full Stack Engineer",
+            "company": "BrightFlow Labs",
+            "location": "Hybrid",
+            "startDate": "2021-01",
+            "endDate": "2023-01",
+            "responsibilities": [
+                "Built internal component library cutting UI build time by ~30%.",
+                "Optimized critical API endpoints (caching + SQL tuning) reducing P95 latency from 900ms to 240ms.",
+                "Collaborated with design to implement accessible UI patterns (WCAG AA)."
+            ]
+        },
+        {
+            "title": "Junior Web Developer",
+            "company": "PixelEdge Studio",
+            "location": "On-site",
+            "startDate": "2019-06",
+            "endDate": "2020-12",
+            "responsibilities": [
+                "Developed responsive marketing microsites and landing pages.",
+                "Refactored legacy jQuery widgets into modern React components.",
+                "Assisted in setting up basic CI workflows (lint + test)."
+            ]
+        }
+    ],
+    "educations": [
+        {
+            "degree": "B.Sc. Computer Science",
+            "university": "State University",
+            "location": "NY, USA",
+            "startDate": "2016",
+            "endDate": "2020"
+        }
+    ],
+    "additional": {
+        "certificates": [
+            {
+                "id": "cert-1",
+                "title": "AWS Certified Developer – Associate",
+                "issued_by": "Amazon Web Services",
+                "year": "2023"
+            },
+            {
+                "id": "cert-2",
+                "title": "Professional Scrum Master I",
+                "issued_by": "Scrum.org",
+                "year": "2022"
+            }
+        ],
+        "projects": [
+            {
+                "id": "proj-1",
+                "name": "Realtime Collaboration Suite",
+                "link": "https://github.com/jordant/realtime-suite",
+                "description": "Websocket-driven collaborative editor with presence, comments, and change history.",
+                "technologies": [
+                    "TypeScript",
+                    "WebSockets",
+                    "Redis",
+                    "Next.js"
+                ]
+            },
+            {
+                "id": "proj-2",
+                "name": "Resume Analyzer CLI",
+                "link": "https://github.com/jordant/resume-analyzer",
+                "description": "Command-line tool that scores resumes against a job spec using embeddings.",
+                "technologies": [
+                    "Node.js",
+                    "OpenAI Embeddings",
+                    "Chalk"
+                ]
+            }
+        ],
+        "languages": [
+            "English (Native)",
+            "Spanish (Conversational)"
+        ],
+        "interests": [
+            "Developer Tooling",
+            "System Design",
+            "Open Source Contribution",
+            "Tech Blogging"
+        ]
+    }
+}
