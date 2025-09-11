@@ -23,7 +23,7 @@ export function generateDefaultHTML(data: ResumeData): string {
     <body>
       <div class="container">
         <div class="header">
-          <h1>${escapeHtml(data.profile.fullname)}</h1>
+          <h1>${escapeHtml(data.profile.fullname)} - Default</h1>
           <div class="contact-info">${renderContactInfo(data)}</div>
           ${data.profile.summary ? `<div class="summary">${escapeHtml(data.profile.summary)}</div>` : ''}
         </div>

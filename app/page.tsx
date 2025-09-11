@@ -1,10 +1,13 @@
+
+import TemplateSlider from '@/components/LandingPageComponents/TemplateSlider';
 import Button from '@/components/UI/Button';
 import Link from 'next/link';
 import React from 'react';
 
 const page = () => {
+
   return (
-    <div className='w-full max-w-4xl text-center flex flex-col items-center gap-8 justify-center min-h-[60vh] px-4'>
+    <div className='w-full max-w-4xl text-center gap-8 grid place-items-center min-h-[60vh] px-4'>
       {/* announcement banner */}
       <div className='w-fit pr-4  p-1 bg-gradient-to-br from-indigo-400/50 to-gray-300 rounded-e-full rounded-bl-full border border-dashed'>👋 Hi there, welcome to ai resume builder app</div>
       <div className='space-y-4'>
@@ -39,9 +42,7 @@ const page = () => {
         </div>
       </div>
 
-      <div className=''>
-        <h2>Select From Design and Start Building your resume</h2>
-      </div>
+          <TemplateSlider/>
     </div>
   );
 };
