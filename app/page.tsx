@@ -38,6 +38,10 @@ const page = () => {
           <p className='text-gray-600 text-sm'>Beat applicant tracking systems</p>
         </div>
       </div>
+
+      <div className=''>
+        <h2>Select From Design and Start Building your resume</h2>
+      </div>
     </div>
   );
 };

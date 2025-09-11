@@ -170,6 +170,7 @@ const PreviewPage = () => {
       resumeData.template,
       data.resume,
     );
+
     if (!updatedResume.ok) {
       setRegenerating(false);
   return showToast(
@@ -178,7 +179,6 @@ const PreviewPage = () => {
         4000,
       );
     }
-
     setResumeData({
       id: resumeData.id,
       userId: resumeData.userId,
@@ -186,7 +186,7 @@ const PreviewPage = () => {
       template: resumeData.template,
       profile: data.resume.profile,
       skills: data.resume.skills,
-      experiences: data.resume.experices,
+      experiences: data.resume.experiences,
       educations: data.resume.educations,
       certificates: data.resume.certificates,
     });
