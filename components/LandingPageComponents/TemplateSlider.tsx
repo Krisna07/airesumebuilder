@@ -2,6 +2,7 @@ import React from 'react'
 import dummyResume from '@/app/data/dummyResume.json';
 import ResumePreview from '../Templates/ResumePreview';
 import Button from '../UI/Button';
+import { Link } from 'lucide-react';
 
 const TemplateSlider = () => {
     const getDummyData = () => {
@@ -25,9 +26,11 @@ const templates = [
                 {templates.map((template)=> 
                     <div key={template.name} className='min-w-[300px] md:min-w-full py-4 h-[400px] bg-white rounded-xl hover:scale-[0.98] overflow-hidden group relative'>
                         <div className='group-hover:blur-[2px]'>   <ResumePreview template={template.name} resumeData={dummyData} /></div>
-                        <Button variant='primary' size='medium' className='absolute opacity-0 group-hover:opacity-100 top-[48%] group-hover:top-[50%] left-[25%] transition-all '>
+                      <Link href="/builder"> 
+                       <button  className='absolute opacity-0 group-hover:opacity-100 top-[48%] group-hover:top-[50%] left-[25%] transition-all '>
                             Start Building
-                        </Button>   
+                        </button> 
+                        </Link>  
                     </div>
                 )}
         </div>
