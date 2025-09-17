@@ -48,7 +48,6 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   };
 
   const handleSaveDraft = async () => {
-   
     await ResumeService.save(userId, resumeId, selectedTemplate, formData);
     toast.showToast('Draft saved successfully!', 'success');
   };
