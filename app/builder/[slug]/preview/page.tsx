@@ -10,6 +10,7 @@ import { Bot, Download, Edit, Plus, Trash, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
 import ConfirmDialog from '@/components/UI/ConfirmDialog';
+import { ScrapeResult } from '@/components/Forms/JobDescription';
 
 const templates: {
   id: UserResume['template'];
@@ -19,7 +20,7 @@ const templates: {
 }[] = [
   { id: 'modern', name: 'Modern', description: 'Clean design with gradient header', icon: '🎨' },
   { id: 'classic', name: 'Classic', description: 'Traditional professional layout', icon: '📄' },
-  { id: 'minimal', name: 'Minimal', description: 'Simple, elegant design', icon: '✨' },
+  { id: 'minimal', name: 'Minimal', description: 'Simple, elegant design', icon: '✨' }
 ];
 
 const sanitizeFile = (s: string) =>
@@ -40,6 +41,7 @@ const PreviewPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [jobDescription, setJobDescription] = useState<ScrapeResult>();
 
   useEffect(() => {
     let active = true;
@@ -48,6 +50,19 @@ const PreviewPage = () => {
     (async () => {
       try {
         const response = await ResumeService.getSingle(slug);
+        const descriptionResp = await fetch(`/api/resume/description?slug=${encodeURIComponent(slug)}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+
+        if (descriptionResp.ok) {
+          try {
+            const descriptionData = await descriptionResp.json();
+            // Expecting either { data: ScrapeResult } or the ScrapeResult directly
+            setJobDescription(descriptionData?.data ?? descriptionData);
+          } catch (e) {
+            console.warn('Failed to parse description response', e);
+          }
+        } else {
+          console.warn('Description fetch failed', descriptionResp.status);
+        }
         const data = await response.json();
 
         if (!active) return;
@@ -86,9 +101,9 @@ const PreviewPage = () => {
     if (typeof window !== 'undefined' && user) {
       try {
         await ResumeService.save(user.id, slug, templateId, resumeData);
-  showToast('Template updated', 'success', 1500);
+        showToast('Template updated', 'success', 1500);
       } catch {
-  showToast('Failed to save template', 'error', 2000);
+        showToast('Failed to save template', 'error', 2000);
       }
     }
   };
@@ -102,18 +117,14 @@ const PreviewPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resumeData,
-          template: selectedTemplate, // FIX: pass the actual template id/string
-        }),
+          template: selectedTemplate // FIX: pass the actual template id/string
+        })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ PDF generation error:', errorData);
-  showToast(
-          errorData?.details || errorData?.error || 'PDF generation failed',
-          'error',
-          3000,
-        );
+        showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
         return;
       }
 
@@ -132,10 +143,10 @@ const PreviewPage = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-  showToast('PDF downloaded', 'success', 1500);
+      showToast('PDF downloaded', 'success', 1500);
     } catch (error) {
       console.error('❌ PDF download error:', error);
-  showToast('Error generating PDF. Please try again.', 'error', 3000);
+      showToast('Error generating PDF. Please try again.', 'error', 3000);
     }
   };
 
@@ -158,26 +169,17 @@ const PreviewPage = () => {
   const [regenerating, setRegenerating] = useState<boolean>(false);
   const handleRegerate = async (resumeData: ResumeData) => {
     setRegenerating(true);
-    const response = await ResumeService.regenerate(resumeData);
+    const response = await ResumeService.regenerate(resumeData, jobDescription);
     const data = await response.json();
     if (!response.ok) {
-  showToast('Error regenerating resume', 'error', 3000);
+      showToast('Error regenerating resume', 'error', 3000);
       return setRegenerating(false);
     }
-    const updatedResume = await ResumeService.save(
-      resumeData.userId,
-      resumeData.id,
-      resumeData.template,
-      data.resume,
-    );
+    const updatedResume = await ResumeService.save(resumeData.userId, resumeData.id, resumeData.template, data.resume);
 
     if (!updatedResume.ok) {
       setRegenerating(false);
-  return showToast(
-        'Error saving the resume, the data isnot saved to database',
-        'warning',
-        4000,
-      );
+      return showToast('Error saving the resume, the data isnot saved to database', 'warning', 4000);
     }
     setResumeData({
       id: resumeData.id,
@@ -188,24 +190,24 @@ const PreviewPage = () => {
       skills: data.resume.skills,
       experiences: data.resume.experiences,
       educations: data.resume.educations,
-      certificates: data.resume.certificates,
+      certificates: data.resume.certificates
     });
 
-  showToast(`Resume has been regenerated Successfully`, 'success', 3000);
+    showToast(`Resume has been regenerated Successfully`, 'success', 3000);
     return setRegenerating(false);
   };
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-5xl grid gap-8">
-          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
-          <div className="grid grid-cols-3 gap-4">
+      <div className='min-h-screen bg-gray-50 flex items-center justify-center p-6'>
+        <div className='w-full max-w-5xl grid gap-8'>
+          <div className='h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse' />
+          <div className='grid grid-cols-3 gap-4'>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+              <div key={i} className='h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse' />
             ))}
           </div>
-          <div className="h-[70vh] w-full rounded-2xl border border-dashed border-gray-300 bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_12px,#eee_12px,#eee_24px)] animate-pulse" />
+          <div className='h-[70vh] w-full rounded-2xl border border-dashed border-gray-300 bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_12px,#eee_12px,#eee_24px)] animate-pulse' />
         </div>
       </div>
     );
@@ -214,14 +216,11 @@ const PreviewPage = () => {
   // No data
   if (!resumeData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
-          <p className="text-gray-600 mb-6">Please complete your resume before previewing.</p>
-          <button
-            onClick={() => (window.location.href = '/builder')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
+      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+        <div className='text-center'>
+          <h2 className='text-2xl font-bold text-gray-800 mb-4'>No Resume Data</h2>
+          <p className='text-gray-600 mb-6'>Please complete your resume before previewing.</p>
+          <button onClick={() => (window.location.href = '/builder')} className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
             Back to Builder
           </button>
         </div>
@@ -233,17 +232,11 @@ const PreviewPage = () => {
   const hasMinimumData = !!(resumeData.profile.fullname && resumeData.profile.email);
   if (!hasMinimumData) {
     return (
-      <div className="h-full bg-gray-50 flex items-center justify-center">
-        <div className="text-center flex flex-col items-center justify-center p-2">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Incomplete Resume</h2>
-          <p className="text-gray-600 mb-6">
-            Please complete at least your name and email before previewing.
-          </p>
-          <Button
-            variant="secondary"
-            size="medium"
-            onClick={() => (window.location.href = `/builder/${slug}`)}
-          >
+      <div className='h-full bg-gray-50 flex items-center justify-center'>
+        <div className='text-center flex flex-col items-center justify-center p-2'>
+          <h2 className='text-2xl font-bold text-gray-800 mb-4'>Incomplete Resume</h2>
+          <p className='text-gray-600 mb-6'>Please complete at least your name and email before previewing.</p>
+          <Button variant='secondary' size='medium' onClick={() => (window.location.href = `/builder/${slug}`)}>
             Continue Editing
           </Button>
         </div>
@@ -254,9 +247,9 @@ const PreviewPage = () => {
   // Main preview page
   return (
     <div className={`min-h-screen py-8 relative transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
+      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6'>
         {/* Actions */}
-        <div className="flex justify-center gap-1 gap-y-2 md:gap-3 flex-wrap text-[14px]">
+        <div className='flex justify-center gap-1 gap-y-2 md:gap-3 flex-wrap text-[14px]'>
           <button
             onClick={handleDownloadPDF}
             disabled={deleting}
@@ -267,14 +260,14 @@ const PreviewPage = () => {
 
           <button
             onClick={() => (window.location.href = `/builder/${slug}`)}
-            className="px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
+            className='px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2'
           >
             <Edit size={16} /> Edit Resume
           </button>
 
           <button
             onClick={() => (window.location.href = '/builder')}
-            className="px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
+            className='px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2'
           >
             <Plus size={16} /> New Resume
           </button>
@@ -284,7 +277,7 @@ const PreviewPage = () => {
             disabled={deleting}
             className={`px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-400'}`}
           >
-            {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash size={16} />} {deleting ? 'Deleting' : 'Delete'}
+            {deleting ? <Loader2 size={16} className='animate-spin' /> : <Trash size={16} />} {deleting ? 'Deleting' : 'Delete'}
           </button>
           <button
             onClick={() => handleRegerate(resumeData)}
@@ -295,32 +288,26 @@ const PreviewPage = () => {
           </button>
         </div>
 
-        <div className="w-full grid grid-cols-3 gap-4">
-          {templates.map(t => (
+        <div className='w-full grid grid-cols-3 gap-4'>
+          {templates.map((t) => (
             <button
               key={t.id}
               onClick={() => handleTemplateChange(t.id)}
               className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${
-                selectedTemplate === t.id
-                  ? 'border-blue-500 bg-blue-50 shadow-lg'
-                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
+                selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
               }`}
             >
-              <div className="flex items-center gap-3 justify-left">
-                <span className="text-2xl">{t.icon}</span>
-                <h3
-                  className={`font-semibold ${selectedTemplate === t.id ? 'text-blue-700' : 'text-gray-800'}`}
-                >
-                  {t.name}
-                </h3>
+              <div className='flex items-center gap-3 justify-left'>
+                <span className='text-2xl'>{t.icon}</span>
+                <h3 className={`font-semibold ${selectedTemplate === t.id ? 'text-blue-700' : 'text-gray-800'}`}>{t.name}</h3>
               </div>
-              <p className="text-sm text-gray-600 mt-1 hidden sm:block">{t.description}</p>
+              <p className='text-sm text-gray-600 mt-1 hidden sm:block'>{t.description}</p>
             </button>
           ))}
-        </div>  
-        <div className="relative w-full h-[82vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm" id="resumeViewport">
+        </div>
+        <div className='relative w-full h-[82vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm' id='resumeViewport'>
           {/* Optional inner wrapper to constrain width / center */}
-          <div className="mx-auto max-w-[900px]">
+          <div className='mx-auto max-w-[900px]'>
             <ResumePreview
               resumeData={resumeData}
               template={selectedTemplate}
@@ -329,24 +316,29 @@ const PreviewPage = () => {
             />
           </div>
           {deleting && (
-            <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-sm">
-              <div className="flex flex-col items-center gap-3 text-sky-600">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="text-sm font-medium">Deleting…</span>
+            <div className='absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-sm'>
+              <div className='flex flex-col items-center gap-3 text-sky-600'>
+                <Loader2 className='h-8 w-8 animate-spin' />
+                <span className='text-sm font-medium'>Deleting…</span>
               </div>
             </div>
           )}
-        </div>  
-           
+        </div>
       </div>
       <ConfirmDialog
         open={showConfirm}
         onCancel={() => (!deleting ? setShowConfirm(false) : null)}
         onConfirm={performDelete}
         loading={deleting}
-        title="Delete Resume?"
-        message={<span>Are you sure you want to delete this resume?<br/>This action cannot be undone.</span>}
-        confirmText="Delete"
+        title='Delete Resume?'
+        message={
+          <span>
+            Are you sure you want to delete this resume?
+            <br />
+            This action cannot be undone.
+          </span>
+        }
+        confirmText='Delete'
       />
     </div>
   );

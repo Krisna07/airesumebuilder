@@ -1,3 +1,4 @@
+import { ScrapeResult } from "@/components/Forms/JobDescription";
 import { ResumeData } from "@/types/types";
 
 export class ResumeService {
@@ -126,14 +127,14 @@ export class ResumeService {
         }
     }
 
-    static async regenerate(resumeData: ResumeData) {
+    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult) {
         try {
             const response = await fetch('/api/ai/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resume: resumeData,
-                    jobDescription: "Recreate the resume based on the existing data"
+                    jobDescription: jobDescription
                 })
             });
             return response

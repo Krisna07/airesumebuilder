@@ -1,10 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI Resume Builder">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#4f46e5"/>
-      <stop offset="100%" stop-color="#6366f1"/>
+      <stop offset="0" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#g)"/>
-  <path fill="#fff" fill-rule="evenodd" d="M20 20h12c7.732 0 14 6.268 14 14s-6.268 14-14 14h-4v-8h4a6 6 0 0 0 0-12H20V20Zm0 16h8v8h-8v-8Z" clip-rule="evenodd"/>
+
+  <!-- rounded square background -->
+  <rect x="6" y="6" width="52" height="52" rx="12" fill="url(#g)"/>
+
+  <!-- subtle inner rim for depth -->
+  <rect x="8" y="8" width="48" height="48" rx="10" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <!-- white 'A' (triangle) -->
+  <polygon points="20,44 32,16 44,44" fill="#ffffff"/>
+
+  <!-- crossbar (contrasting, keeps A legible at small sizes) -->
+  <rect x="24" y="34" width="16" height="3.6" rx="1" fill="#0369a1"/>
+
+  <!-- small accent dot (implies AI / node) -->
+  <circle cx="49.5" cy="19.5" r="2.2" fill="#ffffff" fill-opacity="0.95"/>
+
+  <!-- tiny glow to keep icon readable on light backgrounds -->
+  <circle cx="49.5" cy="19.5" r="6.2" fill="#ffffff" fill-opacity="0.06"/>
 </svg>
