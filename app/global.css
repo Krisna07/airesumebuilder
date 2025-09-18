@@ -37,3 +37,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 } */
+
+/* Prevent iOS Safari from zooming on focus by ensuring readable font-size */
+html, body {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Ensure form controls are 16px or larger on small screens */
+input,
+textarea,
+select{
+  font-size: 16px;
+  /* fallback if you want a responsive scale:
+     font-size: clamp(16px, 1vw + 12px, 18px); */
+}

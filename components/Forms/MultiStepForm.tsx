@@ -12,11 +12,12 @@ import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import JobDescription from './JobDescription';
 import { ResumeService } from '@/services/resumeServices';
 import { useToast } from '@/context/PopupContext';
+import { LocalResumeService } from '@/services/localResumeService';
 
 interface MultiStepFormProps {
   resumeContent: ResumeData;
   resumeId: string;
-  userId: string;
+  userId?: string;
 }
 
 const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
@@ -27,10 +28,14 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
   const handleNext = async () => {
     // Save current data and template before proceeding
-    const response = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
-    if (!response.ok) {
-      toast.showToast(response.statusText, 'error', 3000);
-      return;
+    if (userId) {
+      const response = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+      if (!response.ok) {
+        toast.showToast(response.statusText, 'error', 3000);
+        return;
+      }
+    } else {
+      await LocalResumeService.update(resumeId, formData);
     }
     if (currentStep === 7) {
       // Redirect to preview page with UUID
@@ -42,13 +47,20 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
   const handlePrevious = async () => {
     // Save current data and template before going back
-
-    await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    if (userId) {
+      await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    } else {
+      await LocalResumeService.update(resumeId, formData);
+    }
     setCurrentStep((prevStep) => Math.max(prevStep - 1, 1));
   };
 
   const handleSaveDraft = async () => {
-    await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    if (userId) {
+      await ResumeService.save(userId, resumeId, selectedTemplate, formData);
+    } else {
+      await LocalResumeService.update(resumeId, formData);
+    }
     toast.showToast('Draft saved successfully!', 'success');
   };
 
@@ -139,10 +151,10 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   };
   const navigations = ['Profile', 'Skill', 'Experience', 'Education', 'Certificates', 'Job Description', 'Template'];
   return (
-    <div className='w-full min-[800px]:h-full grid place-items-center transition-all ease-in-out duration-300 '>
-      <div className='w-full grid gap-2 place-items-start p-2 box-border '>
+    <div className='w-full h-full grid place-items-end transition-all ease-in-out duration-300  '>
+      <div className='w-full h-full  gap-2 flex flex-col items-center justify-start p-2 box-border  '>
         {currentStep != navigations.length + 1 && (
-          <div className='w-full flex items-center justify-center gap-[12px]'>
+          <div className='w-full flex items-center justify-center gap-[12px] sticky top-[4rem] bg-white'>
             {navigations.map((item: string, index: number) => (
               <div
                 onClick={() => setCurrentStep(index + 1)}
@@ -156,38 +168,37 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                 >
                   {index + 1}
                 </div>
-                <span className={`${index + 1 === currentStep ? 'max-[800px]:block' : 'max-[800px]:hidden'}`}>{item}</span>
+                <span className={`${index + 1 === currentStep ? 'max-[800px]:block' : 'max-[800px]:hidden'} whitespace-nowrap `}>{item}</span>
               </div>
             ))}
           </div>
         )}
+        {renderStep()}
+      </div>
+      <div className='w-full mb-6 grid gap-2 place-items-center relative '>
+        {currentStep != navigations.length + 1 && (
+          <div className=' gap-4 flex justify-between items-center'>
+            {currentStep > 1 && (
+              <Button type='button' variant='secondary' size='small' onClick={handlePrevious} disabled={currentStep === 1}>
+                <FaChevronLeft /> {currentStep === 7 ? 'Review' : 'Previous'}
+              </Button>
+            )}
 
-        <div className='w-full  grid gap-2 place-items-center relative'>
-          {renderStep()}
-          {currentStep != navigations.length + 1 && (
-            <div className='mt-6 gap-4 flex justify-between items-center'>
-              {currentStep > 1 && (
-                <Button type='button' variant='secondary' size='small' onClick={handlePrevious} disabled={currentStep === 1}>
-                  <FaChevronLeft /> {currentStep === 7 ? 'Review' : 'Previous'}
+            <div className='flex gap-2'>
+              {/* Save Draft Button - available on all steps except completion */}
+              {currentStep < 7 && (
+                <Button type='button' variant='secondary' size='small' onClick={handleSaveDraft}>
+                  {'Save Draft'}
                 </Button>
               )}
 
-              <div className='flex gap-2'>
-                {/* Save Draft Button - available on all steps except completion */}
-                {currentStep < 7 && (
-                  <Button type='button' variant='secondary' size='small' onClick={handleSaveDraft}>
-                    {'Save Draft'}
-                  </Button>
-                )}
-
-                <Button type='button' variant='primary' size='small' onClick={handleNext} disabled={currentStep === 8}>
-                  {currentStep === 7 ? 'Preview Resume' : 'Next'}
-                  <FaChevronRight />
-                </Button>
-              </div>
+              <Button type='button' variant='primary' size='small' onClick={handleNext} disabled={currentStep === 8}>
+                {currentStep === 7 ? 'Preview Resume' : 'Next'}
+                <FaChevronRight />
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
