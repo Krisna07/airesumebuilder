@@ -1,5 +1,8 @@
 import { ScrapeResult } from "@/components/Forms/JobDescription";
 import { ResumeData } from "@/types/types";
+import { LocalResumeService } from "./localResumeService";
+import { NextResponse } from "next/server";
+// import { LocalResumeService } from "./localResumeService";
 
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
@@ -106,7 +109,7 @@ export class ResumeService {
         return response
     }
 
-    static async uploadResume(file: File, userId: string) {
+    static async uploadResume(file: File, userId?: string) {
         try {
             const text = await extractTextFromPdf(file)
             const respone = await fetch('/api/ai/extract-resume', {
@@ -117,6 +120,12 @@ export class ResumeService {
             const data = await respone.json();
             if (!respone.ok) {
                 throw new Error(data.error || 'Failed to extract resume data.');
+            }
+
+            if (!userId) {
+                const saveLocal = await LocalResumeService.create(data.data)
+                console.log(saveLocal)
+                return NextResponse.json({ data: saveLocal }, { status: 200 })
             }
 
             const resumeId = self.crypto.randomUUID();
