@@ -25,12 +25,12 @@ export class LocalResumeService {
         }
     }
 
-    static async create(userId?: string, template?: string, data?: Partial<ResumeData>) {
-            console.log('creating local resume');
-        const prevResume = await localStorage.getItem('guest-resume');
-        if (prevResume) {
-            return 'guest-resume'
-        }
+    static async create(data?: Partial<ResumeData>, userId?: string, template?: string) {
+        console.log('creating local resume');
+        // const prevResume = await localStorage.getItem('guest-resume');
+        // if (prevResume) {
+        //     return 'guest-resume'
+        // }
         const resumeId = 'guest-resume';
         const selectedTemplate = template || 'Classic';
         const emptyData: ResumeData = {
@@ -76,7 +76,7 @@ export class LocalResumeService {
             certificates: [],
             ...data
         };
-       await this.save(emptyData.userId, resumeId, emptyData);
-        return resumeId
+        await this.save(emptyData.userId, resumeId, emptyData);
+        return emptyData
     }
 }
