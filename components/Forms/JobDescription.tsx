@@ -5,8 +5,9 @@ import Input from '../Input';
 import Button from '../UI/Button';
 import { getJobDescription, analyzeResume } from '@/services/resumeServices';
 
-interface Props {
+interface JDProps {
   resumeId?: string;
+  disabled?: boolean;
 }
 
 export type ScrapeResult = {
@@ -21,9 +22,16 @@ export type ScrapeResult = {
 };
 
 type JDMeta = { count: number; succeeded: number; failed: number };
-type JDResult = { status: number; description?: string; raw?: ScrapeResult[]; blocked?: boolean; message?: string; meta?: JDMeta };
+type JDResult = {
+  status: number;
+  description?: string;
+  raw?: ScrapeResult[];
+  blocked?: boolean;
+  message?: string;
+  meta?: JDMeta;
+};
 
-const JobDescription: React.FC<Props> = ({ resumeId }) => {
+const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
   const [jobDescription, setJobDescription] = useState<string>('');
   const [url, setUrl] = useState<string>('');
   // const [rawResults, setRawResults] = useState<ScrapeResult[]>([]);
@@ -33,8 +41,14 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     const fetchDescription = async () => {
-      const descriptionResp = await fetch(`/api/resume/description?slug=${resumeId}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      const descriptionResp = await fetch(`/api/resume/description?slug=${resumeId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
       if (descriptionResp.ok) {
         try {
@@ -67,7 +81,7 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
   };
 
   const saveDescription = useCallback(async (resumeIdValue: string, source?: ScrapeResult) => {
-    if (!resumeIdValue || !source) return;
+    if (!resumeIdValue || !source || disabled) return;
     try {
       const resp = await fetch('/api/resume/description', {
         method: 'POST',
@@ -79,8 +93,8 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
           title: source.title,
           company: source.company,
           location: source.location,
-          domain: source.domain
-        })
+          domain: source.domain,
+        }),
       });
       if (!resp.ok) {
         const json = await resp.json().catch(() => ({ error: resp.statusText }));
@@ -93,6 +107,9 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
   }, []);
 
   const extractDescriptions = useCallback(async () => {
+    if (disabled) {
+      return;
+    }
     setError(null);
     // setRawResults([]);
     const trimmed = url.trim();
@@ -101,7 +118,7 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
       return;
     }
     const candidates = trimmed.split(/[,\s]+/).filter(Boolean);
-    const valid = candidates.filter((u) => /^https?:\/\//i.test(u));
+    const valid = candidates.filter(u => /^https?:\/\//i.test(u));
     if (!valid.length) {
       setError('No valid URL detected');
       return;
@@ -160,29 +177,51 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
   }, [jobDescription, resumeId]);
 
   return (
-    <div className='w-full p-2'>
-      {analysis && (
-        <div className='mb-4 rounded border border-sky-200 bg-sky-50 p-3 text-xs space-y-2'>
-          <div className='flex flex-wrap items-center gap-3'>
-            <span className='font-semibold text-sky-800'>Match: {Math.round(analysis.matchingPercentage)}%</span>
-            {analysis.role && <span className='rounded bg-white px-2 py-0.5 border text-[10px] font-medium text-sky-700'>{analysis.role}</span>}
+    <div className="w-full p-2 relative">
+      {disabled && (
+        <div className="w-full h-full absolute top-0 left-0 bg-white/75 z-[100] grid place-items-center">
+          <div className="font-semibold flex flex-col gap-2 items-center justify-center">
+            <p>Please signin to use this feature</p>
+            <Button
+              variant="primary"
+              size="small"
+              onClick={() => (window.location.href = '/auth/signin')}
+            >
+              Sign In{' '}
+            </Button>
           </div>
-          {analysis.description && <p className='text-sky-900 leading-snug'>{analysis.description}</p>}
+        </div>
+      )}
+      {analysis && (
+        <div className="mb-4 rounded border border-sky-200 bg-sky-50 p-3 text-xs space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-semibold text-sky-800">
+              Match: {Math.round(analysis.matchingPercentage)}%
+            </span>
+            {analysis.role && (
+              <span className="rounded bg-white px-2 py-0.5 border text-[10px] font-medium text-sky-700">
+                {analysis.role}
+              </span>
+            )}
+          </div>
+          {analysis.description && (
+            <p className="text-sky-900 leading-snug">{analysis.description}</p>
+          )}
           {analysis.suggestions?.length > 0 && (
             <div>
-              <p className='font-medium text-sky-800 mb-1'>Suggestions</p>
-              <ul className='list-disc ml-5 space-y-0.5 marker:text-sky-500'>
+              <p className="font-medium text-sky-800 mb-1">Suggestions</p>
+              <ul className="list-disc ml-5 space-y-0.5 marker:text-sky-500">
                 {analysis.suggestions.slice(0, 6).map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
             </div>
           )}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {analysis.strengths?.length ? (
               <div>
-                <p className='font-medium text-green-700 mb-1'>Strengths</p>
-                <ul className='list-disc ml-5 space-y-0.5 marker:text-green-500'>
+                <p className="font-medium text-green-700 mb-1">Strengths</p>
+                <ul className="list-disc ml-5 space-y-0.5 marker:text-green-500">
                   {analysis.strengths.slice(0, 5).map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
@@ -191,10 +230,13 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
             ) : null}
             {analysis.missingKeywords?.length ? (
               <div>
-                <p className='font-medium text-amber-700 mb-1'>Missing Keywords</p>
-                <div className='flex flex-wrap gap-1'>
+                <p className="font-medium text-amber-700 mb-1">Missing Keywords</p>
+                <div className="flex flex-wrap gap-1">
                   {analysis.missingKeywords.slice(0, 12).map((k, i) => (
-                    <span key={i} className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px]'>
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px]"
+                    >
                       {k}
                     </span>
                   ))}
@@ -205,11 +247,25 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
         </div>
       )}
 
-      {error && <p className='text-red-900 text-sm bg-red-50 border border-red-200 p-2 rounded'>{error}</p>}
+      {error && (
+        <p className="text-red-900 text-sm bg-red-50 border border-red-200 p-2 rounded">{error}</p>
+      )}
 
-      <div className='py-4 grid gap-2'>
-        <Input type='text' name='url' value={url} onChange={updateUrl} placeholder='Enter one or more URLs (comma, space or newline separated)' />
-        <Button variant='primary' size='small' onClick={extractDescriptions} disabled={loading} className={loading ? 'animate-pulse' : ''}>
+      <div className="py-4 grid gap-2">
+        <Input
+          type="text"
+          name="url"
+          value={url}
+          onChange={updateUrl}
+          placeholder="Enter one or more URLs (comma, space or newline separated)"
+        />
+        <Button
+          variant="primary"
+          size="small"
+          onClick={extractDescriptions}
+          disabled={loading}
+          className={loading ? 'animate-pulse' : ''}
+        >
           {loading ? 'Extracting…' : 'Extract'}
         </Button>
       </div>
@@ -217,11 +273,17 @@ const JobDescription: React.FC<Props> = ({ resumeId }) => {
       <textarea
         onChange={updateJobDescription}
         value={jobDescription}
-        placeholder='Paste or extract a job description...'
-        className='w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y'
+        placeholder="Paste or extract a job description..."
+        className="w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y"
       />
 
-      <Button variant='primary' size='small' onClick={startAnalysis} disabled={analyzing} className={analyzing ? 'animate-pulse' : ''}>
+      <Button
+        variant="primary"
+        size="small"
+        onClick={startAnalysis}
+        disabled={analyzing}
+        className={analyzing ? 'animate-pulse' : ''}
+      >
         {analyzing ? 'Analyzing…' : 'Analyse'}
       </Button>
 

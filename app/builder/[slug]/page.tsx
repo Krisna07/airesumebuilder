@@ -14,7 +14,19 @@ const BuilderPage: React.FC = () => {
   const { user } = useAuth();
   useEffect(() => {
     if (!slug) return;
+
     const fetchResume = async () => {
+      if (slug === 'guest-resume') {
+        console.log(slug);
+        const localResume = await localStorage.getItem(slug);
+        console.log(JSON.parse(localResume ? localResume : ''));
+        if (localResume) {
+          setResumeData(JSON.parse(localResume));
+          setLoading(false);
+          return;
+        }
+      }
+
       // Try to load resume data from ResumeStorage
       const response = await ResumeService.getSingle(slug);
       const data = await response.json();
@@ -38,7 +50,7 @@ const BuilderPage: React.FC = () => {
     );
   }
 
-  if (!resumeData || !user) {
+  if (!resumeData) {
     return (
       <div className='w-full min-h-[60vh] flex items-center justify-center'>
         <div className='text-center'>
@@ -51,7 +63,11 @@ const BuilderPage: React.FC = () => {
       </div>
     );
   }
-  return <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user.id} />;
+  return (
+    <section className='w-full max-[600px]:h-[calc(100vh-4rem)]'>
+      <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user ? user.id : ''} />
+    </section>
+  );
 };
 
 export default BuilderPage;
