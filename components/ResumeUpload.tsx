@@ -34,14 +34,11 @@ export default function ResumeUpload() {
       return;
     }
 
-    if (!user) {
-      window.location.href = '/builder';
-      return;
-    }
     setFileName(file.name);
 
     try {
-      const response = await ResumeService.uploadResume(file, user.id);
+      const response = await ResumeService.uploadResume(file, user?.id);
+      console.log(response);
       const data = await response.json();
       if (!response.ok) {
         showToast('Failed to process resume', 'error');
@@ -85,7 +82,7 @@ export default function ResumeUpload() {
   };
 
   return (
-    <div className="w-full">
+    <div className="max-sm:w-full">
       <input
         type="file"
         id="resume-upload"

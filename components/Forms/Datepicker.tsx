@@ -20,7 +20,7 @@ export default function Datepicker({ value, index, target, update }: DatePickerP
     if (date) {
       const options = {
         month: 'short' as const,
-        year: 'numeric' as const
+        year: 'numeric' as const,
       };
       const formattedDate = date.toLocaleDateString('en-US', options);
       update(index, target, formattedDate); // Update the date in the state
@@ -29,29 +29,30 @@ export default function Datepicker({ value, index, target, update }: DatePickerP
   };
 
   return (
-    <label className='w-full grid gap-1  transition-all ease-in-out text-[14px] font-sans relative z-[20]'>
+    <label className="w-full grid gap-1  transition-all ease-in-out text-[14px]  font-sans relative z-[20]">
       {target === 'startDate' ? 'Start Date' : 'End Date'}
-      <div className='w-full  outline-none ring-1 ring-gray-200 focus-within:ring-green-600 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative flex items-center gap-2'>
+      <div className="w-full outline-none ring-1 ring-gray-200 focus-within:ring-green-600 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative flex items-center gap-2">
         <span>
-          <Calendar className='w-4 h-4' color={'gray'} />
+          <Calendar className="w-4 h-4" color={'gray'} />
         </span>
 
         <DatePicker
           selected={isValidDate ? new Date(value!) : null}
           onChange={handleChange}
+          strictParsing
           open={open}
           onClickOutside={() => setOpen(false)}
           shouldCloseOnSelect={true}
           showMonthYearPicker
           placeholderText={value ? value : 'Select Date'}
-          dateFormat='yyyy-MM'
+          dateFormat="yyyy-MM"
           maxDate={new Date()}
-          className='react-datepicker-hidden-input'
-          calendarClassName='rd-calendar animate-pop'
+          className="w-full outline-none"
+          calendarClassName="rd-calendar animate-pop"
           showPopperArrow={true}
-          popperPlacement='bottom-end'
+          popperPlacement="bottom-end"
         />
-        <div onClick={() => setOpen(!open)} className='w-full h-full absolute bg-transparent'></div>
+        <div onClick={() => setOpen(!open)} className="w-full h-full absolute bg-transparent"></div>
       </div>
     </label>
   );
