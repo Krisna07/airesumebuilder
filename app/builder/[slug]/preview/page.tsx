@@ -47,6 +47,7 @@ const PreviewPage = () => {
 
     (async () => {
       try {
+        console.log(slug);
         const response = await ResumeService.getSingle(slug);
         const descriptionResp = await fetch(
           `/api/resume/description?slug=${encodeURIComponent(slug)}`,
@@ -117,7 +118,7 @@ const PreviewPage = () => {
       showToast('Please login to use this feature', 'warning', 3000);
       return;
     }
-
+    setRegenerating(true);
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -132,6 +133,7 @@ const PreviewPage = () => {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
+        setRegenerating(false);
         return;
       }
 
@@ -151,6 +153,7 @@ const PreviewPage = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       showToast('PDF downloaded', 'success', 1500);
+      setRegenerating(false);
     } catch (error) {
       console.error('❌ PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
@@ -224,7 +227,7 @@ const PreviewPage = () => {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl grid gap-8">
           <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
