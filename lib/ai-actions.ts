@@ -134,7 +134,7 @@ RULES:
 RESUME_JSON:
 ${JSON.stringify(compactResume)}
 
-JOB_DESCRIPTION_TEXT:\n${(jobDescription || "").slice(0, 6000)}
+JOB_DESCRIPTION_TEXT:\n${jobDescription}
 
 OUTPUT:`;
 
@@ -196,7 +196,7 @@ RULES:
 SOURCE_RESUME_JSON:
 ${sourceResume}
 
-JOB_DESCRIPTION_TEXT:\n${(jobDescription || "").slice(0, 6000)}
+JOB_DESCRIPTION_TEXT:\n${(jobDescription)}
 
 OUTPUT:`;
 
