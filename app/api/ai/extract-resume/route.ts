@@ -1,5 +1,5 @@
+import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
-import { GenerateResume } from '@/lib/ai-actions';
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Call the AI function to process the text
-        const structuredData = await GenerateResume(undefined, text);
+        const structuredData = await AIService.generateResume(undefined, text);
 
         if (!structuredData) {
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
@@ -40,5 +40,4 @@ export async function GET() {
         const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
         return NextResponse.json({ error: 'Failed to parse request body', details: message }, { status: 500 });
     }
-
 }

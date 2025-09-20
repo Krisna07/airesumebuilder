@@ -24,7 +24,6 @@ const PreviewPage = () => {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { showToast } = useToast();
-
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
   const [loading, setLoading] = useState(true);
@@ -35,67 +34,68 @@ const PreviewPage = () => {
 
   useEffect(() => {
     let active = true;
-    if (!slug || typeof window === 'undefined') return;
-    if (!user) {
-      const localResume = localStorage.getItem(slug);
-      if (localResume) {
-        setResumeData(JSON.parse(localResume));
+    if (!slug) return;
+
+    const fetchResume = async () => {
+      // Handle guest user loading from localStorage
+      if (!user) {
+        const localResume = localStorage.getItem(slug);
+        if (localResume) {
+          setResumeData(JSON.parse(localResume));
+        }
+        // Stop loading for guest user, whether data was found or not.
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    (async () => {
+      // Handle authenticated user fetching from API
       try {
-        console.log(slug);
-        const response = await ResumeService.getSingle(slug);
-        const descriptionResp = await fetch(
-          `/api/resume/description?slug=${encodeURIComponent(slug)}`,
-          { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-        );
+        const [resumeResp, descriptionResp] = await Promise.all([
+          ResumeService.getSingle(slug),
+          fetch(`/api/resume/description?slug=${encodeURIComponent(slug)}`),
+        ]);
 
+        // Process description
         if (descriptionResp.ok) {
-          try {
-            const descriptionData = await descriptionResp.json();
-            // Expecting either { data: ScrapeResult } or the ScrapeResult directly
+          const descriptionData = await descriptionResp.json().catch(() => null);
+          if (active && descriptionData) {
             setJobDescription(descriptionData?.data ?? descriptionData);
-          } catch (e) {
-            console.warn('Failed to parse description response', e);
           }
         } else {
           console.warn('Description fetch failed', descriptionResp.status);
         }
-        const data = await response.json();
 
+        // Process resume
+        const resumeDataPayload = await resumeResp.json();
         if (!active) return;
 
-        if (!response.ok || !data?.data) {
-          showToast(`No resume data found, redirecting…`, 'warning', 2500);
+        if (!resumeResp.ok || !resumeDataPayload?.data) {
+          showToast('No resume data found, redirecting…', 'warning', 2500);
+          // Stop loading before redirecting on failure.
           setLoading(false);
           setTimeout(() => (window.location.href = '/builder'), 600);
           return;
         }
-
-        setResumeData(data.data);
-        setSelectedTemplate(data.data.template);
-        // If you store template with the resume, you could set it here.
-        // setSelectedTemplate(data.data.template ?? 'modern');
+        await setResumeData(resumeDataPayload.data);
+        await setSelectedTemplate(resumeDataPayload.data.template);
       } catch (err) {
-        console.error('Error loading resume data:', err);
-        showToast('Error loading resume. Redirecting…', 'error', 2500);
-        setTimeout(() => (window.location.href = '/builder'), 600);
+        if (active) {
+          console.error('Error loading resume data:', err);
+          showToast('Error loading resume. Redirecting…', 'error', 2500);
+          setTimeout(() => (window.location.href = '/builder'), 600);
+        }
       } finally {
-        if (active) setLoading(false);
+        // This is the key change: only set loading to false when the fetch attempt is complete.
+        if (active) await setLoading(false);
       }
-    })();
+    };
+
+    fetchResume();
 
     return () => {
       active = false;
     };
-    // We intentionally only depend on slug; showToast is stable enough and including it can trigger
-    // unwanted re-fetch loops (e.g., after deletion redirect flashes 404 fetch attempts).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, user, showToast]);
 
   const handleTemplateChange = async (templateId: string) => {
     if (!resumeData) return;
