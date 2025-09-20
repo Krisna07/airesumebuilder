@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { analyseResumeToJobDescription } from '@/lib/ai-actions';
+import { AIService } from '@/services/aiServices';
+import { ResumeData } from '@/types/types';
 
 const prisma = new PrismaClient();
 
@@ -11,28 +12,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'resumeId and jobDescription are required' }, { status: 400 });
     }
 
-  const resume = await prisma.resume.findFirst({ where: { id: resumeId, deleted: false } });
+    const resume = await prisma.resume.findFirst({ where: { id: resumeId, deleted: false } });
     if (!resume) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
 
-    // Parse stored JSON blobs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseMaybe = (val: any) => (typeof val === 'string' ? JSON.parse(val) : val);
-    const resumeData = {
+    const resumeData: ResumeData = {
       id: resume.id,
       userId: resume.userId,
       title: resume.title,
       template: resume.template,
-      profile: parseMaybe(resume.profile),
-      experiences: parseMaybe(resume.experiences),
-      educations: parseMaybe(resume.educations),
-      skills: parseMaybe(resume.skills),
-      certificates: parseMaybe(resume.certificates)
+      profile: JSON.parse(resume.profile as string),
+      experiences: JSON.parse(resume.experiences as string),
+      educations: JSON.parse(resume.educations as string),
+      skills: JSON.parse(resume.skills as string),
+      certificates: JSON.parse(resume.certificates as string),
     };
 
     // Call AI
-    const analysis = await analyseResumeToJobDescription(resumeData, jobDescription);
+    const analysis = await AIService.analyzeResume(resumeData, jobDescription);
 
     // Role extraction heuristics if not provided
     let role = analysis?.role;
@@ -45,8 +43,8 @@ export async function POST(req: NextRequest) {
 
     const shouldOverwrite = updateTitle || resume.title.toLowerCase().startsWith('untitled');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- temporary until Prisma client regenerated with new fields
-  const updated = await (prisma as any).resume.update({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- temporary until Prisma client regenerated with new fields
+    const updated = await (prisma as any).resume.update({
       where: { id: resume.id },
       data: {
         title: shouldOverwrite && role ? role : resume.title,
@@ -62,7 +60,7 @@ export async function POST(req: NextRequest) {
         role,
         matchingPercentage: matchingScore,
       },
-  updated
+      updated
     });
   } catch (error) {
     console.error('Analyze API error:', error);

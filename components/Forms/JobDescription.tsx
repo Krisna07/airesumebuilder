@@ -286,13 +286,6 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       >
         {analyzing ? 'Analyzing…' : 'Analyse'}
       </Button>
-
-      {/* {rawResults.length > 0 && (
-        <details className='mt-3 text-xs text-gray-600'>
-          <summary className='font-medium'>Raw scrape results ({rawResults.length})</summary>
-          <pre className='max-h-56 overflow-auto bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap'>{JSON.stringify(rawResults, null, 2)}</pre>
-        </details>
-      )} */}
     </div>
   );
 };
