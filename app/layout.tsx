@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={`${inter.className} max-h-screen w-full  `}>
         <Providers>
           <Navbar />
-          <main className='w-full min-h-[calc(100vh-4rem)]'>
+          <main className='w-full min-h-[calc(100vh-4rem)] grid place-items-center'>
             <section className='w-full min-[800px]:min-w-[800px] max-[800px]:h-full grid place-items-center '>{children}</section>
           </main>
         </Providers>

@@ -1,106 +1,105 @@
-import { UserService } from '@/services/userService';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useToast } from './PopupContext';
+// context/authContext.tsx - Enhanced version
+'use client'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 
-type User = {
-  id: string;
-  email: string;
-  name?: string;
-};
+interface User {
+  id: string
+  name?: string | null
+  password?: string | null
+  email: string | null
+  image?: string | null
+}
 
-const userService = new UserService();
-type AuthContextType = {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => void;
-  logout: () => void;
-  register: (email: string, password: string, name?: string) => void;
-};
+interface AuthContextType {
+  user: User | null
+  loading: boolean
+  signIn: typeof signIn
+  signOut: typeof signOut
+  register: (user: {
+    id?: string,
+    email: string,
+    password: string,
+    image?: string
+  }) => void
+  isGuest: boolean
+  migrateGuestData: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { data: session, status } = useSession()
+  const [user, setUser] = useState<User | null>(null)
 
 
-
-const formValidation = async (email: string, password: string) => {
-  switch (true) {
-    case !password:
-      return 'Password not provided';
-    case password.length<6:
-      return 'Password length requirement did not match'
-    case !email:
-      return 'Email not provided';
-    case !email && !password:
-      return 'Email and Password not added';
-    default:
-      break;
+  const register = (user: {
+    id?: string,
+    email: string,
+    password: string,
+    image?: string
+  }) => {
+    console.log(user)
   }
-};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
-};
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const toast = useToast();
-  // Load user from sessionStorage on mount
   useEffect(() => {
-    setLoading(true);
-    const stored = sessionStorage.getItem('user');
-    if (stored) {
-      setUser(JSON.parse(stored));
+    if (session?.user) {
+      setUser({
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        image: session.user.image,
+      })
+
+    } else {
+      setUser(null)
     }
-    setLoading(false);
-  }, []);
+  }, [session])
 
-  const login = async (email: string, password: string) => {
-    setLoading(true);
-    const error = await formValidation(email, password);
-    if (error) {
-      setLoading(false);
-      return toast.showToast(error, 'warning', 3000);
+  const migrateGuestData = async () => {
+    // Migrate localStorage resumes to authenticated user account
+    const guestResumes = Object.keys(localStorage)
+      .filter(key => key.length === 36) // UUID format
+      .map(key => ({
+        id: key,
+        data: JSON.parse(localStorage.getItem(key) || '{}')
+      }))
+
+    if (guestResumes.length > 0 && user) {
+      // Send to your API to save
+      await fetch('/api/resume/migrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumes: guestResumes })
+      })
+
+      // Clear localStorage after migration
+      guestResumes.forEach(resume => localStorage.removeItem(resume.id))
     }
+  }
 
-    const response = await userService.loginUser(email, password);
+  const loading = status === 'loading'
+  const isGuest = !user && !loading
 
-    const data = await response.json();
-    if (!response.ok) {
-      toast.showToast(data.error, 'error', 3000);
-      return setLoading(false);
-    }
-    const userObj = data.data;
-    sessionStorage.setItem('user', JSON.stringify(userObj));
-    toast.showToast('Logging in', 'success', 3000);
-    setLoading(false);
-    return (window.location.href = '/builder');
-  };
+  return (
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      signIn,
+      signOut,
+      isGuest,
+      register,
+      migrateGuestData
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
 
-  const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem('user');
-  };
-
-  const register = async (email: string, password: string, name?: string) => {
-    setLoading(true);
-    const error = await formValidation(email, password);
-    if (error) {
-      setLoading(false);
-      return toast.showToast(error, 'warning', 3000);
-    }
-    const response = await userService.createUser(email, password, name);
-    const data = await response.json();
-    if (!response.ok) {
-      toast.showToast(data.error, 'error', 3000);
-      return setLoading(false);
-    }
-    const userObj = data.data;
-    sessionStorage.setItem('user', JSON.stringify(userObj));
-    toast.showToast('User created successfully', 'success', 3000);
-    setLoading(false);
-    return (window.location.href = '/builder');
-  };
-
-  return <AuthContext.Provider value={{ user, loading, login, logout, register }}>{children}</AuthContext.Provider>;
-};
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
