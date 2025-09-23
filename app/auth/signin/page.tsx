@@ -12,11 +12,11 @@ const Page: React.FC = () => {
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-  const { login, loading } = useAuth();
+  const { signIn, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(form.email, form.password);
+    await signIn('credentials', { email: form.email, password: form.password });
   };
 
   return (

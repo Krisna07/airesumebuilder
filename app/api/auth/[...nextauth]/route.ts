@@ -30,7 +30,7 @@ const handler = NextAuth({
 
         try {
           // Check if user exists in your database
-          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login`, {
+          const response = await fetch(`/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
