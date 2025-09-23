@@ -20,6 +20,12 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+    if (!user.password) {
+      return NextResponse.json(
+        { error: 'User has no password set, please use OAuth login.' },
+        { status: 401 }
+      );
+    }
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return NextResponse.json(
