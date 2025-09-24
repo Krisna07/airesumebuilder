@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { useSession, signIn, signOut, getSession } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
 
+
 interface User {
   id: string
   email: string | null
@@ -51,6 +52,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           image: refreshed.user.image ?? undefined,
         })
       }
+      window.location.href = '/builder'
+
     }
   }
 
@@ -66,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           email: sessionUser.email,
           image: sessionUser.image
         })
-        if (sessionUser.provider !== 'credential') {
+        if (sessionUser.provider !== 'credentials') {
           const registerData: RegisterData = sessionUser
           await register(registerData)
         }
@@ -76,6 +79,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [session])
 
   const migrateGuestData = async () => {
+    //disabling thr function 
+    return 
     // Migrate localStorage resumes to authenticated user account
     const guestResumes = Object.keys(localStorage)
       .filter(key => key.length === 36) // UUID format
