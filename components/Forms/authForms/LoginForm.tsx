@@ -23,6 +23,7 @@ const LoginForm: React.FC = () => {
         const response = await signIn('credentials', { email: form.email, password: form.password, redirect: false });
         if (!response?.ok) { return toast.showToast(`${response?.error}`, 'error', 3000) }
         toast.showToast("Login successfull", 'success', 3000)
+        window.location.href = '/builder'
         // console.log(response)
     };
 
