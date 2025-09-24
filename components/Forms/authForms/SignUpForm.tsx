@@ -9,7 +9,7 @@ const SignUpForm: React.FC = () => {
         // username: string;
         email: string;
         password: string;
-    }>({  password: '', email: '' });
+    }>({ password: '', email: '' });
     const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
@@ -17,21 +17,20 @@ const SignUpForm: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        register(
-            {
-                email: form.email,
-                password: form.password,
-                // name: form.username
-            }
-        );
+        const registerData = {
+            email: form.email,
+            provider: 'credentials',
+            password: form.password,
+        };
+        register(registerData);
     };
 
     if (user) {
         return (window.location.href = '/builder');
     }
     return (
-      <div className='w-full h-full grid place-items-center'>  
-            <div className='min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
+
+        <div className='min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
             <h2 className='text-6xl font-bold'>Welcome</h2>
             <p>
                 Already have an account?{' '}
@@ -66,7 +65,7 @@ const SignUpForm: React.FC = () => {
                     </Button>
                 </div>
             </form>
-        </div></div>
+        </div>
     );
 };
 
