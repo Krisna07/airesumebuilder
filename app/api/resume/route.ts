@@ -70,9 +70,9 @@ export async function PUT(req: NextRequest) {
               skills: JSON.stringify(resumeData.skills || []),
               certificates: JSON.stringify(resumeData.certificates || []),
         };
+            console.log("Creating new resume:", newResume);
         const createdResume = await prisma.resume.create({ data: newResume });
-         return NextResponse.json({
-
+            return NextResponse.json({
              data: {
                     id: createdResume.id,
                     title: createdResume.title,

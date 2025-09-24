@@ -3,6 +3,28 @@ import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import GitHubProvider from 'next-auth/providers/github'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import { PrismaClient } from '@prisma/client';
+import type { JWT } from 'next-auth/jwt'
+import type { Account } from 'next-auth'
+
+const prisma = new PrismaClient();
+
+
+const handleLogin = async (email: string, password: string) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    throw new Error('User not found, please register.');
+  }
+  if (!user.password) {
+    throw new Error('User has no password set, use SSO login. or Sign up to set password.');
+  }
+  const bcrypt = await import('bcryptjs');
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    throw new Error('Invalid credentials.');
+  }
+  return { id: user.id, email: user.email, name: user.name, image: user.image || null };
+};
 
 const handler = NextAuth({
   providers: [
@@ -25,49 +47,52 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error('Email and password are required');
         }
 
         try {
           // Check if user exists in your database
-          const response = await fetch(`/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password
-            })
-          })
+          console.log('Authorizing user with email:', credentials.email)
+          const user = await handleLogin(credentials.email, credentials.password)
 
-          const user = await response.json()
-
-          if (response.ok && user) {
+          if (user) {
             return {
               id: user.id,
               name: user.name,
               email: user.email,
-              image: user.image || null
+              image: user.image || null,
+              provider: 'credentials',
+              providerId: user.id
             }
           }
           
           return null
         } catch (error) {
           console.error('Auth error:', error)
-          return null
+          // Throw to let NextAuth handle the error properly and to ensure the return type is User | null
+          throw new Error(error instanceof Error ? error.message : 'Login failed')
         }
       }
     })
   ],
   callbacks: {
-    async jwt({ token, account, user }) {
-      if (account && user) {
-        token.id = user.id
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async jwt({ token, account, user }: { token: JWT; account?: Account | null; user?: any }) {
+      // Persist provider info on first sign-in / when account is available
+      if (account) {
+        ; token.provider = account.provider
+          ; token.providerId = account.providerAccountId ?? account.id ?? null
       }
+      // keep id if available from user (credentials or oauth)
+      if (user?.id) (token.id = user.id)
       return token
     },
-    async session({ session, token }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async session({ session, token }: { session: any; token: JWT }) {
       if (session.user) {
-        session.user.id = token.id as string
+        ; session.user.id = token.id as string | undefined
+          ; session.user.provider = token.provider as string | undefined
+          ; session.user.providerId = token.providerId as string | undefined
       }
       return session
     },
@@ -78,7 +103,7 @@ const handler = NextAuth({
   session: {
     strategy: 'jwt'
   },
-  debug: process.env.NODE_ENV === 'development',
+  // debug: process.env.NODE_ENV === 'development',
 })
 
 export { handler as GET, handler as POST }
