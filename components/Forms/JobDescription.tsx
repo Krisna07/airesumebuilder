@@ -8,6 +8,7 @@ import { getJobDescription, analyzeResume } from '@/services/resumeServices';
 interface JDProps {
   resumeId?: string;
   disabled?: boolean;
+
 }
 
 export type ScrapeResult = {
@@ -53,6 +54,9 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       if (descriptionResp.ok) {
         try {
           const descriptionData = await descriptionResp.json();
+          if (descriptionResp.status == 202) {
+            return
+          }
           // Expecting either { data: ScrapeResult } or the ScrapeResult directly
           setJobDescription(descriptionData?.data?.description);
           // setUrl(descriptionData?.data?.url);
@@ -60,12 +64,15 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
           console.warn('Failed to parse description response', e);
         }
       } else {
+        setJobDescription(`No job description added yet`)
         console.warn('Description fetch failed', descriptionResp.status);
       }
     };
 
     try {
+
       fetchDescription();
+
     } catch (err) {
       throw err;
     }

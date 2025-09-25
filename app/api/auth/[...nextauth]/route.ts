@@ -7,6 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import type { JWT } from 'next-auth/jwt'
 import type { Account } from 'next-auth'
 
+
 const prisma = new PrismaClient();
 
 
@@ -24,6 +25,37 @@ const handleLogin = async (email: string, password: string) => {
     throw new Error('Invalid credentials.');
   }
   return { id: user.id, email: user.email, name: user.name, image: user.image || null };
+};
+
+const handleOAuthUserRegister = async (email: string, name: string | null | undefined, image: string | null | undefined, provider: string, providerId: string) => {
+  let user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: name || email.split('@')[0],
+        image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
+        provider: provider || 'credentials',
+        providerId: providerId || null
+      },
+    });
+  } else {
+    user = await prisma.user.update({
+      where: { email: email },
+      data: {
+        email: email,
+        name: name || email.split('@')[0],
+        image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
+        provider: provider || 'credentials',
+        providerId: providerId || null
+      },
+    });
+  }
+  return {
+    stored: true,
+    ...user
+  };
+
 };
 
 const handler = NextAuth({
@@ -65,7 +97,7 @@ const handler = NextAuth({
               providerId: user.id
             }
           }
-          
+
           return null
         } catch (error) {
           console.error('Auth error:', error)
@@ -78,12 +110,23 @@ const handler = NextAuth({
   callbacks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async jwt({ token, account, user }: { token: JWT; account?: Account | null; user?: any }) {
-      // Persist provider info on first sign-in / when account is available
       if (account) {
         ; token.provider = account.provider
           ; token.providerId = account.providerAccountId ?? account.id ?? null
       }
-      // keep id if available from user (credentials or oauth)
+
+      if (token.provider && token.provider !== 'credentials') {
+        if (token.id == token.providerId || token.providerId !== token.sub) {
+          try {
+            console.log('Handling OAuth user register/login for:', token.email)
+            user = await handleOAuthUserRegister(token.email!, token.name, token.picture, token.provider, token.providerId as string)
+          } catch (error) {
+            console.log(error)
+            return token
+          }
+        }
+      }
+
       if (user?.id) (token.id = user.id)
       return token
     },
@@ -98,7 +141,7 @@ const handler = NextAuth({
     },
   },
   pages: {
-    signIn: '/auth/signin', // Custom sign-in page
+    signIn: '/auth/createuser', // Custom sign-in page
   },
   session: {
     strategy: 'jwt'

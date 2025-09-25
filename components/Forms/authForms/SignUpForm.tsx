@@ -14,23 +14,33 @@ const SignUpForm: React.FC = () => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
     const { register, loading, user, signIn } = useAuth();
-
+    const [loader, setLoader] = useState(false)
+    console.log(loading)
     const handleSubmit = async (e: React.FormEvent) => {
+        setLoader(true)
         e.preventDefault();
         const registerData = {
             email: form.email,
             provider: 'credentials',
             password: form.password,
         };
-        register(registerData);
+        await register(registerData);
+        setLoader(false)
     };
 
     if (user) {
+        setLoader(false)
         return (window.location.href = '/builder');
     }
     return (
 
         <div className='min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
+            {loader && <div className='w-full h-full absolute bg-gray-900/75 flex items-center justify-center'>
+                <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
+                    <div className="loader"></div>
+                    <h3 className='text-white animate-pulse'>Authenticating User....</h3>
+                </div>
+            </div>}
             <h2 className='text-6xl font-bold'>Welcome</h2>
             <p>
                 Already have an account?{' '}

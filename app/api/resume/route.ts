@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
         if (!resume || resume.deleted) {
             return NextResponse.json({ error: "Resume not found" }, { status: 404 });
         }
+        const description = await prisma.jobDescription.findFirst({ where: { resumeId: resume.id } });
         // console.log(resume);
         return NextResponse.json({
             data: {
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
                 matchingScore: (resume as any)?.matchingScore ?? null,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                 analyzedAt: (resume as any)?.analyzedAt ?? null,
+                description: description?.description,
             }
         }, { status: 200 });
     } catch (err) {
@@ -69,8 +71,7 @@ export async function PUT(req: NextRequest) {
               educations: JSON.stringify(resumeData.educations || []),
               skills: JSON.stringify(resumeData.skills || []),
               certificates: JSON.stringify(resumeData.certificates || []),
-        };
-            console.log("Creating new resume:", newResume);
+          };
         const createdResume = await prisma.resume.create({ data: newResume });
             return NextResponse.json({
              data: {
