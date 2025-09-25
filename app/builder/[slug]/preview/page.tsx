@@ -348,7 +348,7 @@ const PreviewPage = () => {
                 <div className="flex items-center gap-3 justify-left">
                   {/* <span className="text-2xl">{template.}</span> */}
                   <h3
-                    className={`font-semibold ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
+                    className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
                   >
                     {template.name}
                   </h3>
@@ -370,7 +370,7 @@ const PreviewPage = () => {
           )}
         </div>
         <div
-          className="relative w-full h-[82vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm"
+          className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm"
           id="resumeViewport"
         >
           {/* Optional inner wrapper to constrain width / center */}
