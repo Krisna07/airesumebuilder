@@ -8,8 +8,9 @@ export async function PUT(req: NextRequest) {
   try {
     let user
     const { email, name, image, provider, providerId, password, } = await req.json();
-    console.log(email, name, image, provider, providerId, password)
+    // console.log(email, name, image, provider, providerId, password)
     const existingUser = await prisma.user.findUnique({ where: { email } });
+    // console.log(existingUser)
     //logic for the user with oauth login already exists
     if (!existingUser && provider !== 'credentials') {
       user = await prisma.user.create({
@@ -35,7 +36,7 @@ export async function PUT(req: NextRequest) {
         },
       });
     }
-    console.log(existingUser)
+
     //logic for the user with credentials signup
     if (provider === 'credentials') {
       const hashedPassword = await bcrypt.hash(password, 10);

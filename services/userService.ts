@@ -24,7 +24,7 @@ export class UserService {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData),
             });
-            console.log(response)
+            // console.log(response)
             return response
         } catch (error) {
             throw error;

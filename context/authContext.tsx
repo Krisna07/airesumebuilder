@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useSession, signIn, signOut, getSession } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
+import { useToast } from './PopupContext'
 
 
 interface User {
@@ -29,12 +30,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
   const sessionUser = session?.user
-
+  const toast = useToast()
   const register = async (user: RegisterData) => {
-    // console.log(user)
     const response = await UserService.createUser(user)
+    const data = await response.json()
     if (!response.ok) {
-      console.log(response)
+      toast.showToast(`${data.error}`, 'error', 3000)
+      return data
+    }
+    if (data.data.provider !== 'credentials') {
       return
     }
     const signInResult = await signIn('credentials', {
@@ -42,8 +46,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       password: user.password,
       redirect: false,
     })
+
     if (signInResult?.ok) {
       const refreshed = await getSession()
+      console.log(refreshed)
       if (refreshed?.user) {
         setUser({
           id: refreshed.user.id!,
@@ -55,13 +61,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       window.location.href = '/builder'
 
     }
+
   }
 
   useEffect(() => {
     const getUser = async () => {
-      if (!sessionUser) {
-        return
-      }
       if (sessionUser) {
         setUser({
           id: sessionUser.id,
@@ -69,18 +73,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           email: sessionUser.email,
           image: sessionUser.image
         })
-        if (sessionUser.provider !== 'credentials') {
-          const registerData: RegisterData = sessionUser
-          await register(registerData)
-        }
-      } else { setUser(null) }
+      } 
     }
     getUser()
-  }, [session])
+  }, [sessionUser])
 
   const migrateGuestData = async () => {
     //disabling thr function 
-    return 
+    return
     // Migrate localStorage resumes to authenticated user account
     const guestResumes = Object.keys(localStorage)
       .filter(key => key.length === 36) // UUID format

@@ -145,7 +145,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                   <div
                     key={template.id}
                     onClick={() => setSelectedTemplate(template.id)}
-                    className={`group p-2 sm:min-w-[230px] md:min-w-full max-w-min h-[300px] rounded-lg  backdrop-blur-sm shadow-[0_0_2px_0_gray] grid gap-1 py-4  ${
+                    className={`group p-2 min-w-[200px]  md:min-w-full max-w-min h-[300px] rounded-lg  backdrop-blur-sm shadow-[0_0_2px_0_gray] grid gap-1 py-4  ${
                       selectedTemplate === template.id
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-gray-200 hover:border-gray-300'
