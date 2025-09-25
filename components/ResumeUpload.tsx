@@ -82,7 +82,7 @@ export default function ResumeUpload() {
   };
 
   return (
-    <div className="max-sm:w-full">
+    <div className="w-fit">
       <input
         type="file"
         id="resume-upload"
