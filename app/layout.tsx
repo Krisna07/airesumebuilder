@@ -9,9 +9,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AI Resume Builder',
   description: 'Create a professional resume with the help of AI.',
-  icons: {
-    icon: '/icon.svg'
-  }
+  // icons: {
+  //   icon: '/icon.svg'
+  // }
 };
 
 export default function RootLayout({
