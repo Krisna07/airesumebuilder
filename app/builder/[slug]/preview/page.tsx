@@ -76,8 +76,8 @@ const PreviewPage = () => {
           setTimeout(() => (window.location.href = '/builder'), 600);
           return;
         }
-        await setResumeData(resumeDataPayload.data);
-        await setSelectedTemplate(resumeDataPayload.data.template);
+        setResumeData(resumeDataPayload.data);
+        setSelectedTemplate(resumeDataPayload.data.template);
       } catch (err) {
         if (active) {
           console.error('Error loading resume data:', err);
@@ -86,7 +86,7 @@ const PreviewPage = () => {
         }
       } finally {
         // This is the key change: only set loading to false when the fetch attempt is complete.
-        if (active) await setLoading(false);
+        if (active) setLoading(false);
       }
     };
 

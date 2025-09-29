@@ -199,7 +199,7 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
           type="submit"
           className="w-full"
         >
-          <Plus size={20} /> Add Education
+            <Plus size={20} /> Add Experience
         </Button>
       )}
     </>

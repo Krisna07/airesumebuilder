@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest) {
           data: {
             email: email,
             name: name || email.split('@')[0],
-            image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
+            image: image ? image : `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(name || email)}`,
             provider: provider || 'credentials',
             providerId: providerId || null,
             password: hashedPassword
@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest) {
           data: {
             email: email,
             name: name || email.split('@')[0],
-            image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
+            image: image ? image : `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(name || email)}`,
             provider: provider || 'credentials',
             providerId: providerId || null,
             password: hashedPassword
