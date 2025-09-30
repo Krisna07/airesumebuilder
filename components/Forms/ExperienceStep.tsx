@@ -73,7 +73,7 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
     <>
       {data.length ? (
         data.map((experience, index) => (
-          <div key={index} className="w-full grid grid-cols-1 gap-4 place-items-start">
+          <div key={index} className="w-full grid grid-cols-1 gap-4 place-items-start border-b pb-4">
             <div className="w-full grid gap-2 relative">
               <div className="w-full flex items-center justify-between gap-4">
                 <Input
@@ -167,7 +167,7 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
                   </button>
                 </div>
               </form>
-              <div className="w-full flex items-center justify-between pt-4">
+              <div className="w-full flex items-center justify-between pt-2">
                 {index === data.length - 1 && (
                   <Button
                     variant={'secondary'}
@@ -175,15 +175,15 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
                     onClick={addExperience}
                     type="submit"
                   >
-                    <Plus size={20} /> Add Education
+                    <Plus size={20} /> Add Experience
                   </Button>
                 )}
                 <Button
-                  variant={'danger'}
+                  variant={'primary'}
                   size={'small'}
                   onClick={() => removeExperience(index)}
                   type="submit"
-                  className={index !== data.length - 1 ? `w-full` : ''}
+                  // className={index !== data.length - 1 ? `w-full` : ''}
                 >
                   <Trash2 size={20} /> Remove
                 </Button>

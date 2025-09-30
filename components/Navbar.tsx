@@ -43,7 +43,7 @@ const Navbar = () => {
 
   const userImage = user?.image
   return (
-    <nav className='w-full grid place-items-center sticky top-0 my-1 transition-all ease-in-out shadow bg-white z-[99]'>
+    <nav className='w-full grid place-items-center fixed top-0 mt-0 transition-all ease-in-out shadow bg-white z-[99]'>
       <div className='min-[800px]:w-[800px] w-full p-2 px-2  flex items-center justify-between'>
         <Link href='/' className='w-[40px] h-[40px] flex items-center justify-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
           <Image
