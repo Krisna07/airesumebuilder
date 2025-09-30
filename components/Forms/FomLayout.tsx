@@ -3,24 +3,34 @@ import React, { ReactNode } from "react";
 interface FormLayoutProps {
   children: ReactNode;
   heading: string;
-  subheading: string;
+  subheading?: string;
+  id?: string;
 }
 
 const FormLayout: React.FC<FormLayoutProps> = ({
   children,
   heading,
   subheading,
+  id
 }) => {
   return (
-    <div className='w-full max-[650px]:w-full max-w-[800px] min-[800px]:min-h-[600px]   p-2   gap-2  grid   shadow-[0_0_4px_0_gray] rounded-lg text-left'>
-      <div className='w-full h-full sticky top-0 md:p-4 bg-white z-[10]'>
-        <div className='flex items-center gap-[8px] '>
-          <h2 className='text-xl font-[600]'>{heading}</h2>
-        </div>
-        <p>{subheading}</p>
+    <section
+      id={id}
+      className="w-full max-w-4xl mx-auto flex flex-col bg-white rounded-lg shadow-sm border border-gray-200 "
+      role="group"
+      aria-label={heading}
+    >
+      <div className="px-4 sm:px-6 pt-4 pb-3 border-b bg-white sticky top-0 z-20 mx-2">
+        <h2 className="text-lg sm:text-xl font-semibold tracking-tight">{heading}</h2>
+        {subheading && (
+          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{subheading}</p>
+        )}
       </div>
-      <div className='max-w-full pt-0 relative grid gap-2 overflow-auto px-2 z-[100] pb-4'>{children}</div>
-    </div>
+      {/* Let parent (MultiStepForm) control scrolling */}
+      <div className="px-4 sm:px-6 py-4 space-y-4 relative z-10 overflow-hidden">
+        {children}
+      </div>
+    </section>
   );
 };
 

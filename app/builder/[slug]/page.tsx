@@ -64,9 +64,7 @@ const BuilderPage: React.FC = () => {
     );
   }
   return (
-    <section className='w-full max-[600px]:h-[calc(100vh-4rem)]'>
-      <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user ? user.id : ''} />
-    </section>
+    <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user ? user.id : ''} />
   );
 };
 

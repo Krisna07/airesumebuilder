@@ -184,7 +184,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
   }, [jobDescription, resumeId]);
 
   return (
-    <div className="w-full p-2 relative">
+    <div className="w-full relative">
       {disabled && (
         <div className="w-full h-full absolute top-0 left-0 bg-white/75 z-[100] grid place-items-center">
           <div className="font-semibold flex flex-col gap-2 items-center justify-center">
