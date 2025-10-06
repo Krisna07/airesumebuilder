@@ -54,7 +54,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       if (descriptionResp.ok) {
         try {
           const descriptionData = await descriptionResp.json();
-          if (descriptionResp.status == 202) {
+          if (descriptionResp.status === 202) {
             return
           }
           // Expecting either { data: ScrapeResult } or the ScrapeResult directly
