@@ -124,7 +124,7 @@ export class ResumeService {
 
             if (!userId) {
                 const saveLocal = await LocalResumeService.create(data.data)
-                console.log(saveLocal)
+                // console.log(saveLocal)
                 return NextResponse.json({ data: saveLocal }, { status: 200 })
             }
 

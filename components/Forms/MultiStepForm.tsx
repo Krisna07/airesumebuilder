@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import UserInfoStep from './UserInfoStep';
 import SkillsStep from './SkillsStep';
 import ExperienceStep from './ExperienceStep';
@@ -15,6 +15,7 @@ import { useToast } from '@/context/PopupContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import Templates from '../Templates/templates';
 import ResumePreview from '../Templates/ResumePreview';
+// import CustomSection from './AddSection';
 
 interface MultiStepFormProps {
   resumeContent: ResumeData;
@@ -22,168 +23,221 @@ interface MultiStepFormProps {
   userId?: string;
 }
 
-const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
+const stepsLabels = [
+  'Profile',
+  'Skill',
+  'Experience',
+  'Education',
+  'Certificates',
+  'Job Description',
+  'Template'
+];
+
+const FINAL_STEP_INDEX = stepsLabels.length + 1; // 8 (pre-preview confirmation)
+
+const MultiStepForm: React.FC<MultiStepFormProps> = ({
+  resumeContent,
+  resumeId,
+  userId
+}) => {
   const [formData, setFormData] = useState<ResumeData>(resumeContent);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(resumeContent?.template);
   const [currentStep, setCurrentStep] = useState(1);
   const toast = useToast();
 
-  const handleNext = async () => {
-    // Save current data and template before proceeding
+  const displayTemplate = userId ? Templates : Templates.slice(0, 3);
+
+  const persist = useCallback(async () => {
     if (userId) {
       const response = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
       if (!response.ok) {
         toast.showToast(response.statusText, 'error', 3000);
-        return;
+        return false;
       }
     } else {
       await LocalResumeService.update(resumeId, formData);
     }
-    if (currentStep === 7) {
-      // Redirect to preview page with UUID
+    return true;
+  }, [userId, resumeId, selectedTemplate, formData, toast]);
+
+  const handleNext = async () => {
+    const ok = await persist();
+    if (!ok) return;
+    if (currentStep === stepsLabels.length) {
       window.location.href = `/builder/${resumeId}/preview`;
-    } else {
-      setCurrentStep(prevStep => Math.min(prevStep + 1, 8));
+      return;
     }
+    setCurrentStep(s => Math.min(s + 1, FINAL_STEP_INDEX));
   };
 
   const handlePrevious = async () => {
-    // Save current data and template before going back
-    if (userId) {
-      await ResumeService.save(userId, resumeId, selectedTemplate, formData);
-    } else {
-      await LocalResumeService.update(resumeId, formData);
-    }
-    setCurrentStep(prevStep => Math.max(prevStep - 1, 1));
+    await persist();
+    setCurrentStep(s => Math.max(s - 1, 1));
   };
 
   const handleSaveDraft = async () => {
-    if (userId) {
-      await ResumeService.save(userId, resumeId, selectedTemplate, formData);
-    } else {
-      await LocalResumeService.update(resumeId, formData);
-    }
-    toast.showToast('Draft saved successfully!', 'success');
+    const ok = await persist();
+    if (ok) toast.showToast('Draft saved successfully!', 'success');
   };
-  const displayTemplate = userId ? Templates : Templates.slice(0, 3);
+
+  // Keyboard arrow navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentStep < stepsLabels.length) handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentStep > 1) handlePrevious();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [currentStep, handleNext, handlePrevious]);
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
           <FormLayout
-            heading={"Let's start with your details"}
-            subheading={'Provide essential information to proceed.'}
+            heading="Let's start with your details"
+            subheading="Provide essential information to proceed."
           >
             <UserInfoStep
               data={formData?.profile}
-              onChange={(data: Profile) => setFormData({ ...formData, profile: data })}
+              onChange={(data: Profile) =>
+                setFormData({ ...formData, profile: data })
+              }
             />
           </FormLayout>
         );
       case 2:
         return (
-          <FormLayout heading={'Lets add your skills'} subheading={'Please list all your skills '}>
+          <FormLayout
+            heading="Let's add your skills"
+            subheading="List and group your core skills."
+          >
             <SkillsStep
               data={formData.skills}
-              updateSkills={(data: skills[]) => setFormData({ ...formData, skills: data })}
+              updateSkills={(data: skills[]) =>
+                setFormData({ ...formData, skills: data })
+              }
             />
           </FormLayout>
         );
       case 3:
         return (
-          <FormLayout heading={'Add your Experience'} subheading={'Provide your work experience'}>
+          <FormLayout
+            heading="Add your experience"
+            subheading="Detail your professional work history."
+          >
             <ExperienceStep
               data={formData.experiences}
-              onChange={(data: Experience[]) => setFormData({ ...formData, experiences: data })}
+              onChange={(data: Experience[]) =>
+                setFormData({ ...formData, experiences: data })
+              }
             />
           </FormLayout>
         );
-
       case 4:
         return (
           <FormLayout
-            heading={'Add your Educations'}
-            subheading={'Provide all your academic qualifications.'}
+            heading="Add your education"
+            subheading="Provide your academic qualifications."
           >
             <EducationStep
               data={formData.educations}
-              onChange={(data: Education[]) => setFormData({ ...formData, educations: data })}
+              onChange={(data: Education[]) =>
+                setFormData({ ...formData, educations: data })
+              }
             />
           </FormLayout>
         );
       case 5:
         return (
           <FormLayout
-            heading={"Let's add your certificates"}
-            subheading={'Provide your certifications.'}
+            heading="Add your certificates"
+            subheading="Include relevant certifications."
           >
             <CertificatesStep
               data={formData.certificates}
-              onChange={(data: Certificates[]) => setFormData({ ...formData, certificates: data })}
+              onChange={(data: Certificates[]) =>
+                setFormData({ ...formData, certificates: data })
+              }
             />
+            {/* <CustomSection /> */}
           </FormLayout>
         );
       case 6:
         return (
           <FormLayout
-            heading={"Let's add Job description"}
-            subheading={'Provide detail job description with roles and responsibilities.'}
+            heading="Add job description"
+            subheading="Provide detailed responsibilities and achievements."
           >
-            <JobDescription resumeId={resumeId} disabled={userId ? false : true} />
+            <JobDescription
+              resumeId={resumeId}
+              disabled={userId ? false : true}
+            />
           </FormLayout>
         );
       case 7:
         return (
           <FormLayout
-            heading={'Choose Your Template'}
-            subheading={'Select a template style for your resume.'}
+            heading="Choose your template"
+            subheading="Select a design style for your resume."
           >
-            <div className="w-full mx-auto">
-              <div className="w-full  md:grid flex md:grid-cols-3 gap-4 mb-6 p-4">
-                {displayTemplate.map(template => (
-                  <div
-                    key={template.id}
-                    onClick={() => setSelectedTemplate(template.id)}
-                    className={`group p-2 sm:min-w-[230px] md:min-w-full max-w-min h-[300px] rounded-lg  backdrop-blur-sm shadow-[0_0_2px_0_gray] grid gap-1 py-4  ${
-                      selectedTemplate === template.id
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-full rounded-md overflow-hidden mb-4 bg-gradient-to-tr ${template.accent} flex items-center justify-center relative`}
+            <div className="w-full">
+              <div className="grid md:grid-cols-3 gap-4">
+                {displayTemplate.map(template => {
+                  const active = selectedTemplate === template.id;
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedTemplate(template.id)}
+                      className={`group p-2 rounded-lg border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 relative
+                        ${active
+                          ? 'border-blue-500 bg-blue-50 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300'}`}
+                      aria-pressed={active}
                     >
-                      <div className="h-full w-full transition-all duration-300 group-hover:blur-[1px] relative z-[10]">
-                        <ResumePreview template={template.id} resumeData={resumeContent} />
+                      <div
+                        className={`w-full rounded-md overflow-hidden mb-3 bg-gradient-to-tr ${template.accent} relative aspect-[3/4]`}
+                      >
+                        <div className="absolute inset-0">
+                          <ResumePreview
+                            template={template.id}
+                            resumeData={resumeContent}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-full absolute z-[100] "></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-2">
-                      {/* <span className='text-2xl'>{template.icon}</span> */}
                       <h3
-                        className={`font-semibold ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
+                        className={`font-semibold mb-1 ${active ? 'text-blue-700' : 'text-gray-800'
+                          }`}
                       >
                         {template.name}
                       </h3>
-                    </div>
-                    <p className="text-sm text-gray-600">{template.description}</p>
-                  </div>
-                ))}
+                      <p className="text-xs text-gray-600 leading-snug">
+                        {template.description}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </FormLayout>
         );
       case 8:
         return (
-          <div className="text-center py-8">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 max-w-md mx-auto">
+          <div className="w-full max-w-lg mx-auto py-10 px-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
                   className="w-8 h-8 text-green-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -193,92 +247,111 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                   ></path>
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to Preview!</h3>
-              <p className="text-gray-600 mb-4">
-                Your resume is ready. Click next to preview and download.
+              <h3 className="text-lg font-semibold mb-2">
+                Ready to preview
+              </h3>
+              <p className="text-sm text-gray-600">
+                Your resume is ready. Continue to preview and download.
               </p>
             </div>
           </div>
         );
       default:
-        return <div>Invalid Step</div>;
+        return <div className="p-4">Invalid step</div>;
     }
   };
-  const navigations = [
-    'Profile',
-    'Skill',
-    'Experience',
-    'Education',
-    'Certificates',
-    'Job Description',
-    'Template',
-  ];
-  return (
-    <div className="w-full h-full grid place-items-end transition-all ease-in-out duration-300  ">
-      <div className="w-full h-full  gap-2 flex flex-col items-center justify-start p-2 box-border  ">
-        {currentStep != navigations.length + 1 && (
-          <div className="w-full flex items-center justify-center gap-[12px] sticky top-[4rem] bg-white">
-            {navigations.map((item: string, index: number) => (
-              <div
-                onClick={() => setCurrentStep(index + 1)}
-                key={index}
-                className={`w-fit cursor-pointer  transition-all ease-in-out duration-300 flex items-center ${index + 1 === currentStep ? 'text-black' : 'text-black/50'} `}
-              >
-                <div
-                  className={`min-w-[20px] h-[20px] m-[4px] grid place-items-center text-center transition-all ease-in-out duration-300 leading-[80%] text-sm rounded-full ${
-                    index + 1 === currentStep ? 'bg-black text-white' : ' w-fit bg-white'
-                  } `}
-                >
-                  {index + 1}
-                </div>
-                <span
-                  className={`${index + 1 === currentStep ? 'max-[800px]:block' : 'max-[800px]:hidden'} whitespace-nowrap `}
-                >
-                  {item}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-        {renderStep()}
-      </div>
-      <div className="w-full mb-6 grid gap-2 place-items-center relative ">
-        {currentStep != navigations.length + 1 && (
-          <div className=" gap-4 flex justify-between items-center">
-            {currentStep > 1 && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="small"
-                onClick={handlePrevious}
-                disabled={currentStep === 1}
-              >
-                <FaChevronLeft /> {currentStep === 7 ? 'Review' : 'Previous'}
-              </Button>
-            )}
 
-            <div className="flex gap-2">
-              {/* Save Draft Button - available on all steps except completion */}
-              {currentStep < 7 && (
-                <Button type="button" variant="secondary" size="small" onClick={handleSaveDraft}>
-                  {'Save Draft'}
+  return (
+    <div className="w-full h-[calc(100vh-4rem)] flex flex-col bg-white relative overflow-hidden">
+      {currentStep !== FINAL_STEP_INDEX && (
+        <div
+          className="flex-shrink-0 w-full flex items-center gap-3 bg-white/95 backdrop-blur-sm  sticky top-0 z-40 px-3 py-2 overflow-x-auto md:justify-center"
+          role="tablist"
+          aria-label="Form steps"
+        >
+          {stepsLabels.map((label, i) => {
+            const stepIndex = i + 1;
+            const active = stepIndex === currentStep;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setCurrentStep(stepIndex)}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`step-panel-${stepIndex}`}
+                className={`flex items-center gap-2 flex-shrink-0 p-1 ${active ? 'pr-2' : ''} min-[800px]:pr-2 rounded-full text-xs md:text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active
+                  ? 'bg-gray-600 text-white shadow'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+              >
+                <span
+                  className={`w-5 h-5 grid place-items-center rounded-full text-[11px] ${active ? 'bg-white text-blue-600' : 'bg-black/10'
+                    }`}
+                >
+                  {stepIndex}
+                </span>
+                <span className={`max-[800px]:${active ? 'block' : 'hidden'} block `}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Single scroll region */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 sm:px-4  scroll-smooth"
+        id={`step-panel-${currentStep}`}
+        role="tabpanel"
+        aria-labelledby={`step-${currentStep}`}
+        style={{ WebkitOverflowScrolling: 'touch' }}>
+        {renderStep()}
+        <div className="h-6" />
+      </div>
+
+      {currentStep !== FINAL_STEP_INDEX && (
+        <div className="flex-shrink-0 w-full sticky bottom-0 z-50 bg-white/95 backdrop-blur-sm shadow-[0_0_2px_0_gray]">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex-1">
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  onClick={handlePrevious}
+                  aria-label="Previous step"
+                >
+                  <FaChevronLeft />
+                  Previous
                 </Button>
               )}
-
+            </div>
+            <div className="flex items-center gap-2">
+              {currentStep < stepsLabels.length && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  onClick={handleSaveDraft}
+                  aria-label="Save draft"
+                >
+                  Save Draft
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="primary"
                 size="small"
                 onClick={handleNext}
-                disabled={currentStep === 8}
+                disabled={currentStep === FINAL_STEP_INDEX}
+                aria-label="Next step"
               >
-                {currentStep === 7 ? 'Preview Resume' : 'Next'}
+                {currentStep === stepsLabels.length ? 'Preview Resume' : 'Next'}
                 <FaChevronRight />
               </Button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

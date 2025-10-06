@@ -9,17 +9,23 @@ import { LocalResumeService } from '@/services/localResumeService';
 const ResumeCreateSection = () => {
   const [creating, setCreating] = useState(false);
   const route = useRouter();
-    const toast = useToast();
-  
+  const toast = useToast();
+
 
   const handleCreateResume = async () => {
     setCreating(true);
-    const response = await LocalResumeService.create();
-    console.log(response)
-   
-    route.push(`/builder/guest-resume`);
-    toast.showToast('Resume created successfully', 'success', 3000);
-    setCreating(false);
+    try {
+      const response = await LocalResumeService.create();
+      if (response) {
+        route.push(`/builder/guest-resume`);
+        toast.showToast('Resume created successfully', 'success', 3000);
+        setCreating(false);
+      }
+    }
+    catch (err) {
+      throw err
+    }
+
   };
 
   return (

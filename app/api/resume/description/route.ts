@@ -50,7 +50,14 @@ export async function POST(request: NextRequest) {
             domain,
             description: description || ''
         };
-
+        await prisma.resume.update({
+            where: { id: resumeId },
+            data: {
+                title: title,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                analyzedAt: new Date() as any,
+            }
+        });
         const storeDescription = await prisma.jobDescription.create({ data: jobDescriptionData });
         return NextResponse.json({ data: storeDescription }, { status: 200 });
 
@@ -84,7 +91,7 @@ export async function GET(request: NextRequest) {
                 }
             }, { status: 200 });
         }
-        return NextResponse.json({ error: 'No description found' }, { status: 404 });
+        return NextResponse.json({ data: 'No description found' }, { status: 202 });
     } catch (err) {
         console.log('Error ', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

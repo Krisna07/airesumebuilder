@@ -100,14 +100,15 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="overflow-hidden flex justify-center relative">
+    <div ref={containerRef} className="overflow-hidden min-h-fit flex justify-center relative p-4">
       {/* {regenerating ?<div className='w-full h-full absolute'></div>:<div></div>} */}
       <div
         style={{
           width: PAGE_WIDTH_PX * scale,
-          height: PAGE_HEIGHT_PX * scale,
+          minHeight: PAGE_HEIGHT_PX * scale,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
+          scrollbarWidth: 'none',
         }}
       className={`${regenerating ? 'blur-sm animate-pulse' : ''}`}
       >
@@ -115,11 +116,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           title="Resume Preview"
           style={{
             width: PAGE_WIDTH_PX,
-            height: PAGE_HEIGHT_PX,
+            minHeight: PAGE_HEIGHT_PX,
             border: '1px solid #e5e7eb',
             borderRadius: 12,
             background: 'white',
             display: 'block',
+            scrollbarWidth: 'none'
           }}
           srcDoc={srcDoc}
         />
