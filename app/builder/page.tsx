@@ -139,7 +139,7 @@ const Page = () => {
     return () => {
       active = false;
     };
-  }, [user, toast]);
+  }, [user]);
 
   // Only show loading when we are still resolving auth or fetching resumes for a logged-in user.
   const isInitialLoading = (loading && user !== null) || (user && !initialFetched);

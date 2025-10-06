@@ -15,6 +15,7 @@ export interface ResumeData {
   certificates: Certificates[];
   matchingScore?: number;
   analyzedAt?: string | Date;
+  description?: string;
 }
 
 export interface skills {

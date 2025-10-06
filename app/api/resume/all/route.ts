@@ -7,7 +7,9 @@ export async function GET(req: NextRequest) {
 
     try {
         const { searchParams } = new URL(req.url);
+
         const id = searchParams.get('id');
+        console.log("Fetching resumes for user ID:", id);
         if (!id) {
             return NextResponse.json({ error: "Missing 'id' parameter" }, { status: 400 });
         }

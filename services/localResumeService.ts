@@ -3,7 +3,7 @@ import { ResumeData } from "@/types/types";
 
 export class LocalResumeService {
     static async save(userId: string, resumeId: string, emptyData: ResumeData) {
-        console.log('saving local resume', emptyData);
+        // console.log('saving local resume', emptyData);
         try {
            await localStorage.setItem(`${resumeId}`, JSON.stringify({
                 ...emptyData
@@ -14,7 +14,7 @@ export class LocalResumeService {
     }
 
     static async update(resumeId: string, data: ResumeData) {
-        console.log('updating local resume', data);
+        // console.log('updating local resume', data);
         try {
             const updateResume = localStorage.setItem(`${resumeId}`, JSON.stringify({
                 ...data
@@ -26,7 +26,7 @@ export class LocalResumeService {
     }
 
     static async create(data?: Partial<ResumeData>, userId?: string, template?: string) {
-        console.log('creating local resume');
+        // console.log('creating local resume');
         // const prevResume = await localStorage.getItem('guest-resume');
         // if (prevResume) {
         //     return 'guest-resume'

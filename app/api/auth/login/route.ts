@@ -20,7 +20,15 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-    const valid = await bcrypt.compare(password, user.password);
+    const dbPassword = user.password;
+    if(!dbPassword) {
+      return NextResponse.json(
+        { error: 'User has no password set, please use OAuth login.' },
+        { status: 401 }
+      );
+    }
+
+    const valid = await bcrypt.compare(password, dbPassword);
     if (!valid) {
       return NextResponse.json(
         { error: 'Invalid credentials.' },

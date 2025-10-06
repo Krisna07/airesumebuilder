@@ -1,18 +1,7 @@
-'use client';
-import { useEffect } from 'react';
-import { useAuth } from '@/context/authContext';
+import { redirectIfAuthenticated } from "@/utils/redirectUtil";
 
-const Page = () => {
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      window.location.href = '/builder';
-    } else {
-      window.location.href = '/auth/signin';
-    }
-  }, [user]);
-
+const Page = async () => {
+  await redirectIfAuthenticated('/builder')
   return <div className='text-6xl animate-pulse'>REDIRECTING....</div>;
 };
 

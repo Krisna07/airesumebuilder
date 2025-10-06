@@ -52,7 +52,7 @@ const EducationStep: React.FC<EducationStepProps> = ({ data, onChange }) => {
     <>
       {data.length ? (
         data.map((education, index) => (
-          <div key={index} className="w-full grid gap-2  rounded p-4">
+          <div key={index} className="w-full grid gap-2  rounded">
             <div className="flex items-center justify-between gap-4">
               <Input
                 type="text"
