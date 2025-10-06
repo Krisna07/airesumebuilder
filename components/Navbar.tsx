@@ -77,7 +77,7 @@ const Navbar = () => {
               className='w-full h-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full'
             >
 
-              {user ? <img src={`${userImage}`} className='w-full h-full rounded-full object-center' alt="user_profile_picture" /> : <FaUser className='p-1' />}
+              {user ? <img src={`${userImage}`} className='w-full h-full rounded-full object-cover' alt="user_profile_picture" /> : <FaUser className='p-1' />}
             </button>
             {menu && (
               <div className='min-w-fit grid absolute top-[calc(100%+12px)] z-[100] py-1 bg-gray-300 rounded right-0 text-sm font-normal divide-y divide-gray-800/50 shadow-lg border border-gray-400/30 animate-fade-in overflow-hidden' role='menu'>
