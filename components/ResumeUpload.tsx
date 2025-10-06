@@ -38,7 +38,7 @@ export default function ResumeUpload() {
 
     try {
       const response = await ResumeService.uploadResume(file, user?.id);
-      console.log(response);
+      // console.log(response);
       const data = await response.json();
       if (!response.ok) {
         showToast('Failed to process resume', 'error');

@@ -28,12 +28,13 @@ const LoginForm: React.FC = () => {
         try {
             const response = await signIn(provider)
             if (response) {
-                console.log(response)
+                // console.log(response)
                 setLoader(false)
             }
         } catch (error) {
-            console.log(error)
+            // console.log(error)
             setLoader(false)
+            throw error
         }
     }
     return (
@@ -65,7 +66,7 @@ const LoginForm: React.FC = () => {
                     {loader ? 'signing in ....' : '  Sign in'}
                 </Button>
             </form>
-            <div className='w-full flex max-[600px]:flex-col items-center justify-between gap-4'>
+            <div className='w-full  max-[600px]:flex-col items-center justify-between gap-4 hidden'>
                 <Button variant='secondary' size='medium' onClick={() => triggerSignIn('google')} className='w-full'>
                     <FaGoogle /> Sign in with Google
                 </Button>

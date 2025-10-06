@@ -10,19 +10,12 @@ const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        console.log('📄 PDF Generation Request:', {
-            hasResumeData: !!body.resumeData,
-            template: body.template,
-            hasContent: !!body.content
-        });
-
         let content = body.content;
 
         // If resumeData and template are provided, generate HTML from template
         if (body.resumeData && body.template) {
             try {
                 content = generateTemplateHTML(body.template, body.resumeData);
-                console.log('✅ HTML generated from template, length:', content.length);
             } catch (htmlError) {
                 console.error('❌ HTML generation error:', htmlError);
                 throw new Error(`HTML generation failed: ${htmlError instanceof Error ? htmlError.message : 'Unknown error'}`);
@@ -33,7 +26,6 @@ export async function POST(req: NextRequest) {
             throw new Error('No content provided for PDF generation');
         }
 
-        console.log('🚀 Launching browser...');
         let executablePath;
         if (isProd) {
             executablePath = await chromium.executablePath();
@@ -49,11 +41,11 @@ export async function POST(req: NextRequest) {
             headless: true,
         });
 
-        console.log('📄 Creating new page...');
+        // console.log('📄 Creating new page...');
         const page = await browser.newPage();
         await page.setContent(content, { waitUntil: 'load' });
 
-        console.log('🖨️ Generating PDF...');
+        // console.log('🖨️ Generating PDF...');
         // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
         const pageGap = body.pageGap || {
             top: '4mm',
@@ -71,7 +63,7 @@ export async function POST(req: NextRequest) {
         });
 
         await browser.close();
-        console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+        // console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
 
         // Generate filename
         const filename = body.resumeData?.profile?.fullname
@@ -88,7 +80,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error) {
-        console.error('❌ PDF generation failed:', error);
+        // console.error('❌ PDF generation failed:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
         return new Response(JSON.stringify({

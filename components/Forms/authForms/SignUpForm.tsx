@@ -15,7 +15,7 @@ const SignUpForm: React.FC = () => {
     };
     const { register, loading, user, signIn } = useAuth();
     const [loader, setLoader] = useState(false)
-    console.log(loading)
+    // console.log(loading)
     const handleSubmit = async (e: React.FormEvent) => {
         setLoader(true)
         e.preventDefault();
@@ -66,7 +66,7 @@ const SignUpForm: React.FC = () => {
                 <Button variant='primary' size='large' className='w-full flex items-center justify-center rounded-full mt-4 pt-2 pb-2' disabled={loading ? true : false}>
                     {loading ? 'Creating account....' : '  Create Account'}
                 </Button>
-                <div className='w-full flex max-[600px]:flex-col items-center justify-between gap-4'>
+                <div className='w-full  max-[600px]:flex-col items-center justify-between gap-4 hidden '>
                     <Button variant='secondary' size='medium' onClick={() => signIn('google')} className='w-full'>
                         <FaGoogle /> Sign in with Google
                     </Button>

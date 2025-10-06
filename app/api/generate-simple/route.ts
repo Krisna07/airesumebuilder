@@ -6,7 +6,7 @@ import puppeteer from 'puppeteer';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        console.log('📄 Simple PDF Generation Request');
+        // console.log('📄 Simple PDF Generation Request');
 
         let content = body?.content;
 
