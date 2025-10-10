@@ -10,9 +10,10 @@ interface DatePickerProps {
   current?: boolean;
   target: string;
   update: (index: number, target: string, value: string) => void;
+  label?: boolean;
 }
 
-export default function Datepicker({ value, index, target, update }: DatePickerProps) {
+export default function Datepicker({ value, index, target, update, label }: DatePickerProps) {
   const isValidDate = value ? !isNaN(new Date(value).getTime()) : false;
   const [open, setOpen] = useState<boolean>(false);
 
@@ -30,7 +31,7 @@ export default function Datepicker({ value, index, target, update }: DatePickerP
 
   return (
     <label className="w-full grid gap-1  transition-all ease-in-out text-[14px]  font-sans relative z-[20]">
-      {target === 'startDate' ? 'Start Date' : 'End Date'}
+      {label !== false && (target === 'startDate' ? 'Start Date' : 'End Date')}
       <div className="w-full outline-none ring-1 ring-gray-200 focus-within:ring-green-600 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative flex items-center gap-2">
         <span>
           <Calendar className="w-4 h-4" color={'gray'} />

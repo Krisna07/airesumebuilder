@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import Input from '../Input';
+import Datepicker from './Datepicker';
 
 type CustomSectionType =
   | 'projects'
@@ -39,45 +40,44 @@ interface DynamicCustomSectionProps {
 }
 
 const SECTION_FIELD_DEFINITIONS: Record<CustomSectionType, FieldDefinition[]> = {
+  certificates: [
+    { key: 'name', label: 'Certificate Name', placeholder: 'Name' },
+    { key: 'provider', label: 'Provider', placeholder: 'Provider' },
+    { key: 'awardedDate', label: 'Awarded Date', type: 'date', placeholder: 'Date' }
+  ],
   projects: [
-    { key: 'name', label: 'Project Name', placeholder: 'e.g., Portfolio Revamp' },
-    { key: 'url', label: 'URL', type: 'url', placeholder: 'https://...', optional: true },
-    { key: 'role', label: 'Role', placeholder: 'e.g., Lead Developer', optional: true },
-    { key: 'techStack', label: 'Tech Stack', placeholder: 'React, Node.js, PostgreSQL', optional: true },
+    { key: 'name', label: 'Project Name', placeholder: 'Project Name' },
+    { key: 'url', label: 'URL', type: 'url', placeholder: 'Link', optional: true },
+    { key: 'role', label: 'Role', placeholder: 'Role', optional: true },
+    { key: 'techStack', label: 'Tech Stack', placeholder: 'Created On', optional: true },
     { key: 'description', label: 'Description', textarea: true, placeholder: 'Short summary or impact' }
   ],
   awards: [
-    { key: 'name', label: 'Award Name', placeholder: 'e.g., Employee of the Year' },
-    { key: 'provider', label: 'Issuer / Organization', placeholder: 'e.g., Company XYZ' },
-    { key: 'year', label: 'Year', type: 'number', placeholder: '2024' }
-  ],
-  certificates: [
-    { key: 'name', label: 'Certificate Name', placeholder: 'e.g., AWS Solutions Architect' },
-    { key: 'provider', label: 'Provider', placeholder: 'e.g., Amazon' },
-    { key: 'awardedDate', label: 'Awarded Date', type: 'date' }
+    { key: 'name', label: 'Award Name', placeholder: 'Award Name' },
+    { key: 'provider', label: 'Issuer / Organization', placeholder: 'Place Awarded' },
+    { key: 'year', label: 'Year', type: 'number', placeholder: 'Year Awarded' }
   ],
   publications: [
-    { key: 'title', label: 'Title', placeholder: 'e.g., Scaling Microservices' },
-    { key: 'publisher', label: 'Publisher / Journal', placeholder: 'e.g., Tech Journal' },
-    { key: 'date', label: 'Publication Date', type: 'date' },
-    { key: 'url', label: 'URL', type: 'url', placeholder: 'https://...', optional: true },
-    { key: 'summary', label: 'Summary', textarea: true, placeholder: 'Brief overview (1–2 lines)', optional: true }
+    { key: 'title', label: 'Title', placeholder: 'Title' },
+    { key: 'publisher', label: 'Publisher / Journal', placeholder: 'Publisher' },
+    { key: 'date', label: 'Publication Date', type: 'Date' },
+    { key: 'url', label: 'URL', type: 'url', placeholder: 'Link', optional: true },
+    { key: 'summary', label: 'Summary', textarea: true, placeholder: 'Overview', optional: true }
   ],
   volunteer: [
-    { key: 'organization', label: 'Organization', placeholder: 'e.g., Red Cross' },
-    { key: 'role', label: 'Role', placeholder: 'e.g., Coordinator' },
-    { key: 'startDate', label: 'Start Date', type: 'date' },
+    { key: 'organization', label: 'Organization', placeholder: 'Volunteer At' },
+    { key: 'role', label: 'Role', placeholder: 'Role' },
+    { key: 'startDate', label: 'Start Date', type: 'Date' },
     { key: 'endDate', label: 'End Date', type: 'date', optional: true },
-    { key: 'description', label: 'Description', textarea: true, placeholder: 'Impact / responsibilities' }
+    { key: 'description', label: 'Description', textarea: true, placeholder: 'Description' }
   ],
   custom: [
-    { key: 'label', label: 'Label', placeholder: 'e.g., Item Name' },
-    { key: 'value', label: 'Value / Detail', placeholder: 'Description or detail', textarea: true }
+    { key: 'label', label: 'Label', placeholder: 'Label' },
+    { key: 'value', label: 'Value / Detail', placeholder: 'Detail', textarea: true }
   ]
 };
 
-const generateId = () =>
-  (typeof crypto !== 'undefined' && crypto.randomUUID
+const generateId = () => (typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2));
 
@@ -108,7 +108,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
   maxItemsPerSection = 15
 }) => {
   const [sections, setSections] = useState<DynamicCustomSection[]>(
-    data && data.length ? data : [createEmptySection('projects')]
+    data && data.length ? data : [createEmptySection('certificates')]
   );
 
   // Sync incoming controlled updates
@@ -230,28 +230,21 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
   };
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h2 className="text-lg font-semibold">Additional / Custom Sections</h2>
-        <p className="text-sm text-gray-600">
-          Add flexible sections (Projects, Awards, Certificates, Publications, Volunteer, or fully custom).
-        </p>
-      </header>
-
-      <div className="space-y-10">
-        {sections.map((section, sectionIndex) => {
+    <>
+      <div className="space-y-4">
+        {sections.map((section) => {
           const fieldDefinitions = SECTION_FIELD_DEFINITIONS[section.type];
             return (
             <div
               key={section.id}
-              className="rounded-lg border border-gray-200 bg-white shadow-sm divide-y"
+                className="rounded-lg bg-white shadow-sm divide-y"
             >
               <div className="p-4 flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row gap-4 md:items-end">
                   <div className="flex-1 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 uppercase mb-1">
+                      <div className="flex max-sm:flex-col gap-3">
+                        <div className='w-full grid gap-1 transition-all ease-in-out text-[14px] font-sans'>
+                          <label className="block  text-[14px] text-gray-700 font-semibold px-1">
                           Section Type
                         </label>
                         <select
@@ -262,8 +255,9 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                               event.target.value as CustomSectionType
                             )
                           }
-                          className="w-full rounded border border-gray-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full outline-none ring-1 focus:ring-green-600 ring-gray-200 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative z-10"
                         >
+
                           <option value="projects">Projects</option>
                           <option value="awards">Awards</option>
                           <option value="certificates">Certificates</option>
@@ -272,11 +266,11 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                           <option value="custom">Custom</option>
                         </select>
                       </div>
-                      <div>
+
                         <Input
                           type="text"
                           name={`section_title_${section.id}`}
-                          placeholder={`e.g., ${capitalize(section.type)}`}
+                          placeholder={`Type`}
                           value={section.title}
                           onChange={event =>
                             updateSectionMeta(section.id, {
@@ -284,12 +278,12 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                             })
                           }
                         />
+
                       </div>
-                    </div>
-                    <p className="text-[11px] text-gray-500">
+                      {/* <p className="text-[11px] text-gray-500">
                       Section {sectionIndex + 1} · {section.items.length} item
                       {section.items.length !== 1 && 's'}
-                    </p>
+                    </p> */}
                   </div>
 
                   <div className="flex gap-2">
@@ -306,7 +300,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 space-y-6">
+                <div className="">
                 {section.items.map(item => (
                   <div
                     key={item.id}
@@ -352,6 +346,9 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                                 />
                               </div>
                             ) : (
+                                field.type === 'date' ? <Datepicker index={0} target={''} update={function (index: number, target: string, value: string): void {
+                                  throw new Error('Function not implemented.');
+                                }} /> :
                               <Input
                                 type={field.type || 'text'}
                                 name={inputName}
@@ -450,7 +447,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

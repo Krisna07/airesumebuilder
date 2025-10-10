@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation';
 
 const Navbar = () => {
   const [menu, setMenu] = useState<boolean>(false);
-  const { user, signOut } = useAuth();
+  const { user, logOut } = useAuth();
   const menuRef = useRef<HTMLDivElement | null>(null); // wrapper that contains trigger + dropdown
   const route = usePathname()
   const [activeTab, setActivetab] = useState<string>('')
@@ -105,7 +105,7 @@ const Navbar = () => {
                 <li className='flex items-center justify content-between gap-2 p-1 cursor-pointer hover:bg-gray-200/70 transition-colors'
                   role='menuitem'
                   onClick={() => {
-                    if (user) signOut(); else window.location.href = '/auth/signin';
+                    if (user) logOut(); else window.location.href = '/auth/signin';
                     setMenu(false);
                   }}>
                   {user ? (
