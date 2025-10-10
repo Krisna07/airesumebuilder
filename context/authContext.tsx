@@ -1,7 +1,7 @@
 // context/authContext.tsx - Enhanced version
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useSession, signIn, getSession } from 'next-auth/react'
+import { useSession, signIn, getSession, signOut } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
 import { useToast } from './PopupContext'
 
@@ -18,7 +18,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: typeof signIn
-  signOut: () => void
+  logOut: () => void
   register: (user: RegisterData) => Promise<void>
   isGuest: boolean
   migrateGuestData: () => Promise<void>
@@ -105,10 +105,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loading = status === 'loading'
   const isGuest = !user && !loading
 
-  const signOut = () => {
+  const logOut = () => {
     setUser(null);
     sessionStorage.removeItem('user');
     sessionStorage.clear()
+    signOut()
   };
 
   return (
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user,
       loading,
       signIn,
-      signOut,
+      logOut,
       isGuest,
       register,
       migrateGuestData

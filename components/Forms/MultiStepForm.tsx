@@ -15,6 +15,8 @@ import { useToast } from '@/context/PopupContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import Templates from '../Templates/templates';
 import ResumePreview from '../Templates/ResumePreview';
+import AddSection from './AddSection';
+import CustomSection from './CustomSection';
 // import CustomSection from './AddSection';
 
 interface MultiStepFormProps {
@@ -29,6 +31,7 @@ const stepsLabels = [
   'Experience',
   'Education',
   'Certificates',
+  'Add Section',
   'Job Description',
   'Template'
 ];
@@ -171,6 +174,16 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
       case 6:
         return (
           <FormLayout
+            heading="Additional Sections"
+            subheading="Add flexible sections (Projects, Awards, Certificates, Publications, Volunteer, or fully custom)."
+          >
+            <CustomSection />
+            {/* <AddSection /> */}
+          </FormLayout>
+        );
+      case 7:
+        return (
+          <FormLayout
             heading="Add job description"
             subheading="Provide detailed responsibilities and achievements."
           >
@@ -180,7 +193,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
             />
           </FormLayout>
         );
-      case 7:
+      case 8:
         return (
           <FormLayout
             heading="Choose your template"
@@ -227,7 +240,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
             </div>
           </FormLayout>
         );
-      case 8:
+      case 9:
         return (
           <div className="w-full max-w-lg mx-auto py-10 px-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
