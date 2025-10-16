@@ -1,8 +1,13 @@
-import React from 'react';
+'use client'
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Button from '../UI/Button';
 import ResumePreview from '../Templates/ResumePreview';
 import dummyResume from '@/app/data/dummyResume.json';
+import { useAuth } from '@/context/authContext';
+import { useRouter } from 'next/navigation';
+import { ResumeService } from '@/services/resumeServices';
+import { useToast } from '@/context/PopupContext';
 
 type Template = {
   id: string;
@@ -22,7 +27,34 @@ const templates: Template[] = [
 
 const TemplatesSection: React.FC = () => {
   const getDummyData = () => JSON.parse(JSON.stringify(dummyResume));
+  const { user } = useAuth()
+  const router = useRouter()
+  const toast = useToast()
+
+  const handleCreateResume = async (template: string) => {
+    if (user) {
+      toast.showToast(`Creating reasume with ${template} template`, 'success', 3000)
+      try {
+        const response = await ResumeService.create(user.id, template);
+        const data = await response.json();
+        if (!response.ok) {
+          toast.showToast(response.statusText, 'error', 3000);
+          return;
+        }
+        router.push(`/builder/${data.data.id}`); // Fixed: using router instead of route
+        toast.showToast('Resume created successfully', 'success', 3000);
+      } catch (error) {
+        console.error('Error creating resume:', error);
+        toast.showToast('Error creating resume', 'error', 3000);
+      } finally {
+        toast.clearAllToasts()
+      }
+    } else {
+      router.push('/auth/signin')
+    }
+  }
   const dummyData = getDummyData();
+
   return (
     <section className=' overflow-hidden px-4 grid place-items-center py-12' aria-label='Templates'>
       <div className='text-center mb-8'>
@@ -43,12 +75,10 @@ const TemplatesSection: React.FC = () => {
             <h3 className='text-lg font-semibold text-slate-900'>{template.name}</h3>
             <p className=' text-sm text-slate-600 flex-1'>{template.description}</p>
 
-            <div className='mt-2 flex items-center justify-center gap-3'>
-              <Link href={`/builder`} className='inline-block'>
-                <Button variant='primary' size='small'>
-                  Use template
-                </Button>
-              </Link>
+            <div className='mt-2 flex items-center justify-center gap-3'>  
+              <Button variant='primary' size='small' onClick={() => handleCreateResume(template.name)}>
+                Use template
+              </Button>
             </div>
           </div>
         ))}
