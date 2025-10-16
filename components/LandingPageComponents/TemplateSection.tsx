@@ -1,6 +1,5 @@
 'use client'
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React from 'react';
 import Button from '../UI/Button';
 import ResumePreview from '../Templates/ResumePreview';
 import dummyResume from '@/app/data/dummyResume.json';
