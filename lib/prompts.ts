@@ -1,30 +1,38 @@
 import { ResumeData } from "@/types/types"
 
 const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription: string) => {
-    // Refined prompt to reduce model noise and enforce strict JSON output.
-    // - Very explicit: start with a JSON object and end with the closing brace.
-    // - Provide a minimal example of the expected JSON output (shape only).
-    // - Ask for shortest possible valid JSON that satisfies constraints.
-    return `SYSTEM: You are a senior resume writer. RETURN ONLY VALID JSON. Do not include any prose, explanation, or markdown.
+  // Updated for customSections replacing legacy certificates.
+  // customSections: array of section objects each with a title and array of subsections.
+  // subsection: { title, content (rich summary), optional date }
+  return `SYSTEM: You are a senior resume writer. RETURN ONLY VALID JSON. Do not include any prose, explanation, or markdown.
 Be careful: start the response with '{' and end with '}' and nothing else.
 
 SCHEMA (keys and basic constraints):
 {
-  "profile": {"fullname": string, "email": string, "phone": string, "location": string, "links": [{"type": string, "url": string}], "summary": string },
-  "experiences": [{"title": string, "company": string, "location": string, "startDate": string, "endDate": string, "current": boolean, "responsibilities": string[]}],
-  "educations": [{"degree": string, "university": string, "location": string, "startDate": string, "endDate": string, "current": boolean}],
-  "skills": [{"type": string, "skills": string[]}],
-  "certificates": [{"title": string, "issued_by": string, "year": string}]
+    "profile": {"fullname": string, "email": string, "phone": string, "location": string, "links": [{"type": string, "url": string}], "summary": string},
+    "experiences": [{"title": string, "company": string, "location": string, "startDate": string, "endDate": string, "current": boolean, "responsibilities": string[]}],
+    "educations": [{"degree": string, "university": string, "location": string, "startDate": string, "endDate": string, "current": boolean}],
+    "skills": [{"type": string, "skills": string[]}],
+    "customSections": [{
+            "title": string, // e.g. "Projects", "Awards", "Publications", "Volunteer"
+            "subsections": [{"title": string, "content": string, "date": string}]
+    }]
 }
 
-RULES:
+CUSTOM SECTIONS RULES:
+- Use at most 3 customSections unless source resume already has more.
+- Pick only high-impact categories relevant to the job description (e.g. Publications for research roles, Projects for engineering roles).
+- Each subsection content should be 1–2 concise sentences; no bullet symbols, just plain text.
+- Omit date if not provided or irrelevant.
+
+GENERAL RULES:
 - Dates: use Mon-YYYY (e.g. Jan-2024).
-- Summary: ~80 words maximum.
-- Experiences: each should include at least 5 strong responsibility bullets, start each with a verb, favor specificity and quantification.
-- Skills: group meaningfully; aim for 10+ skills total across groups.
+- Summary: maximum ~80 words; tailor to job description.
+- Experiences: each must include 3–6 strong responsibility bullets; start each with a verb; include measurable outcomes when possible.
+- Skills: group meaningfully; aim for >=10 distinct skills across groups; avoid duplicates.
 - Links: derive link "type" from host (e.g. github.com => "GitHub").
-- If any list would be empty, return an empty array for that key.
-- Output must be strictly parseable JSON (no trailing commas, no comments, double-quoted keys/strings).
+- Empty lists must be [] (never null or omitted).
+- Output must be STRICT JSON: double-quoted keys/strings, no trailing commas, no comments.
 
 SOURCE_RESUME_JSON:
 ${JSON.stringify(sourceResume)}
@@ -32,7 +40,7 @@ ${JSON.stringify(sourceResume)}
 JOB_DESCRIPTION_TEXT:\n${jobDescription || ''}
 
 EXPECTED_MINIMAL_OUTPUT_EXAMPLE:
-{"profile": {"fullname": "Name", "email": "", "phone": "", "location": "", "links": [], "summary": ""}, "experiences": [], "educations": [], "skills": [], "certificates": []}
+{"profile":{"fullname":"Name","email":"","phone":"","location":"","links":[],"summary":""},"experiences":[],"educations":[],"skills":[],"customSections":[]}
 
 OUTPUT:`
 }
@@ -47,7 +55,7 @@ const analyzeResumeToJobFitPrompt = (sourceResume: ResumeData, jobDescription: s
             skills: sourceResume.skills?.slice(0, 20),
         }
         : {};
-    return `SYSTEM: You are an expert technical recruiter. Return only strict JSON.
+  return `SYSTEM: You are an expert technical recruiter. Return only strict JSON.
 SCHEMA (keys & constraints):
 {
   "jobDescription": string, // normalized copy of input JD (trimmed)
@@ -65,8 +73,12 @@ RULES:
 - matchingPercentage must correlate with coverage of core responsibilities & keywords.
 - Avoid generic role names (e.g. "Professional"). Prefer "Senior Frontend Engineer", etc.
 
-RESUME_JSON:
+RESUME_JSON (truncated view):
 ${JSON.stringify(compactResume)}
+
+NOTE:
+- customSections present in resume may reflect projects, awards, publications, volunteer work. When deriving suggestions or strengths, treat subsection content as rich achievements.
+- Do NOT hallucinate categories not in resume; if customSections is empty, ignore it.
 
 JOB_DESCRIPTION_TEXT:\n${jobDescription}
 

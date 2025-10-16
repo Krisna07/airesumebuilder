@@ -37,9 +37,9 @@ export const renderCustomSections = (customSection: CustomSectionData): string =
   return `
     <div class="custom-section avoid-break">
       <div class="section-title">${escapeHtml(customSection.title)}</div>
-      ${safeJoin(customSection.subsections?.map(sub => `
+      ${safeJoin(customSection.subsections?.map((sub, index) => `
         <div class="custom-subsection">
-          <div class="job-title">${escapeHtml(sub.title)}</div>
+          <div class="job-title" >${index + 1}. ${escapeHtml(sub.title)}</div>
           ${sub.date ? `<div class="job-date">${escapeHtml(sub.date)}</div>` : ''}
           <div class="summary">${escapeHtml(sub.content)}</div>
         </div>
