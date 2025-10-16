@@ -1,20 +1,18 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Button from '../UI/Button';
-import { Plus, X, Copy } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import Input from '../Input';
 import Datepicker from './Datepicker';
+import MarkdownEditor from './MarkdownEditor';
 
-interface CustomField {
-    id: string;
-    type: 'text' | 'date' | 'summary';
-    title: string;
-    value: string;
-}
-
+// Structure supporting multiple subsections per section
 interface CustomSubsection {
     id: string;
-    fields: CustomField[];
+    title: string;
+    summary: string;
+    hasDate: boolean;
+    date?: string;
 }
 
 interface CustomSection {
@@ -33,12 +31,6 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
     onChange
 }) => {
     const [sections, setSections] = useState<CustomSection[]>(data);
-
-    const fieldTypes = [
-        { type: 'text', label: 'Text Field' },
-        { type: 'date', label: 'Date Field' },
-        { type: 'summary', label: 'Summary Field' }
-    ] as const;
 
     const MAX_SECTIONS = 2;
     const MAX_SUBSECTIONS = 2;
@@ -59,38 +51,13 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
 
     // Validation helpers
     const hasRequiredFields = (subsection: CustomSubsection): boolean => {
-        const hasTextField = subsection.fields.some(field => 
-            field.type === 'text' && field.value.trim() !== ''
-        );
-        const hasSummaryField = subsection.fields.some(field => 
-            field.type === 'summary' && field.value.trim() !== ''
-        );
-        return hasTextField && hasSummaryField;
-    };
-
-    const getRequiredFieldsStatus = (subsection: CustomSubsection) => {
-        const hasTextField = subsection.fields.some(field => field.type === 'text');
-        const hasTextValue = subsection.fields.some(field => 
-            field.type === 'text' && field.value.trim() !== ''
-        );
-        const hasSummaryField = subsection.fields.some(field => field.type === 'summary');
-        const hasSummaryValue = subsection.fields.some(field => 
-            field.type === 'summary' && field.value.trim() !== ''
-        );
-        
-        return {
-            hasTextField,
-            hasTextValue,
-            hasSummaryField,
-            hasSummaryValue,
-            isComplete: hasTextValue && hasSummaryValue
-        };
+        return subsection.title.trim() !== '' && subsection.summary.trim() !== '';
     };
 
     const canAddSubsection = (section: CustomSection): boolean => {
         if (section.subsections.length === 0) return true;
         const lastSubsection = section.subsections[section.subsections.length - 1];
-        return hasRequiredFields(lastSubsection);
+        return hasRequiredFields(lastSubsection) && section.subsections.length < MAX_SUBSECTIONS;
     };
 
     const canAddSection = (): boolean => {
@@ -108,14 +75,14 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
         if (sections.length >= MAX_SECTIONS) return;
         
         // Check if current sections have valid data before adding new one
-        if (!canAddSection()) {
-            console.log('Cannot add section: Previous section needs at least one subsection with text and summary fields filled');
+        if (!canAddSection() && sections.length > 0) {
+            console.log('Cannot add section: Previous section needs at least one subsection with title and summary filled');
             return;
         }
 
         const newSection: CustomSection = {
             id: generateId(),
-            sectionTitle: `Custom Section ${sections.length + 1}`,
+            sectionTitle: '',
             subsections: []
         };
         updateSections([...sections, newSection]);
@@ -125,48 +92,25 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
         const section = sections.find(s => s.id === sectionId);
         if (!section || section.subsections.length >= MAX_SUBSECTIONS) return;
 
-        // Check if current subsection has required fields before adding new one
+        // Check if current subsections are complete before adding new one
         if (!canAddSubsection(section)) {
-            console.log('Cannot add subsection: Previous subsection needs both text and summary fields with values');
+            console.log('Cannot add subsection: Previous subsection needs title and summary filled');
             return;
         }
 
         const newSubsection: CustomSubsection = {
             id: generateId(),
-            fields: []
+            title: '',
+            summary: '',
+            hasDate: false,
+            date: ''
         };
 
-        updateSections(
-            sections.map(section =>
-                section.id === sectionId
-                    ? { ...section, subsections: [...section.subsections, newSubsection] }
-                    : section
-            )
-        );
-    };
-
-    const handleAddField = (sectionId: string, subsectionId: string, fieldType: 'text' | 'date' | 'summary') => {
-        const newField: CustomField = {
-            id: generateId(),
-            type: fieldType,
-            title: `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
-            value: ''
-        };
-
-        updateSections(
-            sections.map(section =>
-                section.id === sectionId
-                    ? {
-                        ...section,
-                        subsections: section.subsections.map(subsection =>
-                            subsection.id === subsectionId
-                                ? { ...subsection, fields: [...subsection.fields, newField] }
-                                : subsection
-                        )
-                    }
-                    : section
-            )
-        );
+        updateSections(sections.map(s =>
+            s.id === sectionId
+                ? { ...s, subsections: [...s.subsections, newSubsection] }
+                : s
+        ));
     };
 
     const updateSectionTitle = (sectionId: string, title: string) => {
@@ -177,7 +121,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
         );
     };
 
-    const updateField = (sectionId: string, subsectionId: string, fieldId: string, updates: Partial<CustomField>) => {
+    const updateSubsection = (sectionId: string, subsectionId: string, updates: Partial<CustomSubsection>) => {
         updateSections(
             sections.map(section =>
                 section.id === sectionId
@@ -185,29 +129,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                         ...section,
                         subsections: section.subsections.map(subsection =>
                             subsection.id === subsectionId
-                                ? {
-                                    ...subsection,
-                                    fields: subsection.fields.map(field =>
-                                        field.id === fieldId ? { ...field, ...updates } : field
-                                    )
-                                }
-                                : subsection
-                        )
-                    }
-                    : section
-            )
-        );
-    };
-
-    const removeField = (sectionId: string, subsectionId: string, fieldId: string) => {
-        updateSections(
-            sections.map(section =>
-                section.id === sectionId
-                    ? {
-                        ...section,
-                        subsections: section.subsections.map(subsection =>
-                            subsection.id === subsectionId
-                                ? { ...subsection, fields: subsection.fields.filter(field => field.id !== fieldId) }
+                                ? { ...subsection, ...updates }
                                 : subsection
                         )
                     }
@@ -230,96 +152,55 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
         updateSections(sections.filter(section => section.id !== sectionId));
     };
 
-    const duplicateSubsection = (sectionId: string, subsectionId: string) => {
-        const section = sections.find(s => s.id === sectionId);
-        const subsection = section?.subsections.find(sub => sub.id === subsectionId);
-        if (!subsection || !section || section.subsections.length >= MAX_SUBSECTIONS) return;
+    // const duplicateSubsection = (sectionId: string, subsectionId: string) => {
+    //     const section = sections.find(s => s.id === sectionId);
+    //     const subsection = section?.subsections.find(sub => sub.id === subsectionId);
+    //     if (!subsection || !section || section.subsections.length >= MAX_SUBSECTIONS) return;
 
-        const duplicatedSubsection: CustomSubsection = {
-            id: generateId(),
-            fields: subsection.fields.map(field => ({
-                ...field,
-                id: generateId(),
-                value: '' // Clear values for the duplicate
-            }))
-        };
+    //     const duplicatedSubsection: CustomSubsection = {
+    //         id: generateId(),
+    //         title: subsection.title,
+    //         summary: subsection.summary,
+    //         hasDate: subsection.hasDate,
+    //         date: subsection.date
+    //     };
 
-        updateSections(
-            sections.map(section =>
-                section.id === sectionId
-                    ? { ...section, subsections: [...section.subsections, duplicatedSubsection] }
-                    : section
-            )
-        );
-    };
+    //     updateSections(
+    //         sections.map(s =>
+    //             s.id === sectionId
+    //                 ? { ...s, subsections: [...s.subsections, duplicatedSubsection] }
+    //                 : s
+    //         )
+    //     );
+    // };
 
-    const handleDateUpdate = (sectionId: string, subsectionId: string, fieldId: string) => {
+    const handleDateUpdate = (sectionId: string, subsectionId: string) => {
         return (index: number, target: string, value: string) => {
-            // Datepicker calls update(index, target, value) — we ignore index/target here
-            updateField(sectionId, subsectionId, fieldId, { value });
+            updateSubsection(sectionId, subsectionId, { date: value });
         };
-    };
-
-    const renderFieldInput = (section: CustomSection, subsection: CustomSubsection, field: CustomField) => {
-        switch (field.type) {
-            case 'text':
-                return (
-                    <Input
-                        type="text"
-                        value={field.value}
-                        onChange={e => updateField(section.id, subsection.id, field.id, { value: e.target.value })}
-                        placeholder="Enter text value"
-                        label={false}
-                    />
-                );
-
-            case 'date':
-                return (
-                    <Datepicker
-                        value={field.value}
-                        index={0}
-                        target={field.id}
-                        label={false}
-                        update={handleDateUpdate(section.id, subsection.id, field.id)}
-                    />
-                );
-
-            case 'summary':
-                return (
-                    <textarea
-                        value={field.value}
-                        onChange={e => updateField(section.id, subsection.id, field.id, { value: e.target.value })}
-                        placeholder="Enter summary or detailed text..."
-                        className="w-full border rounded px-3 py-2 text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={3}
-                    />
-                );
-
-            default:
-                return null;
-        }
     };
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
+                {/* <div>
                     <h3 className="text-lg font-semibold">Custom Sections</h3>
                     <p className="text-sm text-gray-600">
                         Create up to {MAX_SECTIONS} custom sections, each with up to {MAX_SUBSECTIONS} subsections
                     </p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
+                </div> */}
+                <div className="w-full grid gap-1">
                     <Button
                         variant="primary"
                         size="small"
                         onClick={handleAddSection}
-                        disabled={sections.length >= MAX_SECTIONS || !canAddSection()}
+                        disabled={sections.length >= MAX_SECTIONS || (sections.length > 0 && !canAddSection())}
+                        className='whitespace-nowrap'
                     >
                         <Plus size={16} /> Add Section ({sections.length}/{MAX_SECTIONS})
                     </Button>
-                    {sections.length < MAX_SECTIONS && !canAddSection() && (
+                    {sections.length < MAX_SECTIONS && sections.length > 0 && !canAddSection() && (
                         <span className="text-xs text-red-500">
                             Complete current section before adding new one
                         </span>
@@ -341,48 +222,42 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                             className="border-2 border-gray-200 rounded-lg p-4 space-y-4 bg-white shadow-sm"
                         >
                             {/* Section Header */}
-                            <div className="flex items-center gap-4 pb-3 border-b border-gray-200">
+                            <div className="flex gap-4 pb-3 border-b border-gray-200">
                                 <div className="flex-1">
                                     <Input
                                         type="text"
+                                        name={`section-title-${section.id}`}
                                         value={section.sectionTitle}
                                         onChange={e => updateSectionTitle(section.id, e.target.value)}
                                         placeholder="Section Title (e.g., Awards, Projects, Volunteer)"
-                                        label={false}
                                     />
                                 </div>
-
-                                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                    {section.subsections.length}/{MAX_SUBSECTIONS} subsections
-                                </span>
-
-                                <Button
-                                    variant="secondary"
-                                    size="small"
+                                <button
                                     onClick={() => removeSection(section.id)}
-                                    className="text-red-600 hover:text-red-700"
+                                    className="w-fit h-fit text-red-600 hover:text-red-700 p-2 rounded-full bg-gray-300/30"
                                 >
                                     <X size={16} />
-                                </Button>
+                                </button>
                             </div>
 
                             {/* Add Subsection Button */}
-                            <div className="flex justify-between items-center">
+                            <div className="grid gap-1">
                                 <Button
                                     variant="secondary"
                                     size="small"
                                     onClick={() => handleAddSubsection(section.id)}
-                                    disabled={section.subsections.length >= MAX_SUBSECTIONS || !canAddSubsection(section)}
+                                    disabled={!canAddSubsection(section)}
+                                    className='whitespace-nowrap'
                                 >
-                                    <Plus size={16} /> Add Subsection to &quot;{section.sectionTitle}&quot;
+                                    <Plus size={16} /> Add Subsection ({section.subsections.length}/{MAX_SUBSECTIONS})
                                 </Button>
                                 {section.subsections.length >= MAX_SUBSECTIONS ? (
                                     <span className="text-xs text-gray-500">
                                         (Max {MAX_SUBSECTIONS} subsections per section)
                                     </span>
-                                ) : !canAddSubsection(section) ? (
+                                ) : section.subsections.length > 0 && !canAddSubsection(section) ? (
                                     <span className="text-xs text-red-500">
-                                        (Complete current subsection with text & summary fields)
+                                            (Complete current subsection with title & summary)
                                     </span>
                                 ) : null}
                             </div>
@@ -403,22 +278,17 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-medium text-gray-800">
-                                                        Subsection {subsectionIndex + 1} ({subsection.fields.length} fields)
+                                                        Subsection {subsectionIndex + 1}
                                                     </h4>
-                                                    {(() => {
-                                                        const status = getRequiredFieldsStatus(subsection);
-                                                        if (status.isComplete) {
-                                                            return <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Complete</span>;
-                                                        } else if (!status.hasTextField || !status.hasSummaryField) {
-                                                            return <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Need: {!status.hasTextField ? 'Text' : ''}{!status.hasTextField && !status.hasSummaryField ? ' & ' : ''}{!status.hasSummaryField ? 'Summary' : ''}</span>;
-                                                        } else {
-                                                            return <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Fill required fields</span>;
-                                                        }
-                                                    })()}
+                                                    {hasRequiredFields(subsection) ? (
+                                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✓ Complete</span>
+                                                    ) : (
+                                                        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Fill required fields</span>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex items-center gap-2">
-                                                    <button
+                                                    {/* <button
                                                         type="button"
                                                         onClick={() => duplicateSubsection(section.id, subsection.id)}
                                                         disabled={section.subsections.length >= MAX_SUBSECTIONS}
@@ -427,7 +297,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                                                         title="Duplicate this subsection"
                                                     >
                                                         <Copy size={14} />
-                                                    </button>
+                                                    </button> */}
                                                     <button
                                                         type="button"
                                                         onClick={() => removeSubsection(section.id, subsection.id)}
@@ -439,78 +309,62 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                                                 </div>
                                             </div>
 
-                                            {/* Add Field Controls */}
-                                            <div className="flex gap-2 flex-wrap items-center">
-                                                <span className="text-sm text-gray-600 font-medium">Add Field:</span>
-                                                {fieldTypes.map(({ type, label }) => {
-                                                    const status = getRequiredFieldsStatus(subsection);
-                                                    const isRequired = type === 'text' || type === 'summary';
-                                                    const hasField = type === 'text' ? status.hasTextField : 
-                                                                    type === 'summary' ? status.hasSummaryField : true;
-                                                    const needsField = isRequired && !hasField;
-                                                    
-                                                    return (
-                                                        <button
-                                                            key={type}
-                                                            type="button"
-                                                            onClick={() => handleAddField(section.id, subsection.id, type)}
-                                                            className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                                                                needsField 
-                                                                    ? 'bg-red-100 text-red-800 border border-red-300 hover:bg-red-200' 
-                                                                    : 'bg-gray-200 hover:bg-blue-200'
-                                                            }`}
-                                                        >
-                                                            + {label} {needsField ? '(Required)' : ''}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {/* Fields */}
-                                            {subsection.fields.length === 0 ? (
-                                                <div className="text-center py-6 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
-                                                    <p>No fields yet. Add at least one <strong>Text Field</strong> and one <strong>Summary Field</strong> to get started.</p>
-                                                    <p className="text-xs mt-1">Both are required to add another subsection or section.</p>
+                                            {/* Subsection Fields */}
+                                            <div className="space-y-3">
+                                                {/* Title */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Title *
+                                                    </label>
+                                                    <Input
+                                                        type="text"
+                                                        value={subsection.title}
+                                                        onChange={e => updateSubsection(section.id, subsection.id, { title: e.target.value })}
+                                                        placeholder="e.g., Project Name, Award Title, Organization"
+                                                        label={false}
+                                                    />
                                                 </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {subsection.fields.map((field) => (
-                                                        <div
-                                                            key={field.id}
-                                                            className="border border-gray-200 rounded p-3 bg-white space-y-3"
-                                                        >
-                                                            {/* Field Header */}
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="flex-1">
-                                                                    <Input
-                                                                        type="text"
-                                                                        value={field.title}
-                                                                        onChange={e => updateField(section.id, subsection.id, field.id, { title: e.target.value })}
-                                                                        placeholder="Field Name (e.g., Project Name, Award Title)"
-                                                                        label={false}
-                                                                    />
-                                                                </div>
 
-                                                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
-                                                                    {field.type}
-                                                                </span>
+                                                {/* Summary */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Summary *
+                                                    </label>
+                                                    <MarkdownEditor
+                                                        value={subsection.summary}
+                                                        onChange={(value: string) => updateSubsection(section.id, subsection.id, { summary: value })}
+                                                        placeholder="Describe the achievement, project details, or relevant information. Use the toolbar buttons to create bullet or numbered lists..."
+                                                        className="text-sm"
+                                                    />
+                                                </div>
 
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeField(section.id, subsection.id, field.id)}
-                                                                    className="text-red-500 hover:text-red-700 p-1"
-                                                                    aria-label="Remove field"
-                                                                >
-                                                                    <X size={12} />
-                                                                </button>
-                                                            </div>
+                                                {/* Date Toggle and Picker */}
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`hasDate-${subsection.id}`}
+                                                            checked={subsection.hasDate}
+                                                            onChange={e => updateSubsection(section.id, subsection.id, { hasDate: e.target.checked })}
+                                                            className="rounded"
+                                                        />
+                                                        <label htmlFor={`hasDate-${subsection.id}`} className="text-sm font-medium text-gray-700">
+                                                            Include Date
+                                                        </label>
+                                                    </div>
 
-                                                            {/* Field Input */}
-                                                            {renderFieldInput(section, subsection, field)}
+                                                    {subsection.hasDate && (
+                                                        <div>
+                                                            <Datepicker
+                                                                value={subsection.date || ''}
+                                                                index={0}
+                                                                target="date"
+                                                                update={handleDateUpdate(section.id, subsection.id)}
+                                                            />
                                                         </div>
-                                                    ))}
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
