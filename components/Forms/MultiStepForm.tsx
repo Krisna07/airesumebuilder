@@ -15,7 +15,6 @@ import { useToast } from '@/context/PopupContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import Templates from '../Templates/templates';
 import ResumePreview from '../Templates/ResumePreview';
-import AddSection from './AddSection';
 import CustomSection from './CustomSection';
 // import CustomSection from './AddSection';
 
