@@ -1,6 +1,6 @@
 import { ResumeData } from '@/types/types';
 import { baseStyles } from './baseStyles';
-import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo } from './helpers';
+import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo, renderCustomSections } from './helpers';
 
 const modernStyles = `
   .header {padding: 0px; border-radius: 8px; margin-bottom: 8px; }
@@ -27,7 +27,9 @@ export function generateModernHTML(data: ResumeData): string {
           <h1>${escapeHtml(data.profile.fullname)}</h1>
           <div class="contact-info">${renderContactInfo(data)}</div>
         </div>
-           ${data.profile.summary ? `<div class="summary">${escapeHtml(data.profile.summary)}</div>` : ''}
+
+        ${data.profile.summary ? `<div class="summary">${escapeHtml(data.profile.summary)}</div>` : ''}
+
        <div style="display: flex; gap:20px; justify-content: space-between;">
         <div>
          ${data.experiences?.length ? `
@@ -53,23 +55,16 @@ export function generateModernHTML(data: ResumeData): string {
               </div>
             `))}
           </div>
-        ` : ''}</div>
-       <div>
+        ` : ''}
+        </div>
+       </div>
        
-       
-        ${data.certificates?.length ? `
+       ${data.customSections?.length ? `
           <div class="section">
-            <div class="section-title">Certifications</div>
-            ${safeJoin(data.certificates.slice(0, 3).map(cert => `
-              <div class="certificate-item avoid-break">
-                <div class="job-title">${escapeHtml(cert.title)}</div>
-                <div class="company">${escapeHtml(cert.issued_by)}</div>
-                <div class="job-date">${escapeHtml(cert.year)}</div>
-              </div>
-            `))}
+            ${safeJoin(data.customSections.slice(0, 3).map(renderCustomSections))}
           </div>
         ` : ''}
-      </div>
+      
     </body>
     </html>
   `;

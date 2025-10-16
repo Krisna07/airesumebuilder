@@ -1,6 +1,6 @@
 import { ResumeData } from "@/types/types";
 import { baseStyles } from "./baseStyles";
-import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo } from "./helpers";
+import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo, renderCustomSections } from './helpers';
 
 const template02Styles = `
   body { font-family: 'Inter', system-ui, Arial, sans-serif; }
@@ -74,13 +74,9 @@ export function generatetemplate02HTML(data: ResumeData): string {
         </div>
       </div>` : ""}
 
-    ${data.certificates?.length ? `
+    ${data.customSections?.length ? `
       <div class="section">
-        <div class="section-title">Certifications</div>
-        ${safeJoin(data.certificates.slice(0,6).map(c => `
-          <div class="certificate-item">
-            <strong>${escapeHtml(c.title)}</strong> – ${escapeHtml(c.issued_by)} (${escapeHtml(c.year)})
-          </div>`))}
+        ${safeJoin(data.customSections.slice(0, 6).map(renderCustomSections))}
       </div>` : ""}
   </div>
 </body>

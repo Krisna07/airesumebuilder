@@ -6,31 +6,18 @@ import Input from '../Input';
 import Datepicker from './Datepicker';
 import MarkdownEditor from './MarkdownEditor';
 
-// Structure supporting multiple subsections per section
-interface CustomSubsection {
-    id: string;
-    title: string;
-    summary: string;
-    hasDate: boolean;
-    date?: string;
-}
-
-interface CustomSection {
-    id: string;
-    sectionTitle: string;
-    subsections: CustomSubsection[];
-}
+import { CustomSectionData, CustomSubsection } from '@/types/types';
 
 interface CustomSectionBuilderProps {
-    data?: CustomSection[];
-    onChange?: (data: CustomSection[]) => void;
+    data?: CustomSectionData[];
+    onChange?: (data: CustomSectionData[]) => void;
 }
 
 const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
     data = [],
     onChange
 }) => {
-    const [sections, setSections] = useState<CustomSection[]>(data);
+    const [sections, setSections] = useState<CustomSectionData[]>(data);
 
     const MAX_SECTIONS = 2;
     const MAX_SUBSECTIONS = 2;
@@ -43,7 +30,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
     }, [data]);
 
     // Notify parent of changes
-    const updateSections = (newSections: CustomSection[]) => {
+    const updateSections = (newSections: CustomSectionData[]) => {
         console.log('Custom sections updated:', newSections);
         setSections(newSections);
         onChange?.(newSections);
@@ -51,10 +38,10 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
 
     // Validation helpers
     const hasRequiredFields = (subsection: CustomSubsection): boolean => {
-        return subsection.title.trim() !== '' && subsection.summary.trim() !== '';
+        return subsection.title.trim() !== '' && subsection.content.trim() !== '';
     };
 
-    const canAddSubsection = (section: CustomSection): boolean => {
+    const canAddSubsection = (section: CustomSectionData): boolean => {
         if (section.subsections.length === 0) return true;
         const lastSubsection = section.subsections[section.subsections.length - 1];
         return hasRequiredFields(lastSubsection) && section.subsections.length < MAX_SUBSECTIONS;
@@ -80,10 +67,15 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
             return;
         }
 
-        const newSection: CustomSection = {
-            id: generateId(),
-            sectionTitle: '',
-            subsections: []
+        const newSection: CustomSectionData = {
+            id: Date.now().toString(),
+            title: '',
+            subsections: [{
+                id: Date.now().toString() + '_sub',
+                title: '',
+                content: '',
+                date: ''
+            }]
         };
         updateSections([...sections, newSection]);
     };
@@ -101,8 +93,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
         const newSubsection: CustomSubsection = {
             id: generateId(),
             title: '',
-            summary: '',
-            hasDate: false,
+            content: '',
             date: ''
         };
 
@@ -116,7 +107,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
     const updateSectionTitle = (sectionId: string, title: string) => {
         updateSections(
             sections.map(section =>
-                section.id === sectionId ? { ...section, sectionTitle: title } : section
+                section.id === sectionId ? { ...section, title } : section
             )
         );
     };
@@ -227,7 +218,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                                     <Input
                                         type="text"
                                         name={`section-title-${section.id}`}
-                                        value={section.sectionTitle}
+                                        value={section.title}
                                         onChange={e => updateSectionTitle(section.id, e.target.value)}
                                         placeholder="Section Title (e.g., Awards, Projects, Volunteer)"
                                     />
@@ -331,38 +322,22 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                                                         Summary *
                                                     </label>
                                                     <MarkdownEditor
-                                                        value={subsection.summary}
-                                                        onChange={(value: string) => updateSubsection(section.id, subsection.id, { summary: value })}
+                                                        value={subsection.content}
+                                                        onChange={(value: string) => updateSubsection(section.id, subsection.id, { content: value })}
                                                         placeholder="Describe the achievement, project details, or relevant information. Use the toolbar buttons to create bullet or numbered lists..."
                                                         className="text-sm"
                                                     />
                                                 </div>
 
-                                                {/* Date Toggle and Picker */}
+                                                {/* Date Picker */}
                                                 <div className="space-y-2">
-                                                    <div className="flex items-center space-x-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            id={`hasDate-${subsection.id}`}
-                                                            checked={subsection.hasDate}
-                                                            onChange={e => updateSubsection(section.id, subsection.id, { hasDate: e.target.checked })}
-                                                            className="rounded"
-                                                        />
-                                                        <label htmlFor={`hasDate-${subsection.id}`} className="text-sm font-medium text-gray-700">
-                                                            Include Date
-                                                        </label>
-                                                    </div>
-
-                                                    {subsection.hasDate && (
-                                                        <div>
-                                                            <Datepicker
-                                                                value={subsection.date || ''}
-                                                                index={0}
-                                                                target="date"
-                                                                update={handleDateUpdate(section.id, subsection.id)}
-                                                            />
-                                                        </div>
-                                                    )}
+                                                    <label className="text-sm font-medium text-gray-700">Date (Optional)</label>
+                                                    <Datepicker
+                                                        value={subsection.date || ''}
+                                                        index={0}
+                                                        target="date"
+                                                        update={handleDateUpdate(section.id, subsection.id)}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>

@@ -218,7 +218,7 @@ const PreviewPage = () => {
       skills: data.resume.skills,
       experiences: data.resume.experiences,
       educations: data.resume.educations,
-      certificates: data.resume.certificates,
+      customSections: data.resume.customSections,
     });
 
     showToast(`Resume has been regenerated Successfully`, 'success', 3000);

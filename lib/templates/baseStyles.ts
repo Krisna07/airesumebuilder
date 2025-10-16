@@ -21,7 +21,11 @@ export const baseStyles = `
   .contact-item { display: flex; align-items: center; gap: 4px; }
   .summary { font-size: 11px; line-height: 1.5; margin-top: 8px; }
   .avoid-break { page-break-inside: avoid; break-inside: avoid; }
-  .certificate-item { background: #f9fafb; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3b82f6; margin-bottom: 4px; }
+  .custom-section { margin-bottom: 16px; }
+  .custom-subsection { background: #f9fafb; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3b82f6; margin-bottom: 8px; }
+  .custom-subsection .job-title { font-weight: 600; font-size: 12px; }
+  .custom-subsection .job-date { font-size: 10px; color: #64748b; margin-top: 2px; }
+  .custom-subsection .summary { font-size: 11px; margin-top: 4px; line-height: 1.4; }
   .project-item { background: #f0f9ff; padding: 8px; border-radius: 8px; border: 1px solid #e0f2fe; margin-bottom: 4px; }
   .project-title { font-weight: 600; color: #0369a1; margin-bottom: 2px; }
   .project-description { font-size: 11px; color: #475569; }

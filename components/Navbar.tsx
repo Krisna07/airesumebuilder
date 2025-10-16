@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import UniversalImage from './UI/UniversalImage';
 import { FaDashcube, FaUser } from 'react-icons/fa6';
 import { useAuth } from '@/context/authContext';
 import { LogIn, LogOut } from 'lucide-react';
@@ -46,12 +46,11 @@ const Navbar = () => {
     <nav className='w-full grid place-items-center fixed top-0 mt-0 transition-all ease-in-out shadow bg-white z-[99]'>
       <div className='min-[800px]:w-[800px] w-full p-2 px-2  flex items-center justify-between'>
         <Link href='/' className='w-[40px] h-[40px] flex items-center justify-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
-          <Image
+          <UniversalImage
             src="/icon.svg"
             alt="AI Resume Builder"
             width={32}
             height={32}
-            priority
             className='rounded-md'
           />
         </Link>
@@ -77,7 +76,7 @@ const Navbar = () => {
               className='w-full h-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full'
             >
 
-              {user ? <img src={`${userImage}`} className='w-full h-full rounded-full object-cover' alt="user_profile_picture" /> : <FaUser className='p-1' />}
+              {user ? <UniversalImage src={`${userImage}`} className='w-full h-full rounded-full object-cover' alt="user_profile_picture" width={32} height={32} /> : <FaUser className='p-1' />}
             </button>
             {menu && (
               <div className='min-w-fit grid absolute top-[calc(100%+12px)] z-[100] py-1 bg-gray-300 rounded right-0 text-sm font-normal divide-y divide-gray-800/50 shadow-lg border border-gray-400/30 animate-fade-in overflow-hidden' role='menu'>
