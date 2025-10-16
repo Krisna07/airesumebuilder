@@ -76,7 +76,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
     } catch (err) {
       throw err;
     }
-  }, []);
+  }, [disabled, resumeId]);
 
   const updateJobDescription = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setError(null);
@@ -111,7 +111,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       console.error('saveDescription error', err);
       setError(err.message || 'Failed to save description');
     }
-  }, []);
+  }, [disabled]);
 
   const extractDescriptions = useCallback(async () => {
     if (disabled) {
@@ -156,7 +156,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
     } finally {
       setLoading(false);
     }
-  }, [url, resumeId, saveDescription]);
+  }, [url, resumeId, saveDescription, disabled]);
 
   const startAnalysis = useCallback(async () => {
     if (!jobDescription) {

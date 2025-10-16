@@ -4,17 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-type Resume = {
-    id?: string,
-    userId: string,
-    title: string,
-    template?:string,
-    profile: string,
-    experiences: string,
-    educations: string,
-    skills: string,
-    certificates: string,
-}
+
 
 export async function GET(req: NextRequest) {
     try {
@@ -37,7 +27,16 @@ export async function GET(req: NextRequest) {
                skills: resume?.skills ? JSON.parse(resume.skills as string) : [],
                experiences:resume?.experiences ? JSON.parse(resume.experiences as string) : [],
                educations:resume?.educations ? JSON.parse(resume.educations as string) : [],
-               certificates:resume?.certificates ? JSON.parse(resume.certificates as string) : [],
+                customSections: resume?.customSections ?
+                    (() => {
+                        try {
+                            const parsed = JSON.parse(resume.customSections as string);
+                            return Array.isArray(parsed) ? parsed : [];
+                        } catch (e) {
+                            console.warn('Failed to parse customSections:', e);
+                            return [];
+                        }
+                    })() : [],
                updated: resume?.updatedAt,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                 matchingScore: (resume as any)?.matchingScore ?? null,
@@ -57,7 +56,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     try {
-        const resumeData: Resume = await req.json();
+        const resumeData = await req.json();
         const resumeId  = resumeData.id || randomUUID();
         const existing = await prisma.resume.findFirst({ where: { id: resumeId } })
         if (!existing) {
@@ -70,7 +69,7 @@ export async function PUT(req: NextRequest) {
               experiences: JSON.stringify(resumeData.experiences || []),
               educations: JSON.stringify(resumeData.educations || []),
               skills: JSON.stringify(resumeData.skills || []),
-              certificates: JSON.stringify(resumeData.certificates || []),
+              customSections: JSON.stringify(resumeData.customSections || []),
           };
         const createdResume = await prisma.resume.create({ data: newResume });
             return NextResponse.json({
@@ -82,7 +81,7 @@ export async function PUT(req: NextRequest) {
                     experiences: typeof createdResume.experiences === "string"  ? JSON.parse(createdResume.experiences) : [],
                     educations: typeof createdResume.educations === "string"  ? JSON.parse(createdResume.educations) : [],
                     skills: typeof createdResume.skills === "string"  ? JSON.parse(createdResume.skills) : [],
-                    certificates: typeof createdResume.certificates === "string"  ? JSON.parse(createdResume.certificates) : [],
+                    customSections: typeof createdResume.customSections === "string" ? JSON.parse(createdResume.customSections) : [],
                  updated: createdResume.updatedAt,
                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                  matchingScore: (createdResume as any)?.matchingScore ?? null,
@@ -101,7 +100,7 @@ export async function PUT(req: NextRequest) {
                 experiences: JSON.stringify(resumeData.experiences),
                 educations: JSON.stringify(resumeData.educations),
                 skills: JSON.stringify(resumeData.skills),
-                certificates: JSON.stringify(resumeData.certificates),
+                customSections: JSON.stringify(resumeData.customSections),
             }
         });
 
@@ -116,7 +115,7 @@ export async function PUT(req: NextRequest) {
                     experiences: typeof updatedResume.experiences === "string"  ? JSON.parse(updatedResume.experiences) : [],
                     educations: typeof updatedResume.educations === "string"  ? JSON.parse(updatedResume.educations) : [],
                     skills: typeof updatedResume.skills === "string"  ? JSON.parse(updatedResume.skills) : [],
-                    certificates: typeof updatedResume.certificates === "string"  ? JSON.parse(updatedResume.certificates) : [],
+                    customSections: typeof updatedResume.customSections === "string" ? JSON.parse(updatedResume.customSections) : [],
                     updated: updatedResume.updatedAt,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                     matchingScore: (updatedResume as any)?.matchingScore ?? null,
