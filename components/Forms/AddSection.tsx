@@ -6,7 +6,7 @@ import Datepicker from './Datepicker';
 type CustomSectionType =
   | 'projects'
   | 'awards'
-  | 'certificates'
+  | 'customSections'
   | 'publications'
   | 'volunteer'
   | 'custom';
@@ -40,10 +40,11 @@ interface DynamicCustomSectionProps {
 }
 
 const SECTION_FIELD_DEFINITIONS: Record<CustomSectionType, FieldDefinition[]> = {
-  certificates: [
-    { key: 'name', label: 'Certificate Name', placeholder: 'Name' },
-    { key: 'provider', label: 'Provider', placeholder: 'Provider' },
-    { key: 'awardedDate', label: 'Awarded Date', type: 'date', placeholder: 'Date' }
+  customSections: [
+    { key: 'title', label: 'Section Title', placeholder: 'Section Title' },
+    { key: 'subsectionTitle', label: 'Subsection Title', placeholder: 'Subsection Title' },
+    { key: 'content', label: 'Content', textarea: true, placeholder: 'Content' },
+    { key: 'date', label: 'Date', type: 'date', placeholder: 'Date (Optional)', optional: true }
   ],
   projects: [
     { key: 'name', label: 'Project Name', placeholder: 'Project Name' },
@@ -108,7 +109,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
   maxItemsPerSection = 15
 }) => {
   const [sections, setSections] = useState<DynamicCustomSection[]>(
-    data && data.length ? data : [createEmptySection('certificates')]
+    data && data.length ? data : [createEmptySection('customSections')]
   );
 
   // Sync incoming controlled updates
@@ -260,7 +261,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
 
                           <option value="projects">Projects</option>
                           <option value="awards">Awards</option>
-                          <option value="certificates">Certificates</option>
+                          <option value="customSections">Custom Sections</option>
                           <option value="publications">Publications</option>
                           <option value="volunteer">Volunteer</option>
                           <option value="custom">Custom</option>
@@ -346,9 +347,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                                 />
                               </div>
                             ) : (
-                                field.type === 'date' ? <Datepicker index={0} target={''} update={function (index: number, target: string, value: string): void {
-                                  throw new Error('Function not implemented.');
-                                }} /> :
+                                field.type === 'date' ? <Datepicker index={0} target={''} update={() => { }} /> :
                               <Input
                                 type={field.type || 'text'}
                                 name={inputName}
@@ -419,10 +418,10 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => addSection('certificates')}
+            onClick={() => addSection('customSections')}
             className="text-sm px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100"
           >
-            + Certificates Section
+            + Custom Section
           </button>
           <button
             type="button"

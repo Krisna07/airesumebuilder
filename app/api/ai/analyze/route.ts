@@ -26,7 +26,16 @@ export async function POST(req: NextRequest) {
       experiences: JSON.parse(resume.experiences as string),
       educations: JSON.parse(resume.educations as string),
       skills: JSON.parse(resume.skills as string),
-      certificates: JSON.parse(resume.certificates as string),
+      customSections: resume.customSections ?
+        (() => {
+          try {
+            const parsed = JSON.parse(resume.customSections as string);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (e) {
+            console.warn('Failed to parse customSections:', e);
+            return [];
+          }
+        })() : [],
     };
 
     // Call AI
