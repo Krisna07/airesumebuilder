@@ -12,7 +12,7 @@ export interface ResumeData {
   skills: skills[];
   experiences: Experience[];
   educations: Education[];
-  certificates: Certificates[];
+  customSections: CustomSectionData[];
   matchingScore?: number;
   analyzedAt?: string | Date;
   description?: string;
@@ -48,10 +48,17 @@ export interface Education {
   current?: boolean;
   location: string;
 }
-export interface Certificates {
+export interface CustomSubsection {
+  id: string;
   title: string;
-  issued_by: string;
-  year: string;
+  content: string; // Rich text/markdown content
+  date?: string; // Single date field
+}
+
+export interface CustomSectionData {
+  id: string;
+  title: string;
+  subsections: CustomSubsection[];
 }
 export interface UserResume {
   content: string;

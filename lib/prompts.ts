@@ -43,7 +43,7 @@ const analyzeResumeToJobFitPrompt = (sourceResume: ResumeData, jobDescription: s
             ...sourceResume,
             experiences: sourceResume.experiences?.slice(0, 8), // cap to avoid runaway tokens
             educations: sourceResume.educations?.slice(0, 5),
-            certificates: sourceResume.certificates?.slice(0, 10),
+        customSections: sourceResume.customSections?.slice(0, 10),
             skills: sourceResume.skills?.slice(0, 20),
         }
         : {};

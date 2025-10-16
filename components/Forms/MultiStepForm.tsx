@@ -4,8 +4,8 @@ import UserInfoStep from './UserInfoStep';
 import SkillsStep from './SkillsStep';
 import ExperienceStep from './ExperienceStep';
 import EducationStep from './EducationStep';
-import CertificatesStep from './CertificatesStep';
-import { Certificates, Education, Experience, Profile, ResumeData, skills } from '@/types/types';
+import CustomSectionBuilder from './CustomSection';
+import { CustomSectionData, Education, Experience, Profile, ResumeData, skills } from '@/types/types';
 import Button from '../UI/Button';
 import FormLayout from './FomLayout';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
@@ -15,7 +15,6 @@ import { useToast } from '@/context/PopupContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import Templates from '../Templates/templates';
 import ResumePreview from '../Templates/ResumePreview';
-import CustomSection from './CustomSection';
 // import CustomSection from './AddSection';
 
 interface MultiStepFormProps {
@@ -29,8 +28,7 @@ const stepsLabels = [
   'Skill',
   'Experience',
   'Education',
-  'Certificates',
-  'Add Section',
+  'Custom Sections',
   'Job Description',
   'Template'
 ];
@@ -62,7 +60,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
     return true;
   }, [userId, resumeId, selectedTemplate, formData, toast]);
 
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     const ok = await persist();
     if (!ok) return;
     if (currentStep === stepsLabels.length) {
@@ -70,12 +68,12 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
       return;
     }
     setCurrentStep(s => Math.min(s + 1, FINAL_STEP_INDEX));
-  };
+  }, [persist, currentStep, resumeId]);
 
-  const handlePrevious = async () => {
+  const handlePrevious = useCallback(async () => {
     await persist();
     setCurrentStep(s => Math.max(s - 1, 1));
-  };
+  }, [persist]);
 
   const handleSaveDraft = async () => {
     const ok = await persist();
@@ -158,29 +156,19 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
       case 5:
         return (
           <FormLayout
-            heading="Add your certificates"
-            subheading="Include relevant certifications."
+            heading="Add custom sections"
+            subheading="Add projects, awards, publications, certifications, or any other relevant sections."
           >
-            <CertificatesStep
-              data={formData.certificates}
-              onChange={(data: Certificates[]) =>
-                setFormData({ ...formData, certificates: data })
+            <CustomSectionBuilder
+              data={formData.customSections}
+              onChange={(data: CustomSectionData[]) =>
+                setFormData({ ...formData, customSections: data })
               }
             />
-            {/* <CustomSection /> */}
           </FormLayout>
         );
+
       case 6:
-        return (
-          <FormLayout
-            heading="Additional Sections"
-            subheading="Add flexible sections (Projects, Awards, Certificates, Publications, Volunteer, or fully custom)."
-          >
-            <CustomSection />
-            {/* <AddSection /> */}
-          </FormLayout>
-        );
-      case 7:
         return (
           <FormLayout
             heading="Add job description"
@@ -192,7 +180,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
             />
           </FormLayout>
         );
-      case 8:
+      case 7:
         return (
           <FormLayout
             heading="Choose your template"

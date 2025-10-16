@@ -1,6 +1,6 @@
 import { ResumeData } from '@/types/types';
 import { baseStyles } from './baseStyles';
-import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo } from './helpers';
+import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo, renderCustomSections } from './helpers';
 
 const classicStyles = `
   .header {  border-radius: 6px; }
@@ -52,16 +52,9 @@ export function generateClassicHTML(data: ResumeData): string {
           </div>
         ` : ''}
         
-        ${data.certificates?.length ? `
+        ${data.customSections?.length ? `
           <div class="section">
-            <div class="section-title">Certifications</div>
-            ${safeJoin(data.certificates.slice(0, 3).map(cert => `
-              <div class="certificate-item avoid-break">
-                <div class="job-title">${escapeHtml(cert.title)}</div>
-                <div class="company">${escapeHtml(cert.issued_by)}</div>
-                <div class="job-date">${escapeHtml(cert.year)}</div>
-              </div>
-            `))}
+            ${safeJoin(data.customSections.slice(0, 3).map(renderCustomSections))}
           </div>
         ` : ''}
       </div>

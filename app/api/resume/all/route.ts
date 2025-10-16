@@ -29,7 +29,16 @@ export async function GET(req: NextRequest) {
                     skills: resume.skills ? JSON.parse(resume.skills as string) : [],
                     experiences: resume.experiences ? JSON.parse(resume.experiences as string) : [],
                     educations: resume.educations ? JSON.parse(resume.educations as string) : [],
-                    certificates: resume.certificates ? JSON.parse(resume.certificates as string) : [],
+                    customSections: resume.customSections ?
+                        (() => {
+                            try {
+                                const parsed = JSON.parse(resume.customSections as string);
+                                return Array.isArray(parsed) ? parsed : [];
+                            } catch (e) {
+                                console.warn('Failed to parse customSections:', e);
+                                return [];
+                            }
+                        })() : [],
                     updated: resume.updatedAt,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                     matchingScore: (resume as any).matchingScore ?? null,

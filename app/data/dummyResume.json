@@ -92,6 +92,26 @@
             "endDate": "2020"
         }
     ],
+    "customSections": [
+        {
+            "id": "1",
+            "title": "Certifications",
+            "subsections": [
+                {
+                    "id": "1_1",
+                    "title": "AWS Certified Developer – Associate",
+                    "content": "Professional certification for cloud architecture and development",
+                    "date": "2023"
+                },
+                {
+                    "id": "1_2",
+                    "title": "Professional Scrum Master I",
+                    "content": "Certified in agile project management methodologies",
+                    "date": "2022"
+                }
+            ]
+        }
+    ],
     "additional": {
         "certificates": [
             {

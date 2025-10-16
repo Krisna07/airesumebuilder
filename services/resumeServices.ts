@@ -102,7 +102,7 @@ export class ResumeService {
                     location: ''
                 }
             ],
-            certificates: [],
+            customSections: [],
             ...data
         };
         const response = await this.save(userId, resumeId, selectedTemplate, emptyData);

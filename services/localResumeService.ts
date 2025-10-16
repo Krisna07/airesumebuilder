@@ -73,7 +73,7 @@ export class LocalResumeService {
                     location: ''
                 }
             ],
-            certificates: [],
+            customSections: [],
             ...data
         };
         await this.save(emptyData.userId, resumeId, emptyData);
