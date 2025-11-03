@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
       return new NextResponse(null, {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': '*', // Allow all for development
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           'Access-Control-Allow-Credentials': 'true',
@@ -21,16 +21,22 @@ export function middleware(request: NextRequest) {
     // For actual requests, continue with the request and add CORS headers to response
     const response = NextResponse.next();
     
-    // For production, replace '*' with specific origins
-    const allowedOrigins = [
-      'chrome-extension://your-extension-id',
-      'https://airesumebuilder-delta.vercel.app'
-    ];
+      // For development, allow all origins
+      // For production, you can restrict this
+      const origin = request.headers.get('origin');
 
-    const origin = request.headers.get('origin');
-    const corsOrigin = allowedOrigins.includes(origin || '') ? origin : 'null';
+      if (process.env.NODE_ENV === 'development') {
+          response.headers.set('Access-Control-Allow-Origin', '*');
+      } else {
+          const allowedOrigins = [
+              'chrome-extension://nldfljhgcgdfnpaalllnjomenncfmnbn/*', // Replace with actual extension ID
+              'https://airesumebuilder-delta.vercel.app'
+          ];
 
-    response.headers.set('Access-Control-Allow-Origin', corsOrigin || 'null');
+          const corsOrigin = allowedOrigins.includes(origin || '') ? origin : '*';
+          response.headers.set('Access-Control-Allow-Origin', corsOrigin || '*');
+      }
+
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     response.headers.set('Access-Control-Allow-Credentials', 'true');

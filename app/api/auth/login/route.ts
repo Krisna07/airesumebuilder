@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { data: { id: user.id, email: user.email, name: user.name } },
+      { data: { id: user.id, email: user.email, name: user.name, image: user.image } },
       { status: 200 }
     );
   } catch (error) {
