@@ -17,7 +17,7 @@ const Navbar = () => {
   // const { theme, handleThemeChange } = useTheme();
   // console.log(theme);
   useEffect(() => {
-    setActivetab(route)
+    setActivetab(route??"")
     setMenu(false)
 
   }, [route])
