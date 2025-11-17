@@ -1,8 +1,9 @@
+'use client';
 import { ScrapeResult } from "@/components/Forms/JobDescription";
 import { ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
-// import { LocalResumeService } from "./localResumeService";
+import { extractTextFromPdf } from "@/utils/pdfExtractor";
 
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
@@ -112,10 +113,11 @@ export class ResumeService {
     static async uploadResume(file: File, userId?: string) {
         try {
             const text = await extractTextFromPdf(file)
+            // console.log('extracted text:', text.slice(0, 500)) // Log first 500 characters
             const respone = await fetch('/api/ai/extract-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text: text })
             });
             const data = await respone.json();
             if (!respone.ok) {
@@ -205,39 +207,3 @@ export async function getJobDescription(url: string | string[]) {
     }
 }
 
-const extractTextFromPdf = async (file: File): Promise<string> => {
-    // Dynamic import to avoid SSR issues
-    const pdfjsLib = await import('pdfjs-dist');
-
-    // Use jsDelivr for the worker source (make sure the version matches your installed pdfjs-dist)
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.394/+esm`;
-
-    const reader = new FileReader();
-    return new Promise((resolve, reject) => {
-        reader.onload = async (event) => {
-            if (!event.target?.result) {
-                return reject(new Error('Failed to read file.'));
-            }
-            try {
-                const pdf = await pdfjsLib.getDocument({ data: event.target.result as ArrayBuffer }).promise;
-                let text = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    text +=
-                        content.items
-                        .map((item) => ('str' in item ? item.str : ''))
-                            .join(' ') + '\n';
-                }
-                resolve(text);
-            } catch (error) {
-                console.error('Error parsing PDF:', error);
-                reject(new Error('Could not parse the PDF file.'));
-            }
-        };
-        reader.onerror = () => {
-            reject(new Error('Error reading file.'));
-        };
-        reader.readAsArrayBuffer(file);
-    });
-};
