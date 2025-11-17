@@ -210,7 +210,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
     const pdfjsLib = await import('pdfjs-dist');
 
     // Use jsDelivr for the worker source (make sure the version matches your installed pdfjs-dist)
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.394/+esm`;
 
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
