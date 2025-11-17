@@ -20,7 +20,7 @@ const sanitizeFile = (s: string) =>
 
 const PreviewPage = () => {
   const params = useParams();
-  const slug = params.slug as string;
+ const slug = (params?.slug ?? "") as string;
   const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [resumeData, setResumeData] = useState<ResumeData>();
