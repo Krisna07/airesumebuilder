@@ -8,7 +8,7 @@ import { ResumeService } from '@/services/resumeServices';
 
 const BuilderPage: React.FC = () => {
   const params = useParams();
-  const slug = params.slug as string;
+  const slug = params ? params.slug as string :" ";
   const [resumeData, setResumeData] = useState<ResumeData>();
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
