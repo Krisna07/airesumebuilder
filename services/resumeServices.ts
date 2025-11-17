@@ -209,8 +209,8 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
     // Dynamic import to avoid SSR issues
     const pdfjsLib = await import('pdfjs-dist');
 
-    // Set up the worker source for pdfjs-dist
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+    // Use jsDelivr for the worker source (make sure the version matches your installed pdfjs-dist)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
@@ -226,12 +226,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
                     const content = await page.getTextContent();
                     text +=
                         content.items
-                            .map((item) => {
-                                if ('str' in item) {
-                                    return item.str;
-                                }
-                                return '';
-                            })
+                        .map((item) => ('str' in item ? item.str : ''))
                             .join(' ') + '\n';
                 }
                 resolve(text);
