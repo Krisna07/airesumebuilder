@@ -161,6 +161,7 @@ const PreviewPage = () => {
         console.error('❌ PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
         setDownloading(false);
+        setRegenerating(false)
         return;
       }
 
@@ -181,6 +182,7 @@ const PreviewPage = () => {
       document.body.removeChild(a);
       showToast('PDF downloaded', 'success', 1500);
       setDownloading(false);
+      setRegenerating(false)
     } catch (error) {
       console.error('❌ PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
@@ -261,12 +263,12 @@ const PreviewPage = () => {
     return (
       <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl grid gap-8">
-          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
+                className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
               />
             ))}
           </div>
@@ -286,7 +288,7 @@ const PreviewPage = () => {
           </p>
           <Button
             variant="secondary"
-            size="medium"
+            size="small"
             onClick={() => (window.location.href = `/builder/${slug}`)}
           >
             Continue Editing
@@ -323,7 +325,7 @@ const PreviewPage = () => {
 
             <button
               onClick={() => (window.location.href = '/builder')}
-              disabled={user ? false : true}
+              // disabled={user ? false : true}
               className="px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
             >
               <Plus size={16} /> New Resume
@@ -347,7 +349,6 @@ const PreviewPage = () => {
           </div>
 
           <div className="space-y-2">
-            {' '}
             <div className="w-full grid grid-cols-3 gap-4 ">
               {displayTemplate.map(template => (
                 <button
@@ -366,7 +367,6 @@ const PreviewPage = () => {
                       {template.name}
                     </h3>
                   </div>
-                  {/* <p className="text-sm text-gray-600 mt-1 hidden sm:block">{}</p> */}
                 </button>
               ))}
             </div>
@@ -463,12 +463,12 @@ const PreviewPage = () => {
   return (
     <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-5xl grid gap-8">
-        <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
         <div className="grid grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
+              className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
             />
           ))}
         </div>

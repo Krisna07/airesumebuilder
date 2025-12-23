@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { AIService } from '@/services/aiServices';
-import { ResumeData } from '@/types/types';
+import { JobDescription, ResumeData } from '@/types/types';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
+interface JobDetails extends JobDescription {
+  id: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { resumeId, jobDescription, updateTitle }: { resumeId: string; jobDescription: string; updateTitle?: boolean } = await req.json();
-    if (!resumeId || !jobDescription) {
+    const { resumeId, jobDetails }: { resumeId: string; jobDetails: JobDetails } = await req.json();
+    if (!resumeId || !jobDetails) {
       return NextResponse.json({ error: 'resumeId and jobDescription are required' }, { status: 400 });
     }
 
@@ -39,40 +44,79 @@ export async function POST(req: NextRequest) {
     };
 
     // Call AI
-    const analysis = await AIService.analyzeResume(resumeData, jobDescription);
+    const analysis = await AIService.analyzeResume(resumeData, JSON.stringify(jobDetails));
 
     // Role extraction heuristics if not provided
     let role = analysis?.role;
     if (!role) {
-      const firstLine = jobDescription.split(/\n|\r/).map(l => l.trim()).filter(Boolean)[0] || '';
+      const firstLine = jobDetails.title.trim().split('\n')[0];
       if (firstLine.length < 80 && /[a-z]/i.test(firstLine)) role = firstLine;
     }
 
     const matchingScore = Math.min(100, Math.max(0, Number(analysis?.matchingPercentage || 0)));
 
-    const shouldOverwrite = updateTitle || resume.title.toLowerCase().startsWith('untitled');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- temporary until Prisma client regenerated with new fields
-    const updated = await (prisma as any).resume.update({
-      where: { id: resume.id },
-      data: {
-        title: shouldOverwrite && role ? role : resume.title,
-        matchingScore: isNaN(matchingScore) ? 0 : matchingScore,
-        analyzedAt: new Date()
+    let updated: any;
+    const existing = await prisma.analysisResult.findFirst({
+      where: {
+        resumeId: resume.id,
+        jobDescriptionId: jobDetails.id,
       },
-      select: { id: true, title: true, matchingScore: true, analyzedAt: true }
     });
 
+    if (existing) {
+      updated = await prisma.analysisResult.update({
+        where: { id: existing.id },
+        data: {
+          result: analysis ? JSON.stringify(analysis) : '',
+          matchingScore: isNaN(matchingScore) ? 0 : matchingScore,
+          analyzedAt: new Date(),
+        },
+      });
+    } else {
+      updated = await prisma.analysisResult.create({
+        data: {
+          id: randomUUID(),
+          resumeId: resume.id,
+          jobDescriptionId: jobDetails.id,
+          result: analysis ? JSON.stringify(analysis) : '',
+          matchingScore: isNaN(matchingScore) ? 0 : matchingScore,
+          analyzedAt: new Date(),
+        },
+      });
+    }
+
     return NextResponse.json({
-      analysis: {
-        ...analysis,
-        role,
-        matchingPercentage: matchingScore,
-      },
-      updated
+      data: updated
     });
   } catch (error) {
     console.error('Analyze API error:', error);
     return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const resumeId = searchParams.get('resumeId');
+    const jobDescriptionId = searchParams.get('jobDescriptionId');
+    if (!resumeId || !jobDescriptionId) {
+      return NextResponse.json({ error: 'resumeId and jobDescriptionId are required' }, { status: 400 });
+    }
+    const analysis = await prisma.analysisResult.findFirst({
+      where: {
+        resumeId,
+        jobDescriptionId,
+      },
+    });
+    if (!analysis) {
+      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+    }
+    return NextResponse.json({ data: analysis });
+
+  } catch (error) {
+    console.error('Analyze API error:', error);
+    return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 })
   }
 }
