@@ -1,9 +1,10 @@
-'use client';
+// 'use client';
 import { ScrapeResult } from "@/components/Forms/JobDescription";
-import { ResumeData } from "@/types/types";
+import { JobDescription, ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
+
 
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
@@ -154,56 +155,28 @@ export class ResumeService {
         }
 
     }
-
 }
 
-export async function analyzeResume(resumeId: string, jobDescription: string, updateTitle?: boolean) {
+export async function analyzeResume(resumeId: string, jobDetails: JobDescription, updateTitle?: boolean) {
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ resumeId, jobDescription, updateTitle })
+            body: JSON.stringify({ resumeId, jobDetails, updateTitle })
         });
         const data = await response.json();
+
         if (!response.ok) {
             return { status: response.status, error: data.error || 'Failed to analyze resume' };
         }
-        return { status: 200, ...data };
+        return {
+            status: 200,
+            ...data
+        };
     } catch (error) {
         return { status: 500, error: (error as Error).message };
     }
 }
 
-export async function getJobDescription(url: string | string[]) {
-    const urls = Array.isArray(url) ? url : [url];
-    const valid = urls.filter(u => /^https?:\/\//i.test(u));
-    if (!valid.length) {
-        return { status: 400, message: 'No valid URL(s) provided' };
-    }
-    try {
-        const response = await fetch('/api/scrape-job', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ urls: valid })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            return { status: response.status, message: data.error || 'Failed to scrape' };
-        }
-        // Pick first successful description
-        interface ScrapeResult { success: boolean; description?: string }
-        const first = (data.results as ScrapeResult[] | undefined)?.find(r => r.success && r.description);
-        const allBlocked = !first && Array.isArray(data.results) && (data.results as { error?: string }[]).every(r => r?.error === 'blocked_or_challenge');
-        return {
-            status: 200,
-            description: first?.description || '',
-            raw: data.results,
-            meta: data.meta,
-            blocked: allBlocked,
-            message: allBlocked ? 'The site blocked automated extraction. Please copy & paste the description manually.' : undefined
-        };
-    } catch (error) {
-        return { status: 500, message: (error as Error).message };
-    }
-}
+
 

@@ -207,9 +207,9 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {sections.map((section) => (
+                        {sections.map((section, count) => (
                         <div
-                            key={section.id}
+                            key={count}
                             className="border-2 border-gray-200 rounded-lg p-4 space-y-4 bg-white shadow-sm"
                         >
                             {/* Section Header */}
