@@ -73,6 +73,7 @@ export interface AnalysisResult {
   matchingPercentage: number;
   suggestions: string[];
   role?: string;
+  result?: string;
   missingKeywords?: string[];
   strengths?: string[];
 }
@@ -86,3 +87,8 @@ export interface JobDescription {
   domain: string;
   url: string
 }
+
+export type JobDetailsWithAnalysis = JobDescription & {
+  analysis?: AnalysisResult;
+  hasAnalysed?: boolean;
+};

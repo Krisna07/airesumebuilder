@@ -5,11 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-  // Connection URLs (DATABASE_URL / DIRECT_URL) were removed from schema.prisma.
-  // Move these to prisma.config.ts and pass either `adapter` for a direct DB connection
-  // or `accelerateUrl` for Accelerate to the PrismaClient constructor.
-  // See: https://pris.ly/d/config-datasource and https://pris.ly/d/prisma7-client-config
+   directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -23,6 +19,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   resumes   Resume[]
+  jobDescriptions JobDescription[]
+
 
 }
 
@@ -40,13 +38,12 @@ model Resume {
   updatedAt      DateTime        @updatedAt
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deleted        Boolean         @default(false)
-  jobDescriptions JobDescription[]
   analysisResults AnalysisResult[]
 }
 
 model JobDescription {
   id          String   @id @default(uuid())
-  resumeId    String
+  userId      String
   title       String
   company     String
   location    String
@@ -55,7 +52,7 @@ model JobDescription {
   url         String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   analysisResult AnalysisResult?
 }
 
