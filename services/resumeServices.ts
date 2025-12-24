@@ -5,7 +5,6 @@ import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
 
-
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
         try {

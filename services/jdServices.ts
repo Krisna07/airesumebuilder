@@ -1,4 +1,4 @@
-import { JobDescription } from "@/types/types";
+import { JobDescription, JobDetailsWithAnalysis } from "@/types/types";
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -120,33 +120,38 @@ export class JobDescriptionService {
             }
             const data = await response.json();
             const allDescriptions: JobDescription[] = data.data || [];
-            const responseData: (JobDescription & { analysis?: unknown })[] = [];
+            const responseData: JobDetailsWithAnalysis[] = []
+
             await Promise.all(allDescriptions.map(async (jd: JobDescription) => {
                 if (!resumeId) return;
+
                 try {
                     const response = await fetch(`/api/ai/analyze?resumeId=${encodeURIComponent(resumeId)}&jobDescriptionId=${encodeURIComponent(jd.id || '')}`, {
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json' }
                     });
+
                     if (!response.ok) {
                         console.warn('Failed to fetch analysis for job description:', jd.id, response.status);
                         return;
                     }
-                    const analysisData = await response.json();
-                    // console.log('Fetched analysis data for job description:', jd.id, analysisData);
-                    console.log('Fetched analysis data for job description:', jd.id, analysisData);
+
+                    const data = await response.json();
+
+                    const analysisData = data.data
                     return responseData.push({
                         ...jd,
-                        analysis: analysisData.data
+                        hasAnalysed: !!analysisData,
+                        analysis: analysisData ?? []
                     })
                 } catch (err) {
-                    console.warn('Error fetching analysis for job description:', jd .id, err);
+                    console.warn('Error fetching analysis for job description:', jd.id, err);
                 }
             }))
 
             return {
                 status: response.status || 200,
-                data: responseData || data
+                data: responseData
             }
 
         } catch (error) {
