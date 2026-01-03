@@ -144,7 +144,11 @@ const handler = NextAuth({
     signIn: '/auth/createuser', // Custom sign-in page
   },
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
+    // One week expiry for sessions (in seconds)
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    // How often to update the session age (in seconds)
+    updateAge: 60 * 60 * 24 // 24 hours
   },
   // debug: process.env.NODE_ENV === 'development',
 })

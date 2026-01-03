@@ -58,22 +58,28 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
   // Responsive scaling: fit A4 into container width (cap at 1)
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
     const updateScale = () => {
-      const el = containerRef.current;
-      if (!el) return;
       const paddingX =
-        parseFloat(getComputedStyle(el).paddingLeft) +
-        parseFloat(getComputedStyle(el).paddingRight);
+        parseFloat(getComputedStyle(el).paddingLeft || '0') +
+        parseFloat(getComputedStyle(el).paddingRight || '0');
       const available = el.clientWidth - paddingX;
       const next = Math.min(1, Math.max(0.2, available / PAGE_WIDTH_PX));
       setScale(next);
     };
+
     updateScale();
+    // Use ResizeObserver for efficient layout/responding to container changes
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
+    // keep window.resize as a lightweight fallback
     window.addEventListener('resize', updateScale);
-    const id = setInterval(updateScale, 250); // catch font loading/layout shifts
+
     return () => {
+      ro.disconnect();
       window.removeEventListener('resize', updateScale);
-      clearInterval(id);
     };
   }, []);
 
@@ -100,32 +106,50 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="overflow-hidden min-h-fit flex justify-center relative p-4">
-      {/* {regenerating ?<div className='w-full h-full absolute'></div>:<div></div>} */}
+    <div
+      ref={containerRef}
+      className="overflow-hidden min-h-fit flex justify-center relative p-4"
+      aria-busy={!!regenerating}
+    >
       <div
+        className="relative z-0"
         style={{
           width: PAGE_WIDTH_PX * scale,
-          minHeight: PAGE_HEIGHT_PX * scale,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          scrollbarWidth: 'none',
+          height: PAGE_HEIGHT_PX * scale,
         }}
-      className={`${regenerating ? 'blur-sm animate-pulse' : ''}`}
       >
-        <iframe
-          title="Resume Preview"
+        <div
           style={{
             width: PAGE_WIDTH_PX,
-            minHeight: PAGE_HEIGHT_PX,
-            border: '1px solid #e5e7eb',
-            borderRadius: 12,
-            background: 'white',
-            display: 'block',
-            scrollbarWidth: 'none'
+            height: PAGE_HEIGHT_PX,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
           }}
-          srcDoc={srcDoc}
-        />
+        >
+          <iframe
+            title="Resume Preview"
+            loading="lazy"
+            style={{
+              width: PAGE_WIDTH_PX,
+              height: PAGE_HEIGHT_PX,
+              border: '1px solid #e5e7eb',
+              borderRadius: 12,
+              background: '#fff',
+              display: 'block',
+            }}
+            srcDoc={srcDoc}
+          />
+        </div>
       </div>
+
+      {regenerating && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+          <div className="flex items-center space-x-2 bg-white/80 rounded-md px-3 py-2 shadow">
+            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            <div className="text-sm text-gray-700">Regenerating…</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

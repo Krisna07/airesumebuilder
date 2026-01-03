@@ -11,8 +11,20 @@
 ALTER TABLE "JobDescription" DROP CONSTRAINT "JobDescription_resumeId_fkey";
 
 -- AlterTable
+-- Add userId as nullable first so we can backfill existing rows
 ALTER TABLE "JobDescription" DROP COLUMN "resumeId",
-ADD COLUMN     "userId" TEXT NOT NULL;
+ADD COLUMN     "userId" TEXT;
+
+-- Create a fallback migration user if it doesn't exist
+INSERT INTO "User" ("id", "email", "name", "password", "image", "provider", "providerId", "createdAt", "updatedAt")
+SELECT '00000000-0000-0000-0000-000000000001', 'migration-fallback@example.com', 'migration_fallback', NULL, NULL, 'migration', NULL, now(), now()
+WHERE NOT EXISTS (SELECT 1 FROM "User" WHERE email = 'migration-fallback@example.com');
+
+-- Backfill existing JobDescription rows that have no userId to the fallback user
+UPDATE "JobDescription" SET "userId" = '00000000-0000-0000-0000-000000000001' WHERE "userId" IS NULL;
+
+-- Now make the column required and add the foreign key
+ALTER TABLE "JobDescription" ALTER COLUMN "userId" SET NOT NULL;
 
 -- AlterTable
 ALTER TABLE "Resume" DROP COLUMN "analyzedAt",

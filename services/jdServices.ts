@@ -3,14 +3,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 export class JobDescriptionService {
-    static async save(resumeId: string, jobDetails: JobDescription) {
+    static async save(resumeId: string, userId: string, jobDetails: JobDescription) {
         try {
-            console.log('Saving job description:', resumeId, jobDetails);
+            console.log('Saving job description:', jobDetails);
             const response = await fetch('/api/resume/description', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    resumeId,
+                    userId,
                     company: jobDetails.company,
                     title: jobDetails.title,
                     location: jobDetails.location,

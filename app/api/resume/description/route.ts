@@ -7,10 +7,10 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { resumeId, url, description, title, company, location, domain } = body;
+        const { userId, url, description, title, company, location, domain } = body;
 
-        if (!resumeId) {
-            return NextResponse.json({ error: 'resumeId is required' }, { status: 400 });
+        if (!userId) {
+            return NextResponse.json({ error: 'The action needs to be handled by a logged in user' }, { status: 400 });
         }
         if (!url && !description) {
             return NextResponse.json({ error: 'No URL or description provided' }, { status: 400 });
@@ -28,15 +28,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ data: storedJobDetails }, { status: 200 });
         }
 
+        // ensure the resume exists and get its owner so we can satisfy the required user relation
+        const resumeRecord = await prisma.user.findUnique({ where: { id: userId } });
+        if (!resumeRecord) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
         const jobDescriptionData = {
             id: randomUUID(),
-            resumeId,
             title,
             company,
             location,
             domain,
             url,
-            description: description || ''
+            description: description || '',
+            user: { connect: { id: resumeRecord.id } }
         };
 
         const storeDescription = await prisma.jobDescription.create({ data: jobDescriptionData });

@@ -9,42 +9,53 @@ const prisma = new PrismaClient();
 interface JobDetails extends JobDescription {
   id: string;
 }
+const fetchResume = async (resumeId: string) => {
+  const resume = await prisma.resume.findFirst({ where: { id: resumeId, deleted: false } });
+  if (!resume) {
+    throw new Error('Resume not found');
+  }
+  const resumeData: ResumeData = {
+    id: resume.id,
+    userId: resume.userId,
+    title: resume.title,
+    template: resume.template,
+    profile: JSON.parse(resume.profile as string),
+    experiences: JSON.parse(resume.experiences as string),
+    educations: JSON.parse(resume.educations as string),
+    skills: JSON.parse(resume.skills as string),
+    customSections: resume.customSections ?
+      (() => {
+        try {
+          const parsed = JSON.parse(resume.customSections as string);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.warn('Failed to parse customSections:', e);
+          return [];
+        }
+      })() : [],
+  };
+  return resumeData;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { resumeId, jobDetails }: { resumeId: string; jobDetails: JobDetails } = await req.json();
-    if (!resumeId || !jobDetails) {
-      return NextResponse.json({ error: 'resumeId and jobDescription are required' }, { status: 400 });
+
+
+    const { resumeId, jobDetails, jobDescriptionId }: { resumeId: string; jobDetails: JobDetails; jobDescriptionId?: string } = await req.json();
+
+    if (!resumeId || (!jobDetails && !jobDescriptionId)) {
+      return NextResponse.json({ error: 'ResumeId and jobDescription are required' }, { status: 400 });
     }
 
-    const resume = await prisma.resume.findFirst({ where: { id: resumeId, deleted: false } });
-    if (!resume) {
-      return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
-    }
-
-    const resumeData: ResumeData = {
-      id: resume.id,
-      userId: resume.userId,
-      title: resume.title,
-      template: resume.template,
-      profile: JSON.parse(resume.profile as string),
-      experiences: JSON.parse(resume.experiences as string),
-      educations: JSON.parse(resume.educations as string),
-      skills: JSON.parse(resume.skills as string),
-      customSections: resume.customSections ?
-        (() => {
-          try {
-            const parsed = JSON.parse(resume.customSections as string);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch (e) {
-            console.warn('Failed to parse customSections:', e);
-            return [];
-          }
-        })() : [],
-    };
+    const resumeData = await fetchResume(resumeId);
+    const fetchedJobDetails = jobDetails || await prisma.jobDescription.findFirst({
+      where: {
+        id: jobDescriptionId
+      }
+    })
 
     // Call AI
-    const analysis = await AIService.analyzeResume(resumeData, JSON.stringify(jobDetails));
+    const analysis = await AIService.analyzeResume(resumeData, JSON.stringify(jobDetails || fetchedJobDetails));
 
     // Role extraction heuristics if not provided
     let role = analysis?.role;
@@ -60,7 +71,7 @@ export async function POST(req: NextRequest) {
     let updated: any;
     const existing = await prisma.analysisResult.findFirst({
       where: {
-        resumeId: resume.id,
+        resumeId: resumeId,
         jobDescriptionId: jobDetails.id,
       },
     });
@@ -78,7 +89,7 @@ export async function POST(req: NextRequest) {
       updated = await prisma.analysisResult.create({
         data: {
           id: randomUUID(),
-          resumeId: resume.id,
+          resumeId: resumeId,
           jobDescriptionId: jobDetails.id,
           result: analysis ? JSON.stringify(analysis) : '',
           matchingScore: isNaN(matchingScore) ? 0 : matchingScore,
@@ -101,6 +112,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const resumeId = searchParams.get('resumeId');
     const jobDescriptionId = searchParams.get('jobDescriptionId');
+
+    if (resumeId && !jobDescriptionId) {
+      const analysis = await prisma.analysisResult.findMany({
+        where: {
+          resumeId
+        }
+      })
+      return NextResponse.json({ data: analysis });
+    }
+
     if (!resumeId || !jobDescriptionId) {
       return NextResponse.json({ error: 'resumeId and jobDescriptionId are required' }, { status: 400 });
     }
@@ -111,7 +132,7 @@ export async function GET(req: NextRequest) {
       },
     });
     if (!analysis) {
-      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+      return NextResponse.json({ message: 'Analysis not found' }, { status: 202 });
     }
     return NextResponse.json({ data: analysis });
 
