@@ -110,9 +110,29 @@ export class ResumeService {
         return response
     }
 
-    static async uploadResume(file: File, userId?: string) {
+    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult) {
         try {
+            const response = await fetch('/api/ai/generate-resume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resume: resumeData,
+                    jobDescription: jobDescription
+                })
+            });
+            return response
+        } catch (error) {
+            throw error
+        }
+
+    }
+}
+
+export async function uploadResume(file: File, userId?: string) {
+    try {
             const text = await extractTextFromPdf(file)
+        console.log('file name:', file.name)
+        console.log('extracted text length:', text.length)
             // console.log('extracted text:', text.slice(0, 500)) // Log first 500 characters
             const respone = await fetch('/api/ai/extract-resume', {
                 method: 'POST',
@@ -138,25 +158,7 @@ export class ResumeService {
         }
     }
 
-    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult) {
-        try {
-            const response = await fetch('/api/ai/generate-resume', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    resume: resumeData,
-                    jobDescription: jobDescription
-                })
-            });
-            return response
-        } catch (error) {
-            throw error
-        }
-
-    }
-}
-
-export async function analyzeResume(resumeId: string, jobDetails: JobDescription, updateTitle?: boolean) {
+export async function analyzeResume(resumeId: string, jobDetails?: JobDescription, jobDescriptionId?: string, updateTitle?: boolean) {
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
