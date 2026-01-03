@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { UploadCloud, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import { useAuth } from '@/context/authContext';
-import { ResumeService } from '@/services/resumeServices';
+import { uploadResume } from '@/services/resumeServices';
 
 export default function ResumeUpload() {
   const { user } = useAuth();
@@ -17,6 +17,7 @@ export default function ResumeUpload() {
   const resetFileInput = () => {
     if (fileInput.current) {
       fileInput.current.value = '';
+      // console.log(fileInput)
     }
   };
 
@@ -25,6 +26,7 @@ export default function ResumeUpload() {
     setLoading(true);
     setError(null);
     setSuccess(false);
+    // console.log(file)
 
     if (file.type !== 'application/pdf') {
       setError('Unsupported file type. Please upload a PDF.');
@@ -35,10 +37,11 @@ export default function ResumeUpload() {
     }
 
     setFileName(file.name);
-
+    // console.log(file.name)
     try {
-      const response = await ResumeService.uploadResume(file, user?.id);
-      // console.log(response);
+
+      const response = await uploadResume(file, user?.id);
+      console.log(response);
       const data = await response.json();
       if (!response.ok) {
         showToast('Failed to process resume', 'error');
@@ -131,7 +134,7 @@ export default function ResumeUpload() {
         ) : (
           <div className="flex flex-col items-center text-center text-gray-500">
             <UploadCloud className="w-10 h-10 mb-2" />
-            <p className="font-semibold">Click to upload or drag and drop</p>
+                  <p className="font-semibold">Click to upload or drag and drop</p>
             <p className="text-sm">PDF only. The content will be extracted by AI.</p>
           </div>
         )}
