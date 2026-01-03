@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ResumeData } from '@/types/types';
+import { AnalysisResult, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
-import { ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2 } from 'lucide-react';
+import { analyzeResume, ResumeService } from '@/services/resumeServices';
+import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
 import ConfirmDialog from '@/components/UI/ConfirmDialog';
-import { ScrapeResult } from '@/components/Forms/JobDescription';
 import Templates from '@/components/Templates/templates';
+import JobAnalysisReport from '@/components/UI/JobAnalysisReport';
 
 const sanitizeFile = (s: string) =>
   s
@@ -18,9 +19,11 @@ const sanitizeFile = (s: string) =>
     .replace(/\s+/g, '_')
     .replace(/[^\w.\-]+/g, '');
 
+
+
 const PreviewPage = () => {
   const params = useParams();
- const slug = (params?.slug ?? "") as string;
+  const slug = (params?.slug ?? "") as string;
   const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [resumeData, setResumeData] = useState<ResumeData>();
@@ -30,10 +33,14 @@ const PreviewPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
-  const [jobDescription, setJobDescription] = useState<ScrapeResult>();
   const [downlaoding, setDownloading] = useState<boolean>(false)
   const [generating, setRegenerating] = useState<boolean>(false)
   const [pendingUpdate, setPendingUpdate] = useState(false); // keep stale resume during async ops
+  const [analysisData, setAnalysisData] = useState<any[]>()
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any | null>(null);
+  const [menu, showMenu] = useState<boolean>(false)
+  const [reports, showReports] = useState<boolean>(false)
+  const [analyzing, setAnalyzing] = useState<boolean>(false)
 
   useEffect(() => {
     let active = true;
@@ -68,15 +75,36 @@ const PreviewPage = () => {
 
       // Authenticated path
       try {
-        const [resumeResp, descriptionResp] = await Promise.all([
+        const [resumeResp, analysisResp] = await Promise.all([
           ResumeService.getSingle(slug),
-          fetch(`/api/resume/description?slug=${encodeURIComponent(slug)}`),
+          fetch(`/api/ai/analyze?resumeId=${slug}`),
         ]);
 
-        if (descriptionResp.ok) {
-          const descriptionData = await descriptionResp.json().catch(() => null);
-          if (active && descriptionData) {
-            setJobDescription(descriptionData?.data ?? descriptionData);
+        if (analysisResp.ok) {
+          const response = await analysisResp.json().catch(() => null);
+          if (active && response) {
+            try {
+              const raw = response?.data;
+              if (!raw) {
+                console.log('No analysis result available');
+              } else {
+                // Preserve metadata (id, jobDescriptionId) while parsing the stored `result` field
+                const mapped = raw.map((response: any) => {
+                  const parsed = typeof response.result === 'string' && response.result ? JSON.parse(response.result) : response.result || {};
+                  // console.log(response)
+                  return {
+                    ...parsed,
+                    _analysisId: response.id,
+                    _jobDescriptionId: response.jobDescriptionId,
+                    _analysedDate: response.updatedAt
+                  } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string };
+                });
+                setAnalysisData(mapped);
+
+              }
+            } catch (err) {
+              console.warn('Failed to parse analysis result:', err, response?.data?.result);
+            }
           }
         }
 
@@ -89,7 +117,6 @@ const PreviewPage = () => {
           showToast('No resume data found', 'warning', 2500);
           return;
         }
-
         setResumeData(resumeJson.data);
         setSelectedTemplate(resumeJson.data.template);
         const hasMinimum = !!(resumeJson.data.profile?.fullname && resumeJson.data.profile?.email);
@@ -99,7 +126,7 @@ const PreviewPage = () => {
           console.error('Error loading resume data:', err);
           showToast('Error loading resume. Redirecting…', 'error', 2500);
           setStatus('error');
-          setTimeout(() => (window.location.href = '/builder'), 600);
+          // setTimeout(() => (window.location.href = '/builder'), 600);
         }
       }
     };
@@ -161,6 +188,7 @@ const PreviewPage = () => {
         console.error('❌ PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
         setDownloading(false);
+        setRegenerating(false)
         return;
       }
 
@@ -181,11 +209,13 @@ const PreviewPage = () => {
       document.body.removeChild(a);
       showToast('PDF downloaded', 'success', 1500);
       setDownloading(false);
+      setRegenerating(false)
     } catch (error) {
       console.error('❌ PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
     }
   };
+
 
   const performDelete = async () => {
     if (!resumeData) return;
@@ -209,13 +239,14 @@ const PreviewPage = () => {
     }, 320);
   };
 
-  const handleRegerate = async (resumeData: ResumeData) => {
+  const handleRegerate = async (resumeData: ResumeData, analysis?: any) => {
     if (!user) {
       return showToast('This feature is not availbale on guest version', 'info', 3000);
     }
     setRegenerating(true);
     setPendingUpdate(true);
-    const response = await ResumeService.regenerate(resumeData, jobDescription);
+    showToast('Generating resume')
+    const response = await ResumeService.regenerate(resumeData, analysis);
     const data = await response.json();
     if (!response.ok) {
       showToast('Error regenerating resume', 'error', 3000);
@@ -256,17 +287,43 @@ const PreviewPage = () => {
     setPendingUpdate(false);
     return;
   };
+
+  const handleReAnalysis = async (analysis: any) => {
+    setAnalyzing(true)
+    const resumeId = slug
+    const descriptionId = analysis._jobDescriptionId
+    const response = await analyzeResume(resumeId, descriptionId)
+    if (!response.ok) {
+      console.log(response)
+      setAnalyzing(false)
+    }
+    const data = response.data
+
+    try {
+      // response.data should contain the updated analysis record with fields like id and result
+      if (data && data.id) {
+        const refreshed = typeof data.result === 'string' && data.result ? JSON.parse(data.result) : data.result || {};
+        setAnalysisData(prev => (prev || []).map(a => ((a as any)._analysisId === data.id) ? ({ ...(refreshed as any), _analysisId: data.id, _jobDescriptionId: data.jobDescriptionId, _analysedDate: data.updatedAt }) : a));
+        showToast('Analysis updated', 'success', 1500);
+      }
+    } catch (err) {
+      console.warn('Failed to merge refreshed analysis:', err, data);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   // Unified rendering logic to prevent 'No Resume Data' flash
   if (status === 'loading') {
     return (
       <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl grid gap-8">
-          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
+                className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
               />
             ))}
           </div>
@@ -286,7 +343,7 @@ const PreviewPage = () => {
           </p>
           <Button
             variant="secondary"
-            size="medium"
+            size="small"
             onClick={() => (window.location.href = `/builder/${slug}`)}
           >
             Continue Editing
@@ -298,33 +355,46 @@ const PreviewPage = () => {
 
   if (status === 'ready' && resumeData) {
     const displayTemplate = user ? Templates : Templates.slice(0, 3);
-    // Main preview page
     return (
       <div
-        className={`min-h-screen py-8 relative transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
+        className={`min-h-screen relative transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
-          {/* Actions */}
-          <div className="flex justify-center gap-1 gap-y-2 md:gap-3 flex-wrap text-[14px]">
-            <button
-              onClick={handleDownloadPDF}
-              disabled={deleting || downlaoding || generating}
-              className={`px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-            >
-              <Download size={16} /> Download
-            </button>
+        <div className={`min-[500px]:hidden  fixed bottom-0 left-0 z-100 p-4 grid gap-2 `}>
+          <div className='min-h-fit bg-white overflow-y-scroll'>
 
+            {reports &&
+              <div className='pt-4 '>
+                <h3 className='font-bold'>Analysis Reports</h3>
+                {analysisData && analysisData.map((analysis, count) => {
+                  const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
+
+                  return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`grid gap-2 items-center px-2 py-1  m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
+                    <JobAnalysisReport {...analysis} />
+                    <div className='flex items-center gap-2'>
+                      <Button variant='secondary' size='small' onClick={() => handleReAnalysis(analysis)}>{isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                      <Button disabled={generating} variant='primary' size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button></div>
+                  </div>
+                })}
+              </div>
+            }</div>
+          <BarChart2Icon onClick={() => {
+            showMenu(false)
+            showReports(!reports)
+          }} className={` transition-all ease-in-out `} />
+        </div>
+        <div className={`min-[500px]:hidden fixed bottom-0 right-0 z-100 p-4 grid place-items-end gap-2`}>
+          {menu && <div className='bg-green-400/25 p-4 rounded grid gap-2'>
             <button
               onClick={() => (window.location.href = `/builder/${slug}`)}
-              className="px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
+              className=" px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
             >
               <Edit size={16} /> Edit Resume
             </button>
 
             <button
               onClick={() => (window.location.href = '/builder')}
-              disabled={user ? false : true}
-              className="px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
+              // disabled={user ? false : true}
+              className=" px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
             >
               <Plus size={16} /> New Resume
             </button>
@@ -332,22 +402,78 @@ const PreviewPage = () => {
             <button
               onClick={() => setShowConfirm(true)}
               disabled={deleting}
-              className={`px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-400'}`}
+              className={` px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-400'}`}
             >
               {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash size={16} />}{' '}
               {deleting ? 'Deleting' : 'Delete'}
             </button>
+          </div>}
+          <SettingsIcon onClick={() => {
+            showReports(false)
+            showMenu(!menu)
+          }} className={`${menu ? 'rotate-180' : ''} transition-all ease-in-out`} />
+        </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
+          {/* Actions */}
+          <div className="w-full flex justify-between gap-1 gap-y-2 md:gap-3 min-[500px]:flex-wrap text-[14px]">
             <button
-              onClick={() => handleRegerate(resumeData)}
-              className={`px-4 py-1 bg-green-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${generating ? 'animate-pulse' : 'hover:bg-green-400'} ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={handleDownloadPDF}
+              disabled={deleting || downlaoding || generating}
+              className={`max-[500px]:w-full px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+            >
+              <Download size={16} /> Download
+            </button>
+
+            <button
+              onClick={() => (window.location.href = `/builder/${slug}`)}
+              className="max-[500px]:hidden px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
+            >
+              <Edit size={16} /> Edit Resume
+            </button>
+
+            <button
+              onClick={() => (window.location.href = '/builder')}
+              // disabled={user ? false : true}
+              className="max-[500px]:hidden px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
+            >
+              <Plus size={16} /> New Resume
+            </button>
+
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={deleting}
+              className={`max-[500px]:hidden px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-400'}`}
+            >
+              {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash size={16} />}{' '}
+              {deleting ? 'Deleting' : 'Delete'}
+            </button>
+
+            <button
+              onClick={() => handleRegerate(resumeData, selectedAnalysis)}
+              className={`max-[500px]:w-full px-4 py-1 bg-green-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${generating ? 'animate-pulse' : 'hover:bg-green-400'} ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={generating || downlaoding || deleting}
             >
               <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
             </button>
           </div>
 
+          <div className='max-[500px]:hidden'>
+            <h3 className='text-semibold'> Analysis</h3>
+            <div className='flex '>
+              {analysisData && analysisData.map((analysis, count) => {
+                const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
+                return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`w-fit h-fit grid gap-2 items-center px-2 py-1  m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
+                  <JobAnalysisReport {...analysis} />
+                  <div className='flex items-center gap-2'>
+                    <Button variant='secondary' size='small' onClick={() => handleReAnalysis(analysis)}>{isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                    <Button disabled={generating} variant='primary' size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button></div>
+                </div>
+              })
+              }
+            </div>
+          </div>
+
           <div className="space-y-2">
-            {' '}
             <div className="w-full grid grid-cols-3 gap-4 ">
               {displayTemplate.map(template => (
                 <button
@@ -359,14 +485,12 @@ const PreviewPage = () => {
                     }`}
                 >
                   <div className="flex items-center gap-3 justify-left">
-                    {/* <span className="text-2xl">{template.}</span> */}
                     <h3
                       className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
                     >
                       {template.name}
                     </h3>
                   </div>
-                  {/* <p className="text-sm text-gray-600 mt-1 hidden sm:block">{}</p> */}
                 </button>
               ))}
             </div>
@@ -392,7 +516,6 @@ const PreviewPage = () => {
                 resumeData={resumeData}
                 template={selectedTemplate}
                 regenerating={generating}
-              /* Let container control height & scrolling */
               />
             </div>
             {pendingUpdate && (
@@ -432,8 +555,18 @@ const PreviewPage = () => {
     );
   }
   // No data fallback only when status is not-found
+
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Resume</h2>
+          <p className="text-gray-600 mb-6">An unexpected error occurred. Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
   if (status === 'not-found' && showFallback) {
-    console.log('not-found fallback displayed');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -449,26 +582,16 @@ const PreviewPage = () => {
       </div>
     );
   }
-  if (status === 'error') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Resume</h2>
-          <p className="text-gray-600 mb-6">An unexpected error occurred. Redirecting…</p>
-        </div>
-      </div>
-    );
-  }
   // Should not reach here; keep skeleton as fallback
   return (
     <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-5xl grid gap-8">
-        <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
         <div className="grid grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
+              className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
             />
           ))}
         </div>
@@ -476,6 +599,8 @@ const PreviewPage = () => {
       </div>
     </div>
   );
+
+
 
 };
 

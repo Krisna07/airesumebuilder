@@ -1,3 +1,5 @@
+import JobDescription from "@/components/Forms/JobDescription";
+
 export interface User {
   id: string;
   email: string;
@@ -71,6 +73,22 @@ export interface AnalysisResult {
   matchingPercentage: number;
   suggestions: string[];
   role?: string;
+  result?: string;
   missingKeywords?: string[];
   strengths?: string[];
 }
+
+export interface JobDescription {
+  id: string;
+  description: string;
+  title: string;
+  company: string;
+  location: string;
+  domain: string;
+  url: string
+}
+
+export type JobDetailsWithAnalysis = JobDescription & {
+  analysis?: AnalysisResult;
+  hasAnalysed?: boolean;
+};

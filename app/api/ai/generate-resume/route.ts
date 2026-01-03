@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
         const { resume, jobDescription }: { resume: ResumeData, jobDescription: string } = await req.json();
 
-        if (!resume || !jobDescription) {
+        if (!resume) {
             return NextResponse.json({ error: 'Missing resume data or job description' }, { status: 400 });
         }
 

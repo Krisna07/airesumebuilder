@@ -9,6 +9,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css'; // Import the necessary CSS
 import Datepicker from './Datepicker';
 import { useToast } from '@/context/PopupContext';
+import { FaCircle } from 'react-icons/fa6';
 
 interface ExperienceStepProps {
   data: Experience[];
@@ -75,7 +76,9 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
         data.map((experience, index) => (
           <div key={index} className="w-full grid grid-cols-1 gap-4 place-items-start border-b pb-4">
             <div className="w-full grid gap-2 relative">
-              <div className="w-full flex items-center justify-between gap-4">
+              <div className="w-full  ">
+                {experience.current && <span className=' top-0 left-[50px] h-fit text-[10px] bg-green-100 text-green-800 px-2 py-1 rounded-full flex gap-1 w-fit items-center '><FaCircle color='black' className='animate-pulse' /> Current</span>}
+
                 <Input
                   type="text"
                   name="title"
@@ -84,6 +87,7 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
                   onChange={e => updateExperience(index, 'title', e.target.value)}
                   placeholder="Title"
                 />
+
               </div>
 
               <Input
