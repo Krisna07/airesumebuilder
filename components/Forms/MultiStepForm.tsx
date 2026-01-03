@@ -9,13 +9,12 @@ import { CustomSectionData, Education, Experience, Profile, ResumeData, skills }
 import Button from '../UI/Button';
 import FormLayout from './FomLayout';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
-import JobDescription from './JobDescription';
 import { ResumeService } from '@/services/resumeServices';
 import { useToast } from '@/context/PopupContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import Templates from '../Templates/templates';
 import ResumePreview from '../Templates/ResumePreview';
-// import CustomSection from './AddSection';
+import JobDescription from './JobDescription';
 
 interface MultiStepFormProps {
   resumeContent: ResumeData;
@@ -187,24 +186,23 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
             subheading="Select a design style for your resume."
           >
             <div className="w-full">
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid  md:grid-cols-3 min-[500px]:grid-cols-2 gap-4">
                 {displayTemplate.map(template => {
                   const active = selectedTemplate === template.id;
                   return (
-                    <button
+                    <div
                       key={template.id}
-                      type="button"
                       onClick={() => setSelectedTemplate(template.id)}
-                      className={`group p-2 rounded-lg border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 relative
+                      className={`w-full group p-2 rounded-lg border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 relative
                         ${active
                           ? 'border-blue-500 bg-blue-50 shadow-sm'
                           : 'border-gray-200 hover:border-gray-300'}`}
                       aria-pressed={active}
                     >
                       <div
-                        className={`w-full rounded-md overflow-hidden mb-3 bg-gradient-to-tr ${template.accent} relative aspect-[3/4]`}
+                        className={`rounded-md overflow-hidden mb-3 bg-linear-to-tr ${template.accent} relative aspect-3/4`}
                       >
-                        <div className="absolute inset-0">
+                        <div className=" absolute inset-0">
                           <ResumePreview
                             template={template.id}
                             resumeData={resumeContent}
@@ -220,7 +218,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
                       <p className="text-xs text-gray-600 leading-snug">
                         {template.description}
                       </p>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

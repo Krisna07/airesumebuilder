@@ -3,6 +3,7 @@ import Button from './Button';
 import { AnalysisResult, JobDescription, JobDetailsWithAnalysis } from '@/types/types';
 import { analyzeResume } from '@/services/resumeServices';
 import { ChevronDown } from 'lucide-react';
+import JobAnalysisReport from './JobAnalysisReport';
 
 type Props = {
     job: JobDetailsWithAnalysis;
@@ -12,7 +13,7 @@ type Props = {
 
 const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
     const [analyzing, setAnalyzing] = useState<boolean>(false);
-    const [analysis, setAnalysis] = useState<AnalysisResult | null>(job.hasAnalysed ? JSON.parse(job.analysis?.result || '') : null);
+    const [analysis, setAnalysis] = useState<AnalysisResult | null>(job?.hasAnalysed ? JSON.parse(job.analysis?.result || '') : null);
     type ShowDetailsState = {
         jobDescriptionVisibility: boolean;
         analysisDetails: boolean;
@@ -32,12 +33,11 @@ const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
         if (!jobDetails.description) return;
         setAnalyzing(true);
         try {
-            const result = await analyzeResume(resumeId, jobDetails, true);
+            const result = await analyzeResume(resumeId, jobDetails);
             if (result.status !== 200) {
                 throw new Error(result.error || `Analysis failed with status ${result.status}`);
             }
             const parsed = result.data?.result ? JSON.parse(result.data.result) : null;
-            console.log(parsed)
             setAnalysis(parsed);
         } catch (err) {
             throw err;
@@ -51,11 +51,11 @@ const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
             <div className='grid text-xs grid-cols-1 md:grid-cols-3 gap-4'>
                 <div>
                     <p className='text-xs text-slate-500'>Position</p>
-                    <p className=' text-slate-700'>{job.title ?? '—'}</p>
+                    <p className=' text-slate-700'>{job?.title ?? '—'}</p>
                 </div>
                 <div>
                     <p className='text-xs text-slate-500'>Location</p>
-                    <p className=' text-slate-700'>{job.location ?? '—'}</p>
+                    <p className=' text-slate-700'>{job?.location ?? '—'}</p>
                 </div>
                 <Button size='small' variant='secondary' className='text-[10px] text-slate-500 w-fit shadow px-2 py-1 rounded flex items-center' onClick={() => updateShowDetails('jobDescriptionVisibility')}>
                     <ChevronDown size={12} className={`transition-transform ${showDetails.jobDescriptionVisibility ? 'rotate-180' : 'rotate-0'}`} />
@@ -65,50 +65,7 @@ const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
             {showDetails.jobDescriptionVisibility && <div className='w-full min-h-[220px] border shadow-md text-xs text-slate-600 rounded-md p-2 outline-green-300 active:border-green-300 resize-y'>{job.description ?? '—'}</div>}
 
             {analysis && (
-                <div className=' bg-white  rounded text-xs grid gap-2 shadow-[0_0_2px_0_gray'>
-                    <h3 className='font-medium'>Last Analysis Report</h3>
-                    <div className='grid gap-1'>
-                        <p className='text-slate-600'>Matching: {analysis.matchingPercentage ?? '—'}%</p>
-                        <div className=''>
-                            <span>Summary</span>
-                            <p className='text-xs text-slate-600'>{analysis.description}</p>
-                        </div>
-
-                        {showDetails.analysisDetails && <>
-                            <div className=''>
-                                <span className='font-semibold mt-2.5'>Missing keywords</span>
-                                <div className='flex flex-wrap gap-x-2 gap-y-1 mt-1'>
-                                    {analysis?.missingKeywords?.map((keywords: string, count: number) => (
-                                        <span key={count} className='text-xs text-slate-600 bg-slate-300 rounded-4xl px-2'>
-                                            {keywords}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className='w-full max-[600px]:grid flex gap-4 justify-between  px-4 '>
-                                <div className='w-full '>
-                                    <span className='font-semibold'>Strenght Highlighted In Resume</span>
-                                    {analysis?.strengths?.map((strength: string, count: number) => (
-                                        <li key={count} className='text-xs text-slate-600'>
-                                            {strength}
-                                        </li>
-                                    ))}
-                                </div>
-                                <div className='w-full'>
-                                    <span className='font-semibold'>AI Suggestions</span>
-                                    {analysis?.suggestions?.map((suggestion: string, count: number) => (
-                                        <li key={count} className='text-xs text-slate-600'>
-                                            {suggestion}
-                                        </li>
-                                    ))}
-                                </div>
-                            </div>
-                        </>}
-                        <span className='cursor-pointer' onClick={() => updateShowDetails('analysisDetails')}>
-                            {showDetails.analysisDetails ? '...show less' : '...show more'}
-                        </span>
-                    </div>
-                </div>
+                <JobAnalysisReport {...analysis} />
             )}
 
             <div className='flex items-center justify-between'>

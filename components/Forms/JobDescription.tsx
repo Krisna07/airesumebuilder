@@ -48,6 +48,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
   const fetchDescription = async () => {
     if (user) {
       const response = await JobDescriptionService.getAll(user.id, resumeId)
+      console.log(response)
       if (response.status !== 200) {
         setError('Unable to fetch all previous Job desctiptions')
       }
@@ -127,8 +128,12 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
           const allJds = JobDescriptionService.getLocal(resumeId)
           setJobDetails(allJds)
         }
+        const userId = user?.id
+        if (!userId) {
+          return
+        }
 
-        const response = await JobDescriptionService.save(resumeId, raw[0])
+        const response = await JobDescriptionService.save(resumeId, userId, raw[0])
         if (!response.ok) {
           setError('Uh oh! there is some error saving data')
           await JobDescriptionService.saveLocal(resumeId, raw[0])
