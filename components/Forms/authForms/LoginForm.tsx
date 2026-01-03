@@ -17,9 +17,16 @@ const LoginForm: React.FC = () => {
     const [loader, setLoader] = useState(false)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoader(true)
         const response = await signIn('credentials', { email: form.email, password: form.password, redirect: false });
-        if (!response?.ok) { return toast.showToast(`${response?.error}`, 'error', 3000) }
+
+        if (!response?.ok) {
+            console.log(response)
+            setLoader(false)
+            return toast.showToast(`Error logging in. Please try again later.`, 'error', 3000)
+        }
         toast.showToast("Login successfull", 'success', 3000)
+        setLoader(false)
         window.location.href = '/builder'
     };
 
@@ -39,7 +46,7 @@ const LoginForm: React.FC = () => {
     }
     return (
         <div className=' overflow-hidden min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-            {loader && <div className='w-full h-full absolute bg-gray-900/75 flex items-center justify-center'>
+            {loader && <div className='w-screen h-screen fixed z-[1000] bg-gray-900/75 flex items-center justify-center'>
                 <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
                     <div className="loader"></div>
                     <h3 className='text-white animate-pulse'>Authenticating User....</h3>

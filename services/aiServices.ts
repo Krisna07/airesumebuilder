@@ -1,29 +1,22 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { AnalysisResult, ResumeData } from "@/types/types";
 import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt } from "@/lib/prompts";
 import { parseResponse } from "@/lib/jsonParse";
 
 const api = process.env.GEMINI_API_KEY;
+console.log(api)
 if (!api) {
+
     throw new Error('GEMINI_API_KEY environment variable is not set. Please add it to your .env.local file.');
 }
-const genAI = new GoogleGenerativeAI(api);
+const genAI = new GoogleGenAI({
+    apiKey: api,
+});
 
 // Central model instances
 // analyzeModel: faster, smaller output
-const analyzeModel = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-});
+const aiModel = 'gemini-2.5-flash-lite'
 
-// resumeModel: allow a bit more room for full structured resume JSON
-const resumeModel = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    generationConfig: {
-        temperature: 0.35, // slightly higher for richer bullets
-        topP: 0.9,
-        maxOutputTokens: 5000,
-    },
-});
 
 function coerceArrayStrings(value: unknown): string[] {
     if (Array.isArray(value)) return value.filter((v) => typeof v === "string");
@@ -47,9 +40,12 @@ export class AIService {
         );
 
         try {
-            const result = await resumeModel.generateContent(prompt);
-            const response = result.response;
-            const raw = response.text();
+            const response = await genAI.models.generateContent({
+                model: aiModel,
+                contents: prompt
+            });
+            // const response = result.text;
+            const raw = response.text;
             const parsed = parseResponse(raw);
             return parsed;
         } catch (error) {
@@ -62,9 +58,12 @@ export class AIService {
         // Build prompt using the specialized analyze prompt (caps tokens by slicing arrays internally)
         const prompt = analyzeResumeToJobFitPrompt(resumeData, jobDescription);
         try {
-            const result = await analyzeModel.generateContent(prompt);
-            const response = result.response;
-            const raw = response.text()
+            const response = await genAI.models.generateContent({
+                model: aiModel,
+                contents: prompt
+            });
+            // const response = result.response;
+            const raw = response.text
             const parsedRaw = parseResponse(raw);
             // console.log("Raw analysis response:", raw);
             const parsed = (parsedRaw ?? {}) as Partial<AnalysisResult>;
@@ -98,9 +97,12 @@ export class AIService {
     URL: ${url}
     OUTPUT:`;
         try {
-            const result = await analyzeModel.generateContent(prompt);
-            const response = await result.response;
-            const raw = await response.text();
+            const response = await genAI.models.generateContent({
+                model: aiModel,
+                contents: prompt
+            });
+
+            const raw = await response.text
             return parseResponse(raw);
         } catch (error) {
             console.error("Error extracting URL data:", error);

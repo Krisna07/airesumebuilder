@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('Error in extract-resume route:', error);
         const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-        return NextResponse.json({ error: 'Failed to parse request body', details: message }, { status: 500 });
+        const retryMatch = typeof message === 'string' && message.match(/Retry after\s*(\d+s|\d+\.\d+s)/i);
+        const retryHint = retryMatch ? `Retry after ${retryMatch[1]}.` : undefined;
+        return NextResponse.json({ error: 'Failed to parse request body', details: message, retryHint }, { status: 500 });
     }
 }
 

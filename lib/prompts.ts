@@ -1,6 +1,6 @@
 import { ResumeData } from "@/types/types"
 
-const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription: string) => {
+const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string) => {
   // Updated for customSections replacing legacy certificates.
   // customSections: array of section objects each with a title and array of subsections.
   // subsection: { title, content (rich summary), optional date }
@@ -21,7 +21,7 @@ SCHEMA (keys and basic constraints):
 
 CUSTOM SECTIONS RULES:
 - Use at most 3 customSections unless source resume already has more.
-- Pick only high-impact categories relevant to the job description (e.g. Publications for research roles, Projects for engineering roles).
+- Pick only high-impact categories relevant to the job description if Job description is provided (e.g. Publications for research roles, Projects for engineering roles).
 - Each subsection content should be 1–2 concise sentences; no bullet symbols, just plain text.
 - Omit date if not provided or irrelevant.
 

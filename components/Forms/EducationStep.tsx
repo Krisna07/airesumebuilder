@@ -112,11 +112,11 @@ const EducationStep: React.FC<EducationStepProps> = ({ data, onChange }) => {
                 </Button>
               )}
               <Button
-                variant={'danger'}
+                variant={'primary'}
                 size={'small'}
                 onClick={() => removeEducation(index)}
                 type="submit"
-                className={index !== data.length - 1 ? `w-full` : ''}
+                className={index !== data.length - 1 ? `w-fit` : ''}
               >
                 <Trash2 size={20} /> Remove
               </Button>

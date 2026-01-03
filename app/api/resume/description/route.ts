@@ -7,10 +7,10 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { resumeId, url, description, title, company, location, domain } = body;
+        const { userId, url, description, title, company, location, domain } = body;
 
-        if (!resumeId) {
-            return NextResponse.json({ error: 'resumeId is required' }, { status: 400 });
+        if (!userId) {
+            return NextResponse.json({ error: 'The action needs to be handled by a logged in user' }, { status: 400 });
         }
         if (!url && !description) {
             return NextResponse.json({ error: 'No URL or description provided' }, { status: 400 });
@@ -18,46 +18,33 @@ export async function POST(request: NextRequest) {
         if (!title || !company || !location || !domain) {
             return NextResponse.json({ error: 'Missing required metadata fields' }, { status: 400 });
         }
-        const storedDescription = await prisma.jobDescription.findMany({
-            where: { resumeId },
+
+        const storedJobDetails = await prisma.jobDescription.findFirst({
+            where: { url }
         });
 
-        if (storedDescription && storedDescription.length > 0) {
+        if (storedJobDetails) {
             // update all descriptions for this resumeId with the new metadata/description
-            await prisma.jobDescription.updateMany({
-                where: { resumeId },
-                data: {
-                    title,
-                    company,
-                    location,
-                    domain,
-                    description: description || '',
-                },
-            });
-
-            const updatedRecords = await prisma.jobDescription.findMany({
-                where: { resumeId },
-            });
-
-            return NextResponse.json({ data: updatedRecords }, { status: 200 });
+            return NextResponse.json({ data: storedJobDetails }, { status: 200 });
         }
+
+        // ensure the resume exists and get its owner so we can satisfy the required user relation
+        const resumeRecord = await prisma.user.findUnique({ where: { id: userId } });
+        if (!resumeRecord) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
         const jobDescriptionData = {
             id: randomUUID(),
-            resumeId,
             title,
             company,
             location,
             domain,
-            description: description || ''
+            url,
+            description: description || '',
+            user: { connect: { id: resumeRecord.id } }
         };
-        await prisma.resume.update({
-            where: { id: resumeId },
-            data: {
-                title: title,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
-                analyzedAt: new Date() as any,
-            }
-        });
+
         const storeDescription = await prisma.jobDescription.create({ data: jobDescriptionData });
         return NextResponse.json({ data: storeDescription }, { status: 200 });
 
@@ -67,17 +54,24 @@ export async function POST(request: NextRequest) {
     }
 
 }
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const resumeId = searchParams.get('slug') || undefined;
+        const slug = searchParams.get('slug');
+        if (slug === 'all') {
+            const allDescriptions = await prisma.jobDescription.findMany();
+            return NextResponse.json({ data: allDescriptions }, { status: 200 });
+        }
 
-        if (!resumeId) {
+        const descriptionId = searchParams.get('id') || undefined;
+
+        if (!descriptionId) {
             return NextResponse.json({ error: 'resumeId is required' }, { status: 400 });
         }
 
         const descriptions = await prisma.jobDescription.findFirst({
-            where: { resumeId },
+            where: { id: descriptionId },
         });
 
         if (descriptions) {
@@ -87,7 +81,9 @@ export async function GET(request: NextRequest) {
                     company: descriptions.company,
                     location: descriptions.location,
                     domain: descriptions.domain,
-                    description: descriptions.description
+                    description: descriptions.description,
+                    url: descriptions.url,
+                    dateCreated: descriptions.createdAt
                 }
             }, { status: 200 });
         }

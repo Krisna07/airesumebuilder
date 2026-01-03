@@ -136,8 +136,9 @@ const fetchHTML = async (rawUrl: string, useBrowser: boolean): Promise<{ html: s
         return { html: '', usedBrowser: false };
     }
 };
+let extractUrl = '';
 
-const extractByDomain = ($: cheerio.CheerioAPI, domain: string) => {
+const extractByDomain = ($: cheerio.CheerioAPI, domain: string, urlObj: URL) => {
     const lower = domain.toLowerCase();
     let title = '';
     let company = '';
@@ -164,26 +165,32 @@ const extractByDomain = ($: cheerio.CheerioAPI, domain: string) => {
         company = grab(['a.topcard__org-name-link', '.top-card-layout__second-subline a', '.topcard__flavor a']);
         location = grab(['.top-card-layout__third-subline', '.topcard__flavor--bullet']);
         description = grabHTML(['#job-details', '.show-more-less-html__markup', '.description__text']);
+        extractUrl = urlObj.origin + urlObj.pathname + urlObj.search;
+
     } else if (lower.includes('seek.')) {
         title = grab(['h1[data-automation=job-detail-title]', 'h1']);
         company = grab(['span[data-automation=advertiser-name]', 'a[data-automation=advertiser-name]']);
         location = grab(['span[data-automation=job-detail-location]']);
         description = grabHTML(['div[data-automation=jobAdDetails]', '[data-automation=jobAdDetails]']);
+        extractUrl = urlObj.origin + urlObj.pathname;
     } else if (lower.includes('jora.') || lower.includes('job')) { // broad for jora
         title = grab(['h1', '.job-title']);
         company = grab(['.job-company', '.company', '.company-name']);
         location = grab(['.job-location', '.location']);
         description = grabHTML(['.job-description', '#job-details', '.description']);
+        extractUrl = urlObj.origin + urlObj.pathname;
     } else if (lower.includes('indeed.')) {
         title = grab(['h1.jobsearch-JobInfoHeader-title', 'h1']);
         company = grab(['div.jobsearch-InlineCompanyRating div:first-child', '.jobsearch-CompanyInfoWithoutHeaderImage div:nth-child(1)']);
         location = grab(['div.jobsearch-JobInfoHeader-subtitle div:last-child']);
         description = grabHTML(['#jobDescriptionText']);
+        extractUrl = urlObj.origin + urlObj.pathname + urlObj.search.split('&')[0]
     } else if (lower.includes('glassdoor.')) {
         title = grab(['div[data-test=job-title]', 'h1']);
         company = grab(['div[data-test=employerName]']);
         location = grab(['div[data-test=location]']);
         description = grabHTML(['div.jobDescriptionContent', 'section[data-test=job-description]']);
+        extractUrl = urlObj.origin + urlObj.pathname;
     } else {
         // Generic fallback
         title = grab(['h1', 'header h1', 'h1.title']);
@@ -239,7 +246,8 @@ export async function POST(req: NextRequest) {
         const results: JobExtract[] = [];
 
         for (const url of urls.slice(0, 5)) { // limit to 5 as requested
-            const domain = new URL(url).hostname.replace(/^www\./, '');
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.replace(/^www\./, '');
             try {
                 const { html, usedBrowser } = await fetchHTML(url, needsBrowser(url));
                 if (!html || isChallengePage(html)) {
@@ -251,11 +259,14 @@ export async function POST(req: NextRequest) {
                     });
                     continue;
                 }
+
+
                 const $ = cheerio.load(html);
-                const meta = extractByDomain($, domain);
+                const meta = extractByDomain($, domain, urlObj);
 
                 // Additional Seek-specific enhancement: parse embedded __NEXT_DATA__ for richer description if current extraction looks too small
                 if (domain.includes('seek.') && meta.description && meta.description.length < 120) {
+                    extractUrl = urlObj.origin + urlObj.pathname;
                     try {
                         const nextDataRaw = $('script#__NEXT_DATA__').first().html();
                         if (nextDataRaw) {
@@ -309,7 +320,7 @@ export async function POST(req: NextRequest) {
                     }
                 }
                 results.push({
-                    url,
+                    url: extractUrl ?? url,
                     domain,
                     success: true,
                     ...meta,

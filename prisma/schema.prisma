@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+   directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -19,6 +19,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   resumes   Resume[]
+  jobDescriptions JobDescription[]
+
 
 }
 
@@ -26,30 +28,43 @@ model Resume {
   id             String          @id @default(uuid())
   userId         String
   title          String
-  template       String          
+  template       String
   profile        Json
   experiences    Json
   educations     Json
   skills         Json
   customSections Json
-  matchingScore  Float?          @db.DoublePrecision
-  analyzedAt     DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deleted        Boolean         @default(false)
-  jobDescription JobDescription?
+  analysisResults AnalysisResult[]
 }
 
 model JobDescription {
   id          String   @id @default(uuid())
-  resumeId    String   @unique
+  userId      String
   title       String
   company     String
   location    String
   domain      String
   description String
+  url         String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  resume      Resume   @relation(fields: [resumeId], references: [id])
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysisResult AnalysisResult?
+}
+
+model AnalysisResult {
+  id               String   @id @default(uuid())
+  resumeId         String
+  jobDescriptionId String   @unique
+  result           Json
+  matchingScore    Float?   @db.DoublePrecision
+  analyzedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  resume           Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobDescription   JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
 }
