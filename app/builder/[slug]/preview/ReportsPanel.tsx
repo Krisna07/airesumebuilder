@@ -2,7 +2,6 @@
 import JobDescription from "@/components/Forms/JobDescription";
 import Button from "@/components/UI/Button";
 import JobAnalysisReport from "@/components/UI/JobAnalysisReport";
-import JobDecriptionAnalysis from "@/components/UI/jobDecriptionAnalysis";
 import { BotIcon, FileUser } from "lucide-react";
 import { useState } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
@@ -19,8 +18,7 @@ const ReportsPanel = ({
   generating,
   reportsRef,
   generatingCoverLetter,
-  generateCoverLetter,
-  jobDetails
+    generateCoverLetter
   
 }: any) => {
     // console.log(jobDetails)
@@ -44,7 +42,7 @@ const ReportsPanel = ({
           })
           } 
         </div>
-          <JobDescription resumeId={resumeData.id}/>
+                  <JobDescription resumeId={resumeData.id} analysedData={analysisData} />
         </div>
 
       :
