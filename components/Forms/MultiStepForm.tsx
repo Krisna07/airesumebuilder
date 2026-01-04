@@ -263,7 +263,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
     <div className="w-full h-[calc(100vh-4rem)] flex flex-col bg-white relative overflow-hidden">
       {currentStep !== FINAL_STEP_INDEX && (
         <div
-          className="flex-shrink-0 w-full flex items-center gap-3 bg-white/95 backdrop-blur-sm  sticky top-0 z-40 px-3 py-2 overflow-x-auto md:justify-center"
+          className="shrink-0 w-full flex items-center gap-3 bg-white/95 backdrop-blur-sm  sticky top-0 z-40 px-3 py-2 overflow-x-auto md:justify-center"
           role="tablist"
           aria-label="Form steps"
         >
@@ -278,7 +278,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
                 role="tab"
                 aria-selected={active}
                 aria-controls={`step-panel-${stepIndex}`}
-                className={`flex items-center gap-2 flex-shrink-0 p-1 ${active ? 'pr-2' : ''} min-[800px]:pr-2 rounded-full text-xs md:text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active
+                className={`flex items-center gap-2 shrink-0 p-1 ${active ? 'pr-2' : ''} min-[800px]:pr-2 rounded-full text-xs md:text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active
                   ? 'bg-gray-600 text-white shadow'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
@@ -307,7 +307,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
       </div>
 
       {currentStep !== FINAL_STEP_INDEX && (
-        <div className="flex-shrink-0 w-full sticky bottom-0 z-50 bg-white/95 backdrop-blur-sm shadow-[0_0_2px_0_gray]">
+        <div className="shrink-0 w-full fixed bottom-0 z-50 bg-white/95 backdrop-blur-sm shadow-[0_0_2px_0_gray]">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div className="flex-1">
               {currentStep > 1 && (
