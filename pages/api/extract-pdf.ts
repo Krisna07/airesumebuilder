@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const contentLength = req.headers['content-length'];
             if (contentLength) console.log('extract-pdf: content-length header =', contentLength);
         } catch (e) {
+            console.error('extract-pdf: failed to log content-length header', e);
             // ignore logging errors — don't fail the request for logging issues
         }
         if (!file || typeof file !== 'string') {
