@@ -1,6 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PdfData } from 'pdfdataextract';
 
+const allowedOrigins = [
+    'https://airesumebuilder-delta.vercel.app',
+    'https://airesumebuilder.vercel.app',
+];
+
+function applyCorsHeaders(req: NextApiRequest, res: NextApiResponse) {
+    const origin = req.headers.origin;
+
+    if (process.env.NODE_ENV === 'development') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    } else if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
 export const config = {
     api: {
         bodyParser: {
@@ -11,37 +32,39 @@ export const config = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // Handle CORS preflight
+    applyCorsHeaders(req, res);
+
     if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         return res.status(204).end();
     }
 
     if (req.method !== 'POST') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
     try {
-        const { file } = req.body;
-        // Helpful debug logging for large uploads
+        const { file } = req.body ?? {};
+
         try {
             const contentLength = req.headers['content-length'];
             if (contentLength) console.log('extract-pdf: content-length header =', contentLength);
         } catch (e) {
             console.error('extract-pdf: failed to log content-length header', e);
-            // ignore logging errors — don't fail the request for logging issues
         }
+
         if (!file || typeof file !== 'string') {
             return res.status(400).json({ error: 'Missing or invalid file data' });
         }
+
         const buffer = Buffer.from(file, 'base64');
         const data = await PdfData.extract(buffer);
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.status(200).json({ text: (data.text ?? []).join('\n'), meta: data });
+
+        return res.status(200).json({
+            text: (data.text ?? []).join('\n'),
+            meta: data,
+        });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'PDF extraction failed.';
-        res.status(500).json({ error: errorMessage });
+        return res.status(500).json({ error: errorMessage });
     }
 }
