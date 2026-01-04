@@ -29,12 +29,16 @@ export function middleware(request: NextRequest) {
           response.headers.set('Access-Control-Allow-Origin', '*');
       } else {
           const allowedOrigins = [
-              'chrome-extension://nldfljhgcgdfnpaalllnjomenncfmnbn/*', // Replace with actual extension ID
-              'https://airesumebuilder-delta.vercel.app'
+            'https://airesumebuilder-delta.vercel.app',
+            'https://airesumebuilder.vercel.app'
           ];
 
-          const corsOrigin = allowedOrigins.includes(origin || '') ? origin : '*';
-          response.headers.set('Access-Control-Allow-Origin', corsOrigin || '*');
+        // Check if origin is in allowed list, otherwise allow all for now
+        if (origin && allowedOrigins.includes(origin)) {
+          response.headers.set('Access-Control-Allow-Origin', origin);
+        } else {
+          response.headers.set('Access-Control-Allow-Origin', '*');
+        }
       }
 
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
