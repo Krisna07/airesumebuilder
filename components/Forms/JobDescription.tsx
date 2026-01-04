@@ -37,18 +37,16 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
   const { user } = useAuth()
 
   const toast = useToast()
-
   useEffect(() => {
     if (error) {
       toast.showToast(error, 'error', 3000)
     }
-
-  }, [error])
+  }, [error, toast])
 
   const fetchDescription = async () => {
     if (user) {
       const response = await JobDescriptionService.getAll(user.id, resumeId)
-      console.log(response)
+      // console.log(response)
       if (response.status !== 200) {
         setError('Unable to fetch all previous Job desctiptions')
       }
@@ -56,8 +54,6 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
         setTextField(true)
         return
       }
-      // const data = await response.json()
-      console.log(response.data)
       setJobDetails(response.data)
     }
   };

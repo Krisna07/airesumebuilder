@@ -13,7 +13,20 @@ type Props = {
 
 const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
     const [analyzing, setAnalyzing] = useState<boolean>(false);
-    const [analysis, setAnalysis] = useState<AnalysisResult | null>(job?.hasAnalysed ? JSON.parse(job.analysis?.result || '') : null);
+    // job.analysis may be an array (latest analysis at index 0). Safely parse.
+    const initialAnalysis = (() => {
+        try {
+            if (!job?.hasAnalysed) return null;
+            const raw = Array.isArray(job.analysis) ? job.analysis[0] : job.analysis;
+            if (!raw) return null;
+            return typeof raw === 'string' ? JSON.parse(raw) as AnalysisResult : (raw as AnalysisResult);
+        } catch (e) {
+            console.warn('Failed to parse initial analysis:', e);
+            return null;
+        }
+    })();
+
+    const [analysis, setAnalysis] = useState<AnalysisResult | null>(initialAnalysis);
     type ShowDetailsState = {
         jobDescriptionVisibility: boolean;
         analysisDetails: boolean;
@@ -33,7 +46,10 @@ const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
         if (!jobDetails.description) return;
         setAnalyzing(true);
         try {
-            const result = await analyzeResume(resumeId, jobDetails);
+            const result = await analyzeResume({
+                resumeId,
+                jobDetails
+            });
             if (result.status !== 200) {
                 throw new Error(result.error || `Analysis failed with status ${result.status}`);
             }

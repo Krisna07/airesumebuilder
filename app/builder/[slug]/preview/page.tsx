@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { AnalysisResult, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
 import ConfirmDialog from '@/components/UI/ConfirmDialog';
@@ -18,6 +18,96 @@ const sanitizeFile = (s: string) =>
     .trim()
     .replace(/\s+/g, '_')
     .replace(/[^\w.\-]+/g, '');
+
+// Small floating panels extracted for readability
+const ReportsPanel = ({
+  reports,
+  analysisData,
+  selectedAnalysis,
+  setSelectedAnalysis,
+  handleReAnalysis,
+  handleRegerate,
+  resumeData,
+  analyzing,
+  generating,
+  reportsRef,
+}: any) => {
+  return (
+    <div onClick={(e) => e.stopPropagation()} ref={reportsRef} className='w-full min-h-fit  overflow-y-scroll'>
+      {reports && analysisData?.length && (
+        <div className='pt-4 '>
+          <h3 className='font-bold'>Analysis Reports</h3>
+          {analysisData.map((analysis: any, count: number) => {
+            const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
+            return (
+              <div
+                onClick={() => setSelectedAnalysis(analysis)}
+                key={count}
+                className={`grid gap-2 items-center px-2 py-1  m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
+                <JobAnalysisReport {...analysis} />
+                <div className='flex items-center gap-2'>
+                  <Button variant='secondary' size='small' onClick={() => handleReAnalysis(analysis)}>
+                    {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}
+                  </Button>
+                  <Button disabled={generating} variant='primary' size='small' onClick={() => handleRegerate(resumeData, analysis)}>
+                    <BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MenuPanel = ({ menu, setShowConfirm, slug, menuRef }: any) => {
+  return (
+    menu && <div onClick={(e) => e.stopPropagation()} ref={menuRef} className='shadow p-4 rounded grid gap-2'>
+      <button onClick={() => (window.location.href = `/builder/${slug}`)} className=" px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2">
+        <Edit size={16} /> Edit Resume
+      </button>
+      <button onClick={() => (window.location.href = '/builder')} className=" px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2">
+        <Plus size={16} /> New Resume
+      </button>
+      <button onClick={() => setShowConfirm(true)} className={` px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 hover:bg-red-400`}>
+        <Trash size={16} /> Delete
+      </button>
+    </div>
+  )
+
+
+
+};
+
+const TemplatesPanel = ({ displayTemplate, selectedTemplate, handleTemplateChange, user, templatesRef }: any) => {
+  return (
+    <div onClick={(e) => e.stopPropagation()} ref={templatesRef} className="w-full space-y-2 z-110  px-2 rounded-2xl pb-4 mb-4 shadow">
+      <div className="w-full grid  gap-4 ">
+        <div className='font-bold py-2'>Preview Template</div>
+        <div className='grid min-[1000px]:grid-cols-2 gap-2'>
+          {displayTemplate.map((template: any) => (
+            <button key={template.id} onClick={() => handleTemplateChange(template.id)} className={`md:p-3 p-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'}`}>
+              <div className="flex items-center gap-3 justify-left">
+                <h3 className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}>{template.name}</h3>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      {!user && (
+        <div className="w-full flex flex-col gap-2 items-center justify-center">
+          <p>
+            Please{' '}
+            <a href="/auth/signin" className="text-blue-600 underline">sign in</a>{' '}to access more templates
+          </p>
+        </div>
+      )}
+    </div>
+
+  );
+};
 
 
 
@@ -41,6 +131,45 @@ const PreviewPage = () => {
   const [menu, showMenu] = useState<boolean>(false)
   const [reports, showReports] = useState<boolean>(false)
   const [analyzing, setAnalyzing] = useState<boolean>(false)
+  const [showTemplates, setShowTemplates] = useState<boolean>(false)
+  const [generatingCoverLetter, setRegeneratingCoverLetter] = useState(false)
+  const [coverLetter, setCoverLetter] = useState<any>()
+  const [showCoverLetter, setShowCoverLetter] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const reportsRef = useRef<HTMLDivElement | null>(null);
+  const templatesRef = useRef<HTMLDivElement | null>(null);
+  const topBarRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      // ignore clicks from top bar icons
+      if (topBarRef.current && target && topBarRef.current.contains(target)) return;
+      if (menu && menuRef.current && target && !menuRef.current.contains(target)) {
+        showMenu(false);
+      }
+      if (reports && reportsRef.current && target && !reportsRef.current.contains(target)) {
+        showReports(false);
+      }
+      if (showTemplates && templatesRef.current && target && !templatesRef.current.contains(target)) {
+        setShowTemplates(false);
+      }
+    };
+
+    const handleScroll = () => {
+      showMenu(false);
+      showReports(false);
+      setShowTemplates(false);
+
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, [menu, reports, showTemplates]);
 
   useEffect(() => {
     let active = true;
@@ -132,7 +261,15 @@ const PreviewPage = () => {
     };
 
     fetchResume();
-
+    const localCoverletter = typeof window !== 'undefined' ? localStorage.getItem('coverLetter') : null;
+    if (typeof localCoverletter === 'string') {
+      try {
+        const localData = JSON.parse(localCoverletter);
+        setCoverLetter(localData);
+      } catch (err) {
+        console.warn('Failed to parse local cover letter', err);
+      }
+    }
     return () => {
       active = false;
     };
@@ -291,14 +428,16 @@ const PreviewPage = () => {
   const handleReAnalysis = async (analysis: any) => {
     setAnalyzing(true)
     const resumeId = slug
-    const descriptionId = analysis._jobDescriptionId
-    const response = await analyzeResume(resumeId, descriptionId)
+    const jobDescriptionId = analysis._jobDescriptionId
+    const response = await analyzeResume({
+      resumeId,
+      jobDescriptionId
+    })
     if (!response.ok) {
       console.log(response)
       setAnalyzing(false)
     }
     const data = response.data
-
     try {
       // response.data should contain the updated analysis record with fields like id and result
       if (data && data.id) {
@@ -310,6 +449,42 @@ const PreviewPage = () => {
       console.warn('Failed to merge refreshed analysis:', err, data);
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  const generateCoverLetter = async (analysis: any) => {
+    setRegeneratingCoverLetter(true)
+    if (!slug) {
+      showToast('No resume selected to generate coverletter', 'error', 3000)
+      setRegeneratingCoverLetter(false)
+    }
+    const jobDescriptionId = analysis._jobDescriptionId
+    const resumeId = slug
+    if (jobDescriptionId && slug) {
+      console.log('Generatig with', jobDescriptionId, resumeId)
+      const response = await fetch('/api/ai/generate-coverletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeId: resumeId,
+          jobDescriptionId: jobDescriptionId,
+          analysis: analysis || undefined
+        }),
+      })
+
+      if (!response.ok) {
+        setRegeneratingCoverLetter(false)
+        showToast('Error generating coverletter', 'error', 3000)
+        setShowCoverLetter(false)
+        return
+      }
+
+      const data = await response.json()
+      console.log(data)
+      setCoverLetter(data.data)
+      setShowCoverLetter(true)
+      localStorage.setItem('coverLetter', JSON.stringify(data.data))
+      setRegeneratingCoverLetter(false)
     }
   }
 
@@ -357,65 +532,72 @@ const PreviewPage = () => {
     const displayTemplate = user ? Templates : Templates.slice(0, 3);
     return (
       <div
-        className={`min-h-screen relative transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
+        className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
-        <div className={`min-[500px]:hidden  fixed bottom-0 left-0 z-100 p-4 grid gap-2 `}>
-          <div className='min-h-fit bg-white overflow-y-scroll'>
+        <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
+          <div className='w-full flex items-center justify-between bg-white p-4'>
+            <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
+              e.stopPropagation();
+              showMenu(false);
+              setShowTemplates(false);
+              showReports(!reports);
+            }} className={`${reports ? 'text-blue-600  scale-105' : ''} transition-all ease-in-out  w-fit`} />
 
-            {reports &&
-              <div className='pt-4 '>
-                <h3 className='font-bold'>Analysis Reports</h3>
-                {analysisData && analysisData.map((analysis, count) => {
-                  const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
+            <BookTemplateIcon
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                showReports(false);
+                showMenu(false);
+                setShowTemplates(!showTemplates);
+              }}
+              className={`${showTemplates ? 'text-blue-600 scale-105' : ''} transition-all ease-in-out  w-fit`}
+            />
+            <SettingsIcon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
+              e.stopPropagation();
+              showReports(false);
+              setShowTemplates(false);
+              showMenu(!menu);
+            }} className={`${menu ? 'text-blue-600 scale-105 rotate-180' : ''} transition-all ease-in-out`} />
+          </div>
 
-                  return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`grid gap-2 items-center px-2 py-1  m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
-                    <JobAnalysisReport {...analysis} />
-                    <div className='flex items-center gap-2'>
-                      <Button variant='secondary' size='small' onClick={() => handleReAnalysis(analysis)}>{isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-                      <Button disabled={generating} variant='primary' size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button></div>
-                  </div>
-                })}
-              </div>
-            }</div>
-          <BarChart2Icon onClick={() => {
-            showMenu(false)
-            showReports(!reports)
-          }} className={` transition-all ease-in-out `} />
-        </div>
-        <div className={`min-[500px]:hidden fixed bottom-0 right-0 z-100 p-4 grid place-items-end gap-2`}>
-          {menu && <div className='bg-green-400/25 p-4 rounded grid gap-2'>
-            <button
-              onClick={() => (window.location.href = `/builder/${slug}`)}
-              className=" px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
-            >
-              <Edit size={16} /> Edit Resume
-            </button>
-
-            <button
-              onClick={() => (window.location.href = '/builder')}
-              // disabled={user ? false : true}
-              className=" px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2"
-            >
-              <Plus size={16} /> New Resume
-            </button>
-
-            <button
-              onClick={() => setShowConfirm(true)}
-              disabled={deleting}
-              className={` px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-400'}`}
-            >
-              {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash size={16} />}{' '}
-              {deleting ? 'Deleting' : 'Delete'}
-            </button>
+          {reports && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-left'><ReportsPanel
+            reports={reports}
+            analysisData={analysisData}
+            selectedAnalysis={selectedAnalysis}
+            setSelectedAnalysis={setSelectedAnalysis}
+            handleReAnalysis={handleReAnalysis}
+            handleRegerate={handleRegerate}
+            resumeData={resumeData}
+            analyzing={analyzing}
+            generating={generating}
+            reportsRef={reportsRef}
+          /></div>}
+          {showTemplates && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-center'>
+            <TemplatesPanel
+              showTemplates={showTemplates}
+              displayTemplate={displayTemplate}
+              selectedTemplate={selectedTemplate}
+              handleTemplateChange={handleTemplateChange}
+              user={user}
+              templatesRef={templatesRef}
+            />
           </div>}
-          <SettingsIcon onClick={() => {
-            showReports(false)
-            showMenu(!menu)
-          }} className={`${menu ? 'rotate-180' : ''} transition-all ease-in-out`} />
+          {menu && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-right'>
+            <MenuPanel
+              menu={menu}
+              setShowConfirm={setShowConfirm}
+              slug={slug}
+              menuRef={menuRef}
+              showMenu={showMenu}
+              showReports={showReports}
+              setShowTemplates={setShowTemplates}
+            />
+          </div>}
         </div>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6 mt-2">
           {/* Actions */}
-          <div className="w-full flex justify-between gap-1 gap-y-2 md:gap-3 min-[500px]:flex-wrap text-[14px]">
+          <div className="w-full flex max-sm:justify-between justify-center  gap-1 gap-y-2 md:gap-3 min-[500px]:flex-wrap text-[14px]">
             <button
               onClick={handleDownloadPDF}
               disabled={deleting || downlaoding || generating}
@@ -456,67 +638,106 @@ const PreviewPage = () => {
               <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
             </button>
           </div>
-
-          <div className='max-[500px]:hidden'>
-            <h3 className='text-semibold'> Analysis</h3>
+          {coverLetter && <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><BotIcon size={14} />Show Cover letter</Button>
+          }
+          {analysisData?.length && <div className='max-[500px]:hidden'>
+            <h3 className='font-semibold px-2'> Analysis</h3>
             <div className='flex '>
               {analysisData && analysisData.map((analysis, count) => {
                 const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-                return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`w-fit h-fit grid gap-2 items-center px-2 py-1  m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
+                return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`py-2 w-fit h-fit grid gap-2 items-center px-2   m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
                   <JobAnalysisReport {...analysis} />
-                  <div className='flex items-center gap-2'>
-                    <Button variant='secondary' size='small' onClick={() => handleReAnalysis(analysis)}>{isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-                    <Button disabled={generating} variant='primary' size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button></div>
+                  <div className='md:flex grid items-center gap-2'>
+                    <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}>{isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                    <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
+                    <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><BotIcon size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+                  </div>
                 </div>
               })
               }
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="w-full grid grid-cols-3 gap-4 ">
-              {displayTemplate.map(template => (
-                <button
-                  key={template.id}
-                  onClick={() => handleTemplateChange(template.id)}
-                  className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id
-                    ? 'border-blue-500 bg-blue-50 shadow-lg'
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
-                    }`}
-                >
-                  <div className="flex items-center gap-3 justify-left">
-                    <h3
-                      className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
-                    >
-                      {template.name}
-                    </h3>
-                  </div>
-                </button>
-              ))}
-            </div>
-            {!user && (
-              <div className="w-full flex flex-col gap-2 items-center justify-center">
-                <p>
-                  Please{' '}
-                  <a href="/auth/signin" className="text-blue-600 underline">
-                    sign in
-                  </a>{' '}
-                  to access more templates
-                </p>
-              </div>
-            )}
-          </div>
+          </div>}
           <div
             className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm"
             id="resumeViewport"
           >
             {/* Optional inner wrapper to constrain width / center */}
-            <div className="mx-auto max-w-[900px]">
+            <div className="w-full min-[800px]:grid-cols-[80%_20%] grid items-start gap-2 ">
+              <div className="max-[800px]:flex max-[500px]:hidden hidden w-fit space-y-2 ">
+                <div className="w-full px-4  gap-4 ">
+                  <div className='font-bold py-2'>Preview Template</div>
+                  <div className='flex gap-2'>
+                    {displayTemplate.map(template => (
+                      <button
+                        key={template.id}
+                        onClick={() => handleTemplateChange(template.id)}
+                        className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id
+                          ? 'border-blue-500 bg-blue-50 shadow-lg'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3 justify-left">
+                          <h3
+                            className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
+                          >
+                            {template.name}
+                          </h3>
+                        </div>
+                      </button>
+                    ))}</div>
+                </div>
+                {!user && (
+                  <div className="w-full flex flex-col gap-2 items-center justify-center">
+                    <p>
+                      Please{' '}
+                      <a href="/auth/signin" className="text-blue-600 underline">
+                        sign in
+                      </a>{' '}
+                      to access more templates
+                    </p>
+                  </div>
+                )}
+              </div>
               <ResumePreview
                 resumeData={resumeData}
                 template={selectedTemplate}
                 regenerating={generating}
               />
+              <div className="max-[800px]:hidden max-[500px]:hidden max-w-fit space-y-2 ">
+                <div className="w-full grid  gap-4 ">
+                  <div className='font-bold py-2'>Preview Template</div>
+                  <div className='grid min-[1000px]:grid-cols-2 gap-2'>
+                    {displayTemplate.map(template => (
+                      <button
+                        key={template.id}
+                        onClick={() => handleTemplateChange(template.id)}
+                        className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id
+                          ? 'border-blue-500 bg-blue-50 shadow-lg'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3 justify-left">
+                          <h3
+                            className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
+                          >
+                            {template.name}
+                          </h3>
+                        </div>
+                      </button>
+                    ))}</div>
+                </div>
+                {!user && (
+                  <div className="w-full flex flex-col gap-2 items-center justify-center">
+                    <p>
+                      Please{' '}
+                      <a href="/auth/signin" className="text-blue-600 underline">
+                        sign in
+                      </a>{' '}
+                      to access more templates
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
             {pendingUpdate && (
               <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-[1px] grid place-items-center">
@@ -536,6 +757,151 @@ const PreviewPage = () => {
             )}
           </div>
         </div>
+
+        {
+          showCoverLetter && coverLetter && (
+            <div className="fixed inset-0 z-90 grid place-items-center bg-black/30 p-4 top-4">
+              <div className="relative w-full max-w-4xl h-[90vh] max-[500px]:h-[80vh] bg-white rounded-2xl shadow-lg overflow-auto py-4">
+                <button
+                  aria-label="Close cover letter"
+                  onClick={() => setShowCoverLetter(false)}
+                  className="absolute right-4 top-4 text-gray-600 hover:text-gray-900"
+                >
+                  <X />
+                </button>
+                <div className="sm:ml-4 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('coverletter');
+                      const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
+                      navigator.clipboard.writeText(text);
+                    }} className="ml-2 px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('coverletter');
+                      const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
+                      const blob = new Blob([text], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Download
+                  </button>
+                </div>
+
+                <div id="coverletter">
+                  <header className="flex flex-col  items-start justify-between gap-4 p-6 ">
+                    <div>
+                      <div className="text-sm ">{coverLetter.userDetails?.fullname ?? '[Your Name]'}</div>
+                      <div className="text-xs ">{coverLetter.userDetails?.location}</div>
+                      <div className="text-xs ">{coverLetter.userDetails?.phone}</div>
+                      <div className='text-xs'>{coverLetter.userDetails?.email}</div>
+                    </div>
+
+                    <div className="text-left">
+                      <div className="text-xs ">{coverLetter.jobTitle ?? '[Job Title]'}</div>
+                      <div className="text-xs ">{coverLetter.companyName ?? '[Company]'}</div>
+                      <div className="text-xs ">{coverLetter.location ?? ''}</div>
+                    </div>
+                  </header>
+                  <main className="p-6 space-y-6">
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                      <div className="mb-4 font-medium">{coverLetter.parsed?.salutation ?? coverLetter.salutation}</div>
+
+                      <div className="prose prose-sm max-w-none text-gray-800">
+                        {coverLetter.parsed?.coverLetter
+                          ? <div className="whitespace-pre-wrap">{coverLetter.parsed.coverLetter}</div>
+                          : <div className="whitespace-pre-wrap">{coverLetter.coverLetter}</div>}
+                      </div>
+
+                      <div className="mt-4 font-medium">{coverLetter.parsed?.closing ?? coverLetter.closing}</div>
+                    </div>
+
+                    {Array.isArray(coverLetter.keyParagraphs) && coverLetter.keyParagraphs.length > 0 && (
+                      <section>
+                        <h4 className="text-sm font-semibold mb-2">Key Paragraphs</h4>
+                        <div className="grid gap-3">
+                          {coverLetter.keyParagraphs.map((kp: any, idx: number) => (
+                            <div key={idx} className="text-sm text-gray-700">
+                              <div className="text-xs text-gray-500 font-medium">{kp.purpose}</div>
+                              <div className="whitespace-pre-wrap">{kp.text}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {Array.isArray(coverLetter.highlights) && coverLetter.highlights.length > 0 && (
+                      <section>
+                        <h4 className="text-sm font-semibold mb-2">Highlights</h4>
+                        <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                          {coverLetter.highlights.map((h: any, i: number) => (
+                            <li key={i}><span className="font-medium">{h.title ? `${h.title}: ` : ''}</span>{h.text}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </main>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {/* {<div className="mt-6  w-full h-full absolute top-0 left-0 z-90  mx-auto p-4 bg-white rounded-lg shadow-sm border">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold mt-2">Cover Letter <span className='text-xs'>{coverLetter.wordCount} words</span> </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200"
+                onClick={() => navigator.clipboard.writeText(coverLetter.coverLetter)}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                onClick={() => {
+                  const blob = new Blob([coverLetter.coverLetter], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Download
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 space-y-3 text-gray-800">
+            <div className="mt-2 prose prose-sm">
+              <div className="text-sm ">
+                <span>  </span>
+                <span>{ }</span>
+
+              </div>
+              <div className="whitespace-pre-wrap">{ }</div>
+            </div>
+            <div className="mt-3 text-sm text-gray-700">{ }</div>
+          </div>
+        </div>} */}
         <ConfirmDialog
           open={showConfirm}
           onCancel={() => (!deleting ? setShowConfirm(false) : null)}

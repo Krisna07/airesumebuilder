@@ -9,9 +9,6 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AI Resume Builder',
   description: 'Create a professional resume with the help of AI.',
-  // icons: {
-  //   icon: '/icon.svg'
-  // }
 };
 
 export default function RootLayout({
@@ -21,11 +18,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body className={`${inter.className} max-h-screen w-full  `}>
+      <body className={`${inter.className} w-full min-h-screen  relative `}>
         <Providers>
           <Navbar />
-          <main className='w-full min-h-[calc(100vh-4rem)] mt-[4rem] grid place-items-start overflow-hidden'>
-            <section className='w-full h-full min-[800px]:min-w-[800px] grid place-items-center '>{children}</section>
+          <main className='w-full h-screen'>
+            {children}
           </main>
         </Providers>
       </body>

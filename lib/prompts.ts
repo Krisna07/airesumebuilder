@@ -1,4 +1,4 @@
-import { ResumeData } from "@/types/types"
+import { AnalysisResult, JobDescription, ResumeData } from "@/types/types"
 
 const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string) => {
   // Updated for customSections replacing legacy certificates.
@@ -85,5 +85,51 @@ JOB_DESCRIPTION_TEXT:\n${jobDescription}
 OUTPUT:`;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const coverLetterPrompt = (sourceResume: ResumeData, jobDescription: JobDescription, analysis?: AnalysisResult | undefined) => {
+  const resumeJson = sourceResume ? JSON.stringify(sourceResume) : '{}';
+  const jobDescriptionJson = jobDescription ? JSON.stringify(jobDescription) : '';
+  const analysisJson = analysis ? JSON.stringify(analysis) : '';
+  return `SYSTEM: You are a professional cover letter writer. RETURN ONLY VALID JSON. Do not include any prose, explanation, or markdown.
+Be careful: start the response with '{' and end with '}' and nothing else.
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt };
+SCHEMA (keys and constraints):
+{
+  "salutation": string, // e.g. "Dear Hiring Manager," — use specific name only if provided
+  "coverLetter": string, // full cover letter in first-person, 3-5 short paragraphs, tailored to the job and resume
+  "closing": string, // e.g. "Sincerely,\nFull Name"
+  "keyParagraphs": [{"purpose": string, "text": string}], // ordered breakdown: opening, fit, impact, closing
+  "highlights": [{"title": string, "text": string}], // up to 3 short highlight bullets the candidate can paste elsewhere
+  "tone": string, // single word describing tone (e.g. "professional", "enthusiastic")
+  "wordCount": number // integer count of words in coverLetter
+}
+
+RULES:
+- Output ONLY JSON. No prose outside JSON, no commentary.
+- coverLetter must read like the candidate wrote it (first-person, natural human voice).
+- Use specifics from the resume JSON and the job description or analysis when available (company, role, technologies, measurable results).
+- Do NOT fabricate facts: if a metric or date is not present in the resume/analysis, do not invent numbers — instead use qualitative phrasing (e.g. "driving user growth" rather than "grew users by 35%").
+- Keep the letter between ~200 and 500 words unless the job description requests otherwise.
+- Use a concise opening that references the role and company, a middle paragraph that connects 2-3 core qualifications to the role, an impact paragraph with an example or two (drawn from resume/analysis), and a closing paragraph with a call to action.
+- If ${jobDescription} is provided, incorporate the top strengths and suggestions into the letter (explicitly mention 1–2 strengths).
+- If ${analysis} is missing, still craft a tailored-sounding letter focusing on the candidate's strongest fit and motivation.
+- If a field would be empty, return an empty string or empty array, but keep the key present.
+
+SOURCE_RESUME_JSON:
+${resumeJson}
+
+JOB_DESCRIPTION_TEXT:
+${jobDescriptionJson || ''}
+
+ANALYSIS_JSON:
+${analysisJson}
+
+EXPECTED_MINIMAL_OUTPUT_EXAMPLE:
+{"salutation":"Dear Hiring Manager,","coverLetter":"","closing":"Sincerely, Full Name","keyParagraphs":[],"highlights":[],"tone":"professional","wordCount":0}
+
+OUTPUT:`;
+}
+
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt };
+

@@ -40,9 +40,10 @@ const fetchResume = async (resumeId: string) => {
 export async function POST(req: NextRequest) {
   try {
 
-
-    const { resumeId, jobDetails, jobDescriptionId }: { resumeId: string; jobDetails: JobDetails; jobDescriptionId?: string } = await req.json();
-
+    const body = await req.json();
+    const analyzeResumeParams = body.analyzeResumeParams;
+    const { resumeId, jobDetails, jobDescriptionId }: { resumeId: string; jobDetails?: JobDetails; jobDescriptionId?: string } = analyzeResumeParams;
+    console.log(resumeId, jobDetails, jobDescriptionId);
     if (!resumeId || (!jobDetails && !jobDescriptionId)) {
       return NextResponse.json({ error: 'ResumeId and jobDescription are required' }, { status: 400 });
     }
@@ -59,8 +60,8 @@ export async function POST(req: NextRequest) {
 
     // Role extraction heuristics if not provided
     let role = analysis?.role;
-    if (!role) {
-      const firstLine = jobDetails.title.trim().split('\n')[0];
+    if (!role && fetchedJobDetails) {
+      const firstLine = fetchedJobDetails.title.trim().split('\n')[0];
       if (firstLine.length < 80 && /[a-z]/i.test(firstLine)) role = firstLine;
     }
 
@@ -69,10 +70,16 @@ export async function POST(req: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- temporary until Prisma client regenerated with new fields
     let updated: any;
+    const jobId = jobDetails?.id || fetchedJobDetails?.id || jobDescriptionId;
+    console.log('Storing analysis for jobId:', jobId);
+    if (!jobId) {
+      return NextResponse.json({ error: 'Job description id missing' }, { status: 400 });
+    }
+
     const existing = await prisma.analysisResult.findFirst({
       where: {
         resumeId: resumeId,
-        jobDescriptionId: jobDetails.id,
+        jobDescriptionId: jobId,
       },
     });
 
@@ -90,7 +97,7 @@ export async function POST(req: NextRequest) {
         data: {
           id: randomUUID(),
           resumeId: resumeId,
-          jobDescriptionId: jobDetails.id,
+          jobDescriptionId: jobId,
           result: analysis ? JSON.stringify(analysis) : '',
           matchingScore: isNaN(matchingScore) ? 0 : matchingScore,
           analyzedAt: new Date(),

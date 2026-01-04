@@ -158,12 +158,18 @@ export async function uploadResume(file: File, userId?: string) {
         }
     }
 
-export async function analyzeResume(resumeId: string, jobDetails?: JobDescription, jobDescriptionId?: string, updateTitle?: boolean) {
+
+type analyzeResumeParams = {
+    resumeId: string;
+    jobDetails?: JobDescription;
+    jobDescriptionId?: string
+}
+export async function analyzeResume(analyzeResumeParams: analyzeResumeParams) {
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ resumeId, jobDetails, updateTitle })
+            body: JSON.stringify({ analyzeResumeParams })
         });
         const data = await response.json();
 

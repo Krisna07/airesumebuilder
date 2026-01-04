@@ -198,3 +198,51 @@ select {
 .react-datepicker__triangle {
     display: none;
 }
+/* Mobile panel entry animations */
+@keyframes from-bottom-left {
+    0% {
+        opacity: 0;
+        transform: translate3d(-12px, 24px, 0) scale(.98);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes from-bottom-center {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 28px, 0) scale(.96);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes from-bottom-right {
+    0% {
+        opacity: 0;
+        transform: translate3d(12px, 24px, 0) scale(.98);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+.panel-from-left {
+    animation: from-bottom-left 320ms cubic-bezier(.2, .9, .2, 1) both;
+}
+
+.panel-from-center {
+    animation: from-bottom-center 340ms cubic-bezier(.2, .9, .2, 1) both;
+}
+
+.panel-from-right {
+    animation: from-bottom-right 320ms cubic-bezier(.2, .9, .2, 1) both;
+}
