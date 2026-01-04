@@ -6,12 +6,13 @@ import { AnalysisResult, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X, FileUser, FileSliders } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/UI/Button';
 import ConfirmDialog from '@/components/UI/ConfirmDialog';
 import Templates from '@/components/Templates/templates';
 import JobAnalysisReport from '@/components/UI/JobAnalysisReport';
+import { FaMagnifyingGlass } from 'react-icons/fa6';
 
 const sanitizeFile = (s: string) =>
   s
@@ -31,6 +32,8 @@ const ReportsPanel = ({
   analyzing,
   generating,
   reportsRef,
+  generatingCoverLetter,
+  generateCoverLetter
 }: any) => {
   return (
     <div onClick={(e) => e.stopPropagation()} ref={reportsRef} className='w-full min-h-fit  overflow-y-scroll'>
@@ -39,23 +42,16 @@ const ReportsPanel = ({
           <h3 className='font-bold'>Analysis Reports</h3>
           {analysisData.map((analysis: any, count: number) => {
             const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-            return (
-              <div
-                onClick={() => setSelectedAnalysis(analysis)}
-                key={count}
-                className={`grid gap-2 items-center px-2 py-1  m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
-                <JobAnalysisReport {...analysis} />
-                <div className='flex items-center gap-2'>
-                  <Button variant='secondary' size='small' onClick={() => handleReAnalysis(analysis)}>
-                    {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}
-                  </Button>
-                  <Button disabled={generating} variant='primary' size='small' onClick={() => handleRegerate(resumeData, analysis)}>
-                    <BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}
-                  </Button>
-                </div>
+            return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`py-2 w-fit h-fit grid gap-2 items-center px-2   m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
+              <JobAnalysisReport {...analysis} />
+              <div className='flex flex-wrap items-center gap-2'>
+                <Button disabled={generating || generatingCoverLetter} variant='primary' className={`w-fit ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
+                <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`w-fit ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+                <Button variant='secondary' size='small' className='w-fit' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
               </div>
-            );
-          })}
+            </div>
+          })
+          }
         </div>
       )}
     </div>
@@ -568,11 +564,14 @@ const PreviewPage = () => {
             setSelectedAnalysis={setSelectedAnalysis}
             handleReAnalysis={handleReAnalysis}
             handleRegerate={handleRegerate}
+            generateCoverLetter={generateCoverLetter}
+            generatingCoverLetter={generatingCoverLetter}
             resumeData={resumeData}
             analyzing={analyzing}
             generating={generating}
             reportsRef={reportsRef}
           /></div>}
+
           {showTemplates && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-center'>
             <TemplatesPanel
               showTemplates={showTemplates}
@@ -638,7 +637,7 @@ const PreviewPage = () => {
               <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
             </button>
           </div>
-          {coverLetter && <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><BotIcon size={14} />Show Cover letter</Button>
+          {coverLetter && <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
           {analysisData?.length && <div className='max-[500px]:hidden'>
             <h3 className='font-semibold px-2'> Analysis</h3>
@@ -648,9 +647,9 @@ const PreviewPage = () => {
                 return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`py-2 w-fit h-fit grid gap-2 items-center px-2   m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
                   <JobAnalysisReport {...analysis} />
                   <div className='md:flex grid items-center gap-2'>
-                    <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}>{isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                    <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
                     <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
-                    <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><BotIcon size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+                    <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
                   </div>
                 </div>
               })
@@ -775,6 +774,8 @@ const PreviewPage = () => {
                       const el = document.getElementById('coverletter');
                       const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
                       navigator.clipboard.writeText(text);
+                      showToast('Copied to clipboard', 'success', 3000)
+                      setShowCoverLetter(false)
                     }} className="ml-2 px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200"
                   >
                     Copy
@@ -858,50 +859,6 @@ const PreviewPage = () => {
           )
         }
 
-        {/* {<div className="mt-6  w-full h-full absolute top-0 left-0 z-90  mx-auto p-4 bg-white rounded-lg shadow-sm border">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold mt-2">Cover Letter <span className='text-xs'>{coverLetter.wordCount} words</span> </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200"
-                onClick={() => navigator.clipboard.writeText(coverLetter.coverLetter)}
-              >
-                Copy
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                onClick={() => {
-                  const blob = new Blob([coverLetter.coverLetter], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                Download
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 space-y-3 text-gray-800">
-            <div className="mt-2 prose prose-sm">
-              <div className="text-sm ">
-                <span>  </span>
-                <span>{ }</span>
-
-              </div>
-              <div className="whitespace-pre-wrap">{ }</div>
-            </div>
-            <div className="mt-3 text-sm text-gray-700">{ }</div>
-          </div>
-        </div>} */}
         <ConfirmDialog
           open={showConfirm}
           onCancel={() => (!deleting ? setShowConfirm(false) : null)}
