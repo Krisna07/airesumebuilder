@@ -141,7 +141,7 @@ export class JobDescriptionService {
                     const analysisData = data.data
                     return responseData.push({
                         ...jd,
-                        hasAnalysed: !!analysisData,
+                        hasAnalysed: Array.isArray(analysisData) && analysisData.length > 0,
                         analysis: analysisData ?? []
                     })
                 } catch (err) {

@@ -78,6 +78,16 @@ export interface AnalysisResult {
   strengths?: string[];
 }
 
+export interface CoverLetter {
+  salutation: string;
+  coverLetter: string;
+  closing: string;
+  keyParagraphs: { purpose: string; text: string }[];
+  highlights: { title: string; text: string }[];
+  tone: string;
+  wordCount: number;
+}
+
 export interface JobDescription {
   id: string;
   description: string;
@@ -89,6 +99,16 @@ export interface JobDescription {
 }
 
 export type JobDetailsWithAnalysis = JobDescription & {
-  analysis?: AnalysisResult;
+  analysis?: AnalysisResult[];
   hasAnalysed?: boolean;
 };
+
+export interface CoverLetterResponse {
+  salutation: string
+  coverLetter: string
+  closing: string
+  keyParagraphs: { purpose: string; text: string }[]
+  highlights: { title: string; text: string }[]
+  tone: string
+  wordCount: number
+}
