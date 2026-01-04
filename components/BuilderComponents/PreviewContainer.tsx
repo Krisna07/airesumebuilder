@@ -47,15 +47,20 @@ export const PreviewContainer: React.FC<PreviewContainerProps> = ({ resume, toas
       <div
         tabIndex={0}
         key={resume.id} // Use resume.id instead of index for better React key
-        className={`group relative min-h-[300px] w-full max-w-[250px] overflow-hidden rounded-2xl border border-transparent p-2 shadow-[0_0_4px_0_gray] select-none transition-all duration-300 focus-within:shadow-[0_4px_12px_-1px_rgba(56,189,248,0.4)] hover:shadow-[0_4px_12px_-1px_rgba(56,189,248,0.4)] ${isGone ? 'opacity-0 scale-90 pointer-events-none' : 'anim-fade-scale'}`}
+
+        className={` group relative min-h-[300px] w-full  overflow-hidden rounded-2xl border border-transparent p-2 shadow-[0_0_4px_0_gray] select-none transition-all duration-300 focus-within:shadow-[0_4px_12px_-1px_rgba(56,189,248,0.4)] hover:shadow-[0_4px_12px_-1px_rgba(56,189,248,0.4)] ${isGone ? 'opacity-0 scale-90 pointer-events-none' : 'anim-fade-scale'}`}
       >
         <div
-          className={`absolute inset-0 -z-10 transition-all duration-500 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] ${isDeleting ? 'grayscale blur-sm opacity-70' : ''}`}
+          className={`absolute inset-0 z-10 transition-all duration-500 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] ${isDeleting ? 'grayscale blur-sm opacity-70' : ''}`}
         >
+
+        </div>
+        <div className="-z-10 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] transition-all">
           <ResumePreview template={resume.template} resumeData={resume} />
         </div>
+
         <div
-          className={`absolute inset-x-0 bottom-0 flex translate-y-full gap-2 p-3 transition-all duration-500 ease-out group-hover:translate-y-0 group-focus-within:translate-y-0 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
+          className={`absolute inset-x-0 bottom-0 z-20 flex translate-y-full gap-2 p-3 transition-all duration-500 ease-out group-hover:translate-y-0  group-focus-within:translate-y-0 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
         >
           {hasMinimumData(resume) && (
             <Button

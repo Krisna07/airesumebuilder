@@ -101,16 +101,16 @@ const Page = () => {
     };
 
     return (
-      <section >
-        <div className={`p-4 w-full ${resumes && resumes.length ? 'place-self-start' : 'md:place-self-end'}   transition-opacity duration-300 anim-fade-in-soft`}>
+      <section className='w-full flex items-center justify-center '>
+        <div className={`p-4 w-full min-[850px]:w-[850px]   ${resumes && resumes.length ? 'place-self-start' : 'md:place-self-end'}   transition-opacity duration-300 anim-fade-in-soft`}>
           {resumes && resumes.length ? (
             <>
-              <div className=' flex items-center justify-between '>
-                <h3 className=' text-left font-medium text-2xl'>
+              <div className='w-full flex items-center justify-between  '>
+                <h3 className='w-full text-left font-medium text-2xl border-b border-gray-400 mb-4'>
                   All Resumes <span className='font-bold text-[12px]'>{resumes.length} in total</span>
                 </h3>
               </div>
-              <div className='w-full h-fit grid grid-cols-2 sm:grid-cols-3 md:flex flex-wrap gap-4 place-items-start '>
+              <div className='w-full h-fit flex md:flex flex-wrap gap-4 items-start justify-center mb-16'>
                 {resumes.map((resume, index) => (
                   <PreviewContainer
                     resume={resume}

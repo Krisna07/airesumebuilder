@@ -2,7 +2,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { AnalysisResult, ResumeData } from '@/types/types';
+import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
@@ -13,99 +13,17 @@ import ConfirmDialog from '@/components/UI/ConfirmDialog';
 import Templates from '@/components/Templates/templates';
 import JobAnalysisReport from '@/components/UI/JobAnalysisReport';
 import { FaMagnifyingGlass } from 'react-icons/fa6';
+import ReportsPanel from './ReportsPanel';
+import TemplatesPanel from './TemplatesPanel';
+import MenuPanel from './MenuPanel';
+import { JobDescriptionService } from '@/services/jdServices';
+
 
 const sanitizeFile = (s: string) =>
   s
     .trim()
     .replace(/\s+/g, '_')
     .replace(/[^\w.\-]+/g, '');
-
-// Small floating panels extracted for readability
-const ReportsPanel = ({
-  reports,
-  analysisData,
-  selectedAnalysis,
-  setSelectedAnalysis,
-  handleReAnalysis,
-  handleRegerate,
-  resumeData,
-  analyzing,
-  generating,
-  reportsRef,
-  generatingCoverLetter,
-  generateCoverLetter
-}: any) => {
-  return (
-    <div onClick={(e) => e.stopPropagation()} ref={reportsRef} className='w-full min-h-fit  overflow-y-scroll'>
-      {reports && analysisData?.length && (
-        <div className='pt-4 '>
-          <h3 className='font-bold'>Analysis Reports</h3>
-          {analysisData.map((analysis: any, count: number) => {
-            const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-            return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`py-2 w-fit h-fit grid gap-2 items-center px-2   m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
-              <JobAnalysisReport {...analysis} />
-              <div className='flex flex-wrap items-center gap-2'>
-                <Button disabled={generating || generatingCoverLetter} variant='primary' className={`w-fit ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
-                <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`w-fit ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
-                <Button variant='secondary' size='small' className='w-fit' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-              </div>
-            </div>
-          })
-          }
-        </div>
-      )}
-    </div>
-  );
-};
-
-const MenuPanel = ({ menu, setShowConfirm, slug, menuRef }: any) => {
-  return (
-    menu && <div onClick={(e) => e.stopPropagation()} ref={menuRef} className='shadow p-4 rounded grid gap-2'>
-      <button onClick={() => (window.location.href = `/builder/${slug}`)} className=" px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2">
-        <Edit size={16} /> Edit Resume
-      </button>
-      <button onClick={() => (window.location.href = '/builder')} className=" px-4 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium shadow-md flex items-center gap-2">
-        <Plus size={16} /> New Resume
-      </button>
-      <button onClick={() => setShowConfirm(true)} className={` px-4 py-1 bg-red-200 text-gray-800 rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 hover:bg-red-400`}>
-        <Trash size={16} /> Delete
-      </button>
-    </div>
-  )
-
-
-
-};
-
-const TemplatesPanel = ({ displayTemplate, selectedTemplate, handleTemplateChange, user, templatesRef }: any) => {
-  return (
-    <div onClick={(e) => e.stopPropagation()} ref={templatesRef} className="w-full space-y-2 z-110  px-2 rounded-2xl pb-4 mb-4 shadow">
-      <div className="w-full grid  gap-4 ">
-        <div className='font-bold py-2'>Preview Template</div>
-        <div className='grid min-[1000px]:grid-cols-2 gap-2'>
-          {displayTemplate.map((template: any) => (
-            <button key={template.id} onClick={() => handleTemplateChange(template.id)} className={`md:p-3 p-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'}`}>
-              <div className="flex items-center gap-3 justify-left">
-                <h3 className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}>{template.name}</h3>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-      {!user && (
-        <div className="w-full flex flex-col gap-2 items-center justify-center">
-          <p>
-            Please{' '}
-            <a href="/auth/signin" className="text-blue-600 underline">sign in</a>{' '}to access more templates
-          </p>
-        </div>
-      )}
-    </div>
-
-  );
-};
-
-
 
 const PreviewPage = () => {
   const params = useParams();
@@ -122,7 +40,7 @@ const PreviewPage = () => {
   const [downlaoding, setDownloading] = useState<boolean>(false)
   const [generating, setRegenerating] = useState<boolean>(false)
   const [pendingUpdate, setPendingUpdate] = useState(false); // keep stale resume during async ops
-  const [analysisData, setAnalysisData] = useState<any[]>()
+  const [analysisData, setAnalysisData] = useState<any>()
   const [selectedAnalysis, setSelectedAnalysis] = useState<any | null>(null);
   const [menu, showMenu] = useState<boolean>(false)
   const [reports, showReports] = useState<boolean>(false)
@@ -135,6 +53,84 @@ const PreviewPage = () => {
   const reportsRef = useRef<HTMLDivElement | null>(null);
   const templatesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
+  const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
+
+  const extractAnalysisData = async (active: boolean, slug: string) => {
+    const response = await fetch(`/api/ai/analyze?resumeId=${slug}`)
+    if (!response.ok) {
+      return null
+    }
+    const data = await response.json()
+    if (active && data) {
+      try {
+        const raw = data?.data;
+        if (!raw) {
+          console.log('No analysis result available');
+        } else {
+          // Preserve metadata (id, jobDescriptionId) while parsing the stored `result` field
+          const mapped = raw.map((response: any) => {
+            const parsed = typeof response.result === 'string' && response.result ? JSON.parse(response.result) : response.result || {};
+            // console.log(response)
+            return {
+              ...parsed,
+              _analysisId: response.id,
+              _jobDescriptionId: response.jobDescriptionId,
+              _analysedDate: response.updatedAt
+            } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string };
+          });
+          setAnalysisData(mapped);
+        }
+
+      } catch (err) {
+        console.warn('Failed to parse analysis result:', err, data?.data?.result);
+      }
+    }
+  }
+
+  const fetchDescription = async (slug: string) => {
+    if (user) {
+      const response = await JobDescriptionService.getAll(user.id, slug)
+      // console.log(response)
+      if (response.status !== 200) {
+        showToast('Unable to fetch all previous Job desctiptions', 'error', 3000)
+      }
+
+      setJobDetails(response.data)
+    }
+  };
+
+  const extractResumeData = React.useCallback(async (active: boolean, slug: string) => {
+    const response = await ResumeService.getSingle(slug)
+    const data = await response.json()
+    if (!response.ok || !data?.data) {
+      // Important: Only mark not-found AFTER auth loading false AND we have confirmed user exists
+      setStatus('not-found');
+      showToast('No resume data found', 'warning', 2500);
+      return;
+    }
+
+    setResumeData(data.data);
+    setSelectedTemplate(data.data.template);
+    const hasMinimum = !!(data.data.profile?.fullname && data.data.profile?.email);
+    setStatus(hasMinimum ? 'ready' : 'incomplete');
+  }, [showToast]);
+
+  const loadLocalResume = React.useCallback(() => {
+    const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;
+    if (localResume) {
+      try {
+        const parsed = JSON.parse(localResume);
+        setResumeData(parsed);
+        const hasMinimum = !!(parsed?.profile?.fullname && parsed?.profile?.email);
+        setStatus(hasMinimum ? 'ready' : 'incomplete');
+      } catch {
+        setStatus('not-found');
+      }
+    } else {
+      setStatus('not-found');
+    }
+    return;
+  }, [slug]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -154,7 +150,7 @@ const PreviewPage = () => {
 
     const handleScroll = () => {
       showMenu(false);
-      showReports(false);
+      // showReports(false);
       setShowTemplates(false);
 
     };
@@ -166,6 +162,8 @@ const PreviewPage = () => {
       document.removeEventListener('scroll', handleScroll);
     };
   }, [menu, reports, showTemplates]);
+
+
 
   useEffect(() => {
     let active = true;
@@ -182,70 +180,16 @@ const PreviewPage = () => {
 
       // Guest path (user null after auth resolved -> guest or signed out)
       if (!user) {
-        const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;
-        if (localResume) {
-          try {
-            const parsed = JSON.parse(localResume);
-            setResumeData(parsed);
-            const hasMinimum = !!(parsed?.profile?.fullname && parsed?.profile?.email);
-            setStatus(hasMinimum ? 'ready' : 'incomplete');
-          } catch {
-            setStatus('not-found');
-          }
-        } else {
-          setStatus('not-found');
-        }
-        return;
+        loadLocalResume()
       }
 
       // Authenticated path
       try {
-        const [resumeResp, analysisResp] = await Promise.all([
-          ResumeService.getSingle(slug),
-          fetch(`/api/ai/analyze?resumeId=${slug}`),
-        ]);
-
-        if (analysisResp.ok) {
-          const response = await analysisResp.json().catch(() => null);
-          if (active && response) {
-            try {
-              const raw = response?.data;
-              if (!raw) {
-                console.log('No analysis result available');
-              } else {
-                // Preserve metadata (id, jobDescriptionId) while parsing the stored `result` field
-                const mapped = raw.map((response: any) => {
-                  const parsed = typeof response.result === 'string' && response.result ? JSON.parse(response.result) : response.result || {};
-                  // console.log(response)
-                  return {
-                    ...parsed,
-                    _analysisId: response.id,
-                    _jobDescriptionId: response.jobDescriptionId,
-                    _analysedDate: response.updatedAt
-                  } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string };
-                });
-                setAnalysisData(mapped);
-
-              }
-            } catch (err) {
-              console.warn('Failed to parse analysis result:', err, response?.data?.result);
-            }
-          }
-        }
-
-        if (!active) return;
-        const resumeJson = await resumeResp.json().catch(() => ({}));
-
-        if (!resumeResp.ok || !resumeJson?.data) {
-          // Important: Only mark not-found AFTER auth loading false AND we have confirmed user exists
-          setStatus('not-found');
-          showToast('No resume data found', 'warning', 2500);
-          return;
-        }
-        setResumeData(resumeJson.data);
-        setSelectedTemplate(resumeJson.data.template);
-        const hasMinimum = !!(resumeJson.data.profile?.fullname && resumeJson.data.profile?.email);
-        setStatus(hasMinimum ? 'ready' : 'incomplete');
+        await Promise.all([extractAnalysisData(active, slug), extractResumeData(active, slug)])
+        // if (!analysisData.length) {
+        await fetchDescription(slug)
+        // }
+        active = false
       } catch (err) {
         if (active) {
           console.error('Error loading resume data:', err);
@@ -269,7 +213,7 @@ const PreviewPage = () => {
     return () => {
       active = false;
     };
-  }, [slug, user, authLoading, showToast]);
+  }, [slug, user, authLoading, showToast, extractResumeData, loadLocalResume]);
 
   useEffect(() => {
     if (status === 'not-found') {
@@ -438,7 +382,7 @@ const PreviewPage = () => {
       // response.data should contain the updated analysis record with fields like id and result
       if (data && data.id) {
         const refreshed = typeof data.result === 'string' && data.result ? JSON.parse(data.result) : data.result || {};
-        setAnalysisData(prev => (prev || []).map(a => ((a as any)._analysisId === data.id) ? ({ ...(refreshed as any), _analysisId: data.id, _jobDescriptionId: data.jobDescriptionId, _analysedDate: data.updatedAt }) : a));
+        setAnalysisData((prev: any[] | undefined) => (prev || []).map((a: any) => ((a as any)._analysisId === data.id) ? ({ ...(refreshed as any), _analysisId: data.id, _jobDescriptionId: data.jobDescriptionId, _analysedDate: data.updatedAt }) : a));
         showToast('Analysis updated', 'success', 1500);
       }
     } catch (err) {
@@ -531,7 +475,7 @@ const PreviewPage = () => {
         className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
         <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
-          <div className='w-full flex items-center justify-between bg-white p-4'>
+          <div className='w-full flex items-start justify-between bg-white p-4'>
             <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
               e.stopPropagation();
               showMenu(false);
@@ -557,20 +501,27 @@ const PreviewPage = () => {
             }} className={`${menu ? 'text-blue-600 scale-105 rotate-180' : ''} transition-all ease-in-out`} />
           </div>
 
-          {reports && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-left'><ReportsPanel
-            reports={reports}
-            analysisData={analysisData}
-            selectedAnalysis={selectedAnalysis}
-            setSelectedAnalysis={setSelectedAnalysis}
-            handleReAnalysis={handleReAnalysis}
-            handleRegerate={handleRegerate}
-            generateCoverLetter={generateCoverLetter}
-            generatingCoverLetter={generatingCoverLetter}
-            resumeData={resumeData}
-            analyzing={analyzing}
-            generating={generating}
-            reportsRef={reportsRef}
-          /></div>}
+          {reports && (
+            <div className='w-full absolute bottom-12 grid place-items-start bg-white p-4 panel-from-left'>
+              <div className='w-full max-h-[60vh] md:max-h-[70vh] overflow-auto'>
+                <ReportsPanel
+                  reports={reports}
+                  analysisData={analysisData}
+                  selectedAnalysis={selectedAnalysis}
+                  setSelectedAnalysis={setSelectedAnalysis}
+                  handleReAnalysis={handleReAnalysis}
+                  handleRegerate={handleRegerate}
+                  generateCoverLetter={generateCoverLetter}
+                  generatingCoverLetter={generatingCoverLetter}
+                  resumeData={resumeData}
+                  analyzing={analyzing}
+                  generating={generating}
+                  jobDetails={jobDetails}
+                  reportsRef={reportsRef}
+                />
+              </div>
+            </div>
+          )}
 
           {showTemplates && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-center'>
             <TemplatesPanel
@@ -637,12 +588,14 @@ const PreviewPage = () => {
               <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
             </button>
           </div>
-          {coverLetter && <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
+          {coverLetter &&
+            <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
-          {analysisData?.length && <div className='max-[500px]:hidden'>
-            <h3 className='font-semibold px-2'> Analysis</h3>
-            <div className='flex '>
-              {analysisData && analysisData.map((analysis, count) => {
+          {analysisData && analysisData?.length > 0 &&
+            <div className='max-[500px]:hidden'>
+              <h3 className='font-semibold px-2'>Analysis</h3>
+              <div className='flex '>
+                {analysisData && analysisData.map((analysis: any, count: number) => {
                 const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
                 return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`py-2 w-fit h-fit grid gap-2 items-center px-2   m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
                   <JobAnalysisReport {...analysis} />
@@ -757,8 +710,7 @@ const PreviewPage = () => {
           </div>
         </div>
 
-        {
-          showCoverLetter && coverLetter && (
+        {showCoverLetter && coverLetter && (
             <div className="fixed inset-0 z-90 grid place-items-center bg-black/30 p-4 top-4">
               <div className="relative w-full max-w-4xl h-[90vh] max-[500px]:h-[80vh] bg-white rounded-2xl shadow-lg overflow-auto py-4">
                 <button

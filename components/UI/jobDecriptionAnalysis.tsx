@@ -63,7 +63,7 @@ const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
     };
 
     return (
-        <div key={itemKey} className='grid gap-2 mt-4 border-gray-500 rounded-md shadow-sm p-4'>
+        <div key={itemKey} className='grid gap-2 mt-4 border-gray-500 rounded-md shadow-sm p-4 '>
             <div className='grid text-xs grid-cols-1 md:grid-cols-3 gap-4'>
                 <div>
                     <p className='text-xs text-slate-500'>Position</p>
@@ -87,7 +87,7 @@ const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey }) => {
             <div className='flex items-center justify-between'>
                 <div className='flex gap-2'>
                     <Button variant='secondary' size='small' onClick={() => startAnalysis(job)} disabled={analyzing} className={analyzing ? 'animate-pulse' : ''}>
-                        {analyzing ? 'Analyzing…' : job.hasAnalysed ? 'Re-analyse' : 'Analyse'}
+                        {analyzing ? 'Analyzing…' : job?.hasAnalysed ? 'Re-analyse' : 'Analyse'}
                     </Button>
                 </div>
             </div>

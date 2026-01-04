@@ -86,7 +86,8 @@ const Page = () => {
   };
 
   return (
-    <div className="w-fit">
+    <div className='w-full h-[80vh] grid place-items-center'>
+      <div className="w-fit">
       <input
         type="file"
         id="resume-upload"
@@ -139,7 +140,7 @@ const Page = () => {
           </div>
         )}
       </div>
-    </div>
+      </div></div>
   );
 }
 
