@@ -297,7 +297,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
       )}
 
       {/* Single scroll region */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 sm:px-4  scroll-smooth"
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 sm:px-4 mb-8 scroll-smooth"
         id={`step-panel-${currentStep}`}
         role="tabpanel"
         aria-labelledby={`step-${currentStep}`}

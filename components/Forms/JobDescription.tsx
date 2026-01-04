@@ -13,6 +13,7 @@ import JobDecriptionAnalysis from '../UI/jobDecriptionAnalysis';
 interface JDProps {
   resumeId?: string;
   disabled?: boolean;
+  analysedData?: any
 
 }
 
@@ -27,13 +28,14 @@ export type ScrapeResult = {
   domain?: string;
 };
 
-const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
+const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData }) => {
   const [jobDescription, setJobDescription] = useState<string>('');
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const [url, setUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [textField, setTextField] = useState<boolean>(false)
+  const [filterJd, setFilteredJD] = useState<JobDetailsWithAnalysis[]>()
   const { user } = useAuth()
 
   const toast = useToast()
@@ -41,7 +43,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
     if (error) {
       toast.showToast(error, 'error', 3000)
     }
-  }, [error, toast])
+  }, [error])
 
   const fetchDescription = async () => {
     if (user) {
@@ -89,7 +91,6 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
     setUrl(e.target.value);
   };
 
-
   const extractDescriptions = async () => {
     setError(null);
     const trimmed = url.trim();
@@ -103,7 +104,6 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       setError('No valid URL detected');
       return;
     }
-
     setLoading(true);
     try {
       const result = await getJobDescription(valid);
@@ -116,7 +116,6 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       }
 
       const raw = result.raw || [];
-      console.log(raw)
       // save first result immediately (use 'raw' from response to avoid stale state)
       if (resumeId && raw.length) {
         if (disabled) {
@@ -130,12 +129,13 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
         }
 
         const response = await JobDescriptionService.save(resumeId, userId, raw[0])
+
         if (!response.ok) {
           setError('Uh oh! there is some error saving data')
-          await JobDescriptionService.saveLocal(resumeId, raw[0])
-          const allJds = JobDescriptionService.getLocal(resumeId)
-          setJobDetails(allJds)
+          console.log(response)
+          return
         }
+
         const data = await response.json()
         console.log(data)
         // merge new job description and remove duplicates by id
@@ -154,6 +154,28 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
       setLoading(false);
     }
   }
+
+  const filteredJD = () => {
+    let jobDescriptions: JobDetailsWithAnalysis[] | undefined = jobDetails;
+
+    if (analysedData) {
+      const analysedArray = Array.isArray(analysedData) ? analysedData : [analysedData];
+      const idsToRemove = new Set(
+        analysedArray.map((a: any) => String(a?._jobDescriptionId ?? a?.jobDescriptionId ?? a?.id))
+      );
+
+      jobDescriptions = (jobDetails || []).filter(
+        (j: any) => !idsToRemove.has(String(j?.id))
+      );
+    }
+
+    return setFilteredJD(jobDescriptions);
+  }
+
+  if (analysedData) {
+    filteredJD()
+  }
+
 
 
   return (
@@ -194,10 +216,10 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled }) => {
           placeholder="Paste or extract a job description..."
           className="w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y"
         />
-        : jobDetails && (
+        : filterJd && (
           <div className="w-full mt-2  bg-white ">
             <h3 className="text-lg font-semibold mb-3 text-slate-800">Available Desriptions</h3>
-            {jobDetails.map((job: any, count: number) =>
+            {filterJd && filterJd.map((job: any, count: number) =>
               <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} />
             )}
           </div>

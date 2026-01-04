@@ -21,7 +21,7 @@ export default function RootLayout({
       <body className={`${inter.className} w-full min-h-screen  relative `}>
         <Providers>
           <Navbar />
-          <main className='w-full h-screen'>
+          <main className='w-full'>
             {children}
           </main>
         </Providers>
