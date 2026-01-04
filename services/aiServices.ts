@@ -1,10 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { GoogleGenAI } from "@google/genai";
-import { AnalysisResult, ResumeData } from "@/types/types";
-import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt } from "@/lib/prompts";
+import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
+import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt } from "@/lib/prompts";
 import { parseResponse } from "@/lib/jsonParse";
+import { OpenRouter } from '@openrouter/sdk';
+
+const openRouter = new OpenRouter({
+    apiKey: process.env.OPENROUTER_API_KEY || ''
+});
 
 const api = process.env.GEMINI_API_KEY;
-console.log(api)
 if (!api) {
 
     throw new Error('GEMINI_API_KEY environment variable is not set. Please add it to your .env.local file.');
@@ -13,17 +18,68 @@ const genAI = new GoogleGenAI({
     apiKey: api,
 });
 
-// Central model instances
-// analyzeModel: faster, smaller output
-const aiModel = 'gemini-2.5-flash-lite'
-
+const aiModel = process.env.GENAI_MODEL || 'gemini-2.5-flash-lite';
+// const fallBackModel = 'gemini-2.5-flash';
 
 function coerceArrayStrings(value: unknown): string[] {
     if (Array.isArray(value)) return value.filter((v) => typeof v === "string");
     return [];
 }
 
+// const callAIWithRetry = async (prompt: string, model: string, fallBackModel: string, retries = 3) => {
+//     try {
+//         let modelToUse = model;
+//         if (retries < 3) {
+//             modelToUse = fallBackModel; // switch to fallback model on retry
+//         }
+//         if (retries < 2) {
+//             modelToUse = 'gemini-3-flash'; // switch to extended context model on second retry
+//         }
+//         const response = await genAI.models.generateContent({
+//             model: modelToUse,
+//             contents: prompt
+//         });
+//         return response;
+//     } catch (error) {
+//         if (retries > 0) {
+//             console.warn(`AI call failed, retrying... (${retries} attempts left)`, error);
+//             return callAIWithRetry(prompt, model, fallBackModel, retries - 1);
+//         }
+//         throw error;
+//     }
+// };
+
+
+const callOpenRouterAI = async (prompt: string, retries = 3) => {
+    try {
+        let modelToUse = 'google/gemma-3-12b-it:free';
+        if (retries == 2) {
+            modelToUse = 'google/gemini-2.0-flash-exp:free';
+        }
+        if (retries == 1) {
+            modelToUse = 'meta-llama/llama-3.3-70b-instruct:free';
+        }
+        const response = await openRouter.chat.send({
+            model: modelToUse,
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt,
+                },
+            ],
+            stream: false,
+        });
+        return response.choices[0].message.content
+
+    } catch (error) {
+        if (retries > 0) {
+            console.warn(`OpenRouter AI call failed, retrying... (${retries} attempts left)`, error);
+            return callOpenRouterAI(prompt, retries - 1);
+        }
+    }
+}
 export class AIService {
+
     static async generateResume(
         userdata?: ResumeData,
         data?: string,
@@ -40,16 +96,12 @@ export class AIService {
         );
 
         try {
-            const response = await genAI.models.generateContent({
-                model: aiModel,
-                contents: prompt
-            });
-            // const response = result.text;
-            const raw = response.text;
+            const response = await callOpenRouterAI(prompt);
+            const raw: any = response;
             const parsed = parseResponse(raw);
             return parsed;
         } catch (error) {
-            console.error("Error generating resume:", error);
+            console.error("Error generating resume:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
             throw new Error("Failed to generate resume");
         }
     }
@@ -58,14 +110,9 @@ export class AIService {
         // Build prompt using the specialized analyze prompt (caps tokens by slicing arrays internally)
         const prompt = analyzeResumeToJobFitPrompt(resumeData, jobDescription);
         try {
-            const response = await genAI.models.generateContent({
-                model: aiModel,
-                contents: prompt
-            });
-            // const response = result.response;
-            const raw = response.text
+            const response = await callOpenRouterAI(prompt);
+            const raw: any = response
             const parsedRaw = parseResponse(raw);
-            // console.log("Raw analysis response:", raw);
             const parsed = (parsedRaw ?? {}) as Partial<AnalysisResult>;
             parsed.suggestions = coerceArrayStrings(parsed.suggestions);
             parsed.missingKeywords = coerceArrayStrings(parsed.missingKeywords);
@@ -80,8 +127,9 @@ export class AIService {
                 );
             }
             return parsed as AnalysisResult;
-        } catch (error) {
-            console.error("Error analyzing resume in AIService:", error);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            console.error("Error analyzing resume in AIService:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
             throw new Error("Failed to analyze resume");
         }
     }
@@ -110,4 +158,34 @@ export class AIService {
         }
     }
 
+    static async generateCoverLetter(resumeData: ResumeData, jobDescription: JobDescription, analysis?: AnalysisResult) {
+
+        try {
+            const sourceResume = resumeData
+                ? JSON.stringify(resumeData)
+                : JSON.stringify({ raw: resumeData });
+            // console.log(resumeData, jobDescription, analysis);
+            const prompt = coverLetterPrompt(
+                JSON.parse(sourceResume) as ResumeData,
+                jobDescription,
+                analysis ? analysis : undefined
+            );
+
+            const response = await callOpenRouterAI(prompt);
+            const raw: any = response;
+            const parsed = parseResponse(raw);
+            const result = {
+                parsed: parsed as CoverLetterResponse,
+                jobTitle: jobDescription.title,
+                companyName: jobDescription.company,
+                location: jobDescription.location,
+                userDetails: resumeData.profile
+            }
+            return result
+
+        } catch (error) {
+            console.error("Error generating cover letter:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            throw new Error("Failed to generate cover letter");
+        }
+    }
 }
