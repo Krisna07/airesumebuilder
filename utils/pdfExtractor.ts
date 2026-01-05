@@ -22,15 +22,16 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
         };
         reader.readAsDataURL(file);
     });
-
+    console.log(`extractTextFromPdf: Read file of size ${file.size} bytes, base64 length ${base64FromFile.length}`);
     // Send the base64 string to your API
     const response = await fetch('/api/extract-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file: base64FromFile })
     });
-
+    console.log(response)
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Failed to extract PDF text');
+
     return data.text;
 };
