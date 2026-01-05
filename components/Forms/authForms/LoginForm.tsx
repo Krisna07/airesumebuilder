@@ -46,7 +46,7 @@ const LoginForm: React.FC = () => {
     }
     return (
         <div className=' overflow-hidden min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-            {loader && <div className='w-screen h-screen fixed z-[1000] bg-gray-900/75 flex items-center justify-center'>
+            {loader && <div className='w-screen h-screen fixed top-0 z-1000 bg-gray-900/75 flex items-center justify-center'>
                 <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
                     <div className="loader"></div>
                     <h3 className='text-white animate-pulse'>Authenticating User....</h3>

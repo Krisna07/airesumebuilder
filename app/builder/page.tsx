@@ -15,6 +15,7 @@ import LoadingResumeState from '@/components/BuilderComponents/LoadingResumeStat
 const Page = () => {
   const { user, loading } = useAuth();
   const toast = useToast();
+  const { showToast } = toast;
   const [resumes, setResumes] = useState<ResumeData[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [initialFetched, setInitialFetched] = useState(false);
@@ -36,7 +37,7 @@ const Page = () => {
         const data = await response.json();
         if (!response.ok) {
           if (active) {
-            toast.showToast(response.statusText || 'Failed to load resumes', 'error', 3500);
+            showToast(response.statusText || 'Failed to load resumes', 'error', 3500);
             setResumes([]);
           }
           return;
@@ -45,7 +46,7 @@ const Page = () => {
       } catch (error) {
         console.error('Error fetching resumes:', error);
         if (active) {
-          toast.showToast('Network error loading resumes', 'error', 3500);
+          showToast('Network error loading resumes', 'error', 3500);
           setResumes([]);
         }
       } finally {
@@ -58,7 +59,7 @@ const Page = () => {
     return () => {
       active = false;
     };
-  }, [user, toast]);
+  }, [user, showToast]);
 
   // Only show loading when we are still resolving auth or fetching resumes for a logged-in user.
   const isInitialLoading = (loading && user !== null) || (user && !initialFetched);
@@ -83,7 +84,7 @@ const Page = () => {
         const response = await ResumeService.create(user.id);
         const data = await response.json();
         if (!response.ok) {
-          toast.showToast(response.statusText, 'error', 3000);
+          showToast(response.statusText, 'error', 3000);
           return;
         }
         router.push(`/builder/${data.data.id}`); // Fixed: using router instead of route
@@ -110,7 +111,7 @@ const Page = () => {
                   All Resumes <span className='font-bold text-[12px]'>{resumes.length} in total</span>
                 </h3>
               </div>
-              <div className='w-full h-fit flex md:flex flex-wrap gap-4 items-start justify-center mb-16'>
+              <div className='w-full h-fit grid grid-cols-3 max-[500px]:grid-cols-2 gap-4 items-start justify-center mb-16'>
                 {resumes.map((resume, index) => (
                   <PreviewContainer
                     resume={resume}

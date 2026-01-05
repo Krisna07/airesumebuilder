@@ -1,20 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
-import { JobDetailsWithAnalysis } from '@/types/types';
+import { JobDetailsWithAnalysis, ResumeData } from '@/types/types';
 import Input from '../Input';
 import Button from '../UI/Button';
-
 import { getJobDescription, JobDescriptionService } from '@/services/jdServices';
 import { useAuth } from '@/context/authContext';
 import { useToast } from '@/context/PopupContext';
 import JobDecriptionAnalysis from '../UI/jobDecriptionAnalysis';
+import { FaSpinner } from 'react-icons/fa6';
+import { BugIcon } from 'lucide-react';
 
 
 interface JDProps {
   resumeId?: string;
   disabled?: boolean;
-  analysedData?: any
-
+  hideAnalysis?: boolean;
+  hideInput?: boolean;
+  hideTitle?: boolean;
+  handleRegenerate?: (resumeData: ResumeData, analysis?: any, jobDescription?: any) => Promise<void>;
+  resumeData?: ResumeData;
 }
 
 export type ScrapeResult = {
@@ -28,57 +32,62 @@ export type ScrapeResult = {
   domain?: string;
 };
 
-const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData }) => {
+const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, hideInput, hideTitle, handleRegenerate, resumeData }) => {
   const [jobDescription, setJobDescription] = useState<string>('');
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const [url, setUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false)
   const [textField, setTextField] = useState<boolean>(false)
-  const [filterJd, setFilteredJD] = useState<JobDetailsWithAnalysis[]>()
   const { user } = useAuth()
 
-  const toast = useToast()
+  const { showToast } = useToast()
+  const userId = user?.id
   useEffect(() => {
     if (error) {
-      toast.showToast(error, 'error', 3000)
+      showToast(error, 'error', 3000)
+      setLoading(false)
+      setExtracting(false)
     }
-  }, [error])
+  }, [error, showToast])
 
-  const fetchDescription = async () => {
-    if (user) {
-      const response = await JobDescriptionService.getAll(user.id, resumeId)
-      // console.log(response)
-      if (response.status !== 200) {
-        setError('Unable to fetch all previous Job desctiptions')
-      }
-      if (response.status === 202) {
-        setTextField(true)
-        return
-      }
-      setJobDetails(response.data)
-    }
-  };
 
   const triggerTextField = () => {
     setTextField(!textField)
   }
 
   useEffect(() => {
-    if ((disabled || !user?.id) && resumeId) {
+    if ((disabled || !userId) && resumeId) {
       const localDescriptions = JobDescriptionService.getLocal(resumeId)
       if (localDescriptions.length) {
         setJobDetails(localDescriptions)
       }
       return;
     }
-    try {
-      fetchDescription();
 
-    } catch (err) {
-      throw err;
-    }
-  }, [disabled, resumeId]);
+    (async () => {
+      setLoading(true)
+      try {
+        if (userId) {
+          const response = await JobDescriptionService.getAll(userId, resumeId)
+          if (response.status !== 200) {
+            setError('Unable to fetch all previous Job desctiptions')
+          }
+          if (response.status === 202) {
+            setTextField(true)
+            return
+          }
+          setJobDetails(response.data)
+        }
+      } catch (err: any) {
+        console.error('fetchDescription error', err)
+        setError(err?.message || 'Failed to fetch job descriptions')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [disabled, resumeId, userId]);
 
   const updateJobDescription = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setError(null);
@@ -93,9 +102,11 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData })
 
   const extractDescriptions = async () => {
     setError(null);
+    const userId = user?.id;
     const trimmed = url.trim();
     if (!trimmed) {
       setError('Enter at least one URL');
+      setExtracting(false)
       return;
     }
     const candidates = trimmed.split(/[,\s]+/).filter(Boolean);
@@ -104,10 +115,10 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData })
       setError('No valid URL detected');
       return;
     }
-    setLoading(true);
+
     try {
       const result = await getJobDescription(valid);
-      if (result.status !== 200) {
+      if ((disabled || !userId) && resumeId) {
         setError(result.message || 'Failed to fetch description');
         return;
       }
@@ -122,6 +133,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData })
           await JobDescriptionService.saveLocal(resumeId, raw[0])
           const allJds = JobDescriptionService.getLocal(resumeId)
           setJobDetails(allJds)
+          setExtracting(false)
         }
         const userId = user?.id
         if (!userId) {
@@ -135,9 +147,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData })
           console.log(response)
           return
         }
-
         const data = await response.json()
-        console.log(data)
         // merge new job description and remove duplicates by id
         setJobDetails(prev => {
           const merged = [...(prev || []), data.data];
@@ -151,80 +161,74 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, analysedData })
       console.error('extractDescriptions error', err);
       setError(err?.message || 'Failed to extract descriptions');
     } finally {
-      setLoading(false);
+      setExtracting(false);
     }
   }
 
-  const filteredJD = () => {
-    let jobDescriptions: JobDetailsWithAnalysis[] | undefined = jobDetails;
-
-    if (analysedData) {
-      const analysedArray = Array.isArray(analysedData) ? analysedData : [analysedData];
-      const idsToRemove = new Set(
-        analysedArray.map((a: any) => String(a?._jobDescriptionId ?? a?.jobDescriptionId ?? a?.id))
-      );
-
-      jobDescriptions = (jobDetails || []).filter(
-        (j: any) => !idsToRemove.has(String(j?.id))
-      );
-    }
-
-    return setFilteredJD(jobDescriptions);
-  }
-
-  if (analysedData) {
-    filteredJD()
-  }
-
-
-
+  console.log(hideAnalysis)
   return (
     <div className="w-full relative">
-      <div className="py-4 grid gap-2">
+      {!hideInput && <div className="py-4 grid gap-2 px-2">
         <Input
           type="text"
           name="url"
           value={url}
           onChange={updateUrl}
-          placeholder="Enter one or more URLs (comma, space or newline separated)"
+          placeholder="Enter Job Url"
         />
         <div className='flex gap-4 items-center'> <Button
           variant="primary"
           size="small"
           onClick={extractDescriptions}
-          disabled={loading}
-          className={loading ? 'animate-pulse' : ''}
+          disabled={extracting || loading}
+          className={extracting ? 'animate-pulse' : ''}
         >
-          {loading ? 'Extracting…' : 'Extract'}
+          {extracting ? 'Extracting…' : 'Extract'}
         </Button>
-          <Button
+          {!hideAnalysis && <Button
             variant="secondary"
             size="small"
             onClick={() => triggerTextField()}
-            disabled={loading}
-            className={loading ? 'animate-pulse' : ''}
+            disabled={extracting || loading}
+            className={extracting ? 'animate-pulse' : ''}
           >
             {textField ? 'Hide' : 'Paste Description'}
-          </Button>
+          </Button>}
 
         </div>
-      </div>
-      {textField ?
-        <textarea
-          onChange={updateJobDescription}
-          value={jobDescription}
-          placeholder="Paste or extract a job description..."
-          className="w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y"
-        />
-        : filterJd && (
-          <div className="w-full mt-2  bg-white ">
-            <h3 className="text-lg font-semibold mb-3 text-slate-800">Available Desriptions</h3>
-            {filterJd && filterJd.map((job: any, count: number) =>
-              <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} />
-            )}
+      </div>}
+      {loading && <div className='flex items-center gap-2 animate-pulse'>Loading available job details  <div className='animate-bounce'><FaSpinner className='text-4xl animate-spin ' /></div></div>}
+
+      <div className='relative'>
+        {
+          textField &&
+          <textarea
+            onChange={updateJobDescription}
+            value={jobDescription}
+            placeholder="Paste or extract a job description..."
+            className="w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y"
+          />
+        }
+
+        {jobDetails?.length && (
+          <div className="w-full mt-2 grid gap-4 bg-white ">
+            {!hideAnalysis && <div>
+              <h3 className="text-lg font-semibold mb-3 text-slate-800 flex items-center gap-2"><BugIcon size={16} /> Reports </h3>
+              {jobDetails && jobDetails.filter((jd) => jd.hasAnalysed).map((job: JobDetailsWithAnalysis, count: number) =>
+                <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} />
+              )}
+            </div>}
+
+            <div>
+              {!hideTitle && <h3 className="text-lg font-semibold mb-3 text-slate-800">Available Job Description</h3>}
+              {jobDetails && jobDetails.filter((jd) => !jd.hasAnalysed).map((job: JobDetailsWithAnalysis, count: number) =>
+                <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} handleRegenerate={handleRegenerate} resumeData={resumeData} />
+              )}
+            </div>
           </div>
         )
-      }
+        }
+      </div>
     </div>
   );
 };

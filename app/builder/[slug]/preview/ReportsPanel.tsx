@@ -18,10 +18,9 @@ const ReportsPanel = ({
   generating,
   reportsRef,
   generatingCoverLetter,
-    generateCoverLetter
-  
+  generateCoverLetter
 }: any) => {
-    // console.log(jobDetails)
+
   const [jobDetailsForm, showJobDetailsForm] = useState(false)
   return (
     <div onClick={(e) => e.stopPropagation()} ref={reportsRef} className='w-full h-full flex flex-col shadow'>
@@ -42,14 +41,14 @@ const ReportsPanel = ({
           })
           } 
         </div>
-                  <JobDescription resumeId={resumeData.id} analysedData={analysisData} />
+          <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
         </div>
 
       :
         <div className='w-full text-center grid place-items-center font-semibold text-sm  shadow p-4 gap-2'>
           <div className='w-full text-left grid gap-2 '>
             <Button variant='primary' size='small' onClick={() => showJobDetailsForm(!jobDetailsForm)}>Job Details Form</Button>
-            <JobDescription resumeId={resumeData.id}/>
+            <JobDescription resumeId={resumeData.id} hideAnalysis={true} />
           </div>
         </div>
       }

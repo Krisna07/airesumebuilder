@@ -17,6 +17,7 @@ import ReportsPanel from './ReportsPanel';
 import TemplatesPanel from './TemplatesPanel';
 import MenuPanel from './MenuPanel';
 import { JobDescriptionService } from '@/services/jdServices';
+import JobDescription from '@/components/Forms/JobDescription';
 
 
 const sanitizeFile = (s: string) =>
@@ -55,49 +56,36 @@ const PreviewPage = () => {
   const topBarRef = useRef<HTMLDivElement | null>(null);
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
 
-  const extractAnalysisData = async (active: boolean, slug: string) => {
-    const response = await fetch(`/api/ai/analyze?resumeId=${slug}`)
-    if (!response.ok) {
-      return null
-    }
-    const data = await response.json()
-    if (active && data) {
-      try {
-        const raw = data?.data;
-        if (!raw) {
-          console.log('No analysis result available');
-        } else {
-          // Preserve metadata (id, jobDescriptionId) while parsing the stored `result` field
-          const mapped = raw.map((response: any) => {
-            const parsed = typeof response.result === 'string' && response.result ? JSON.parse(response.result) : response.result || {};
-            // console.log(response)
-            return {
-              ...parsed,
-              _analysisId: response.id,
-              _jobDescriptionId: response.jobDescriptionId,
-              _analysedDate: response.updatedAt
-            } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string };
-          });
-          setAnalysisData(mapped);
-        }
-
-      } catch (err) {
-        console.warn('Failed to parse analysis result:', err, data?.data?.result);
-      }
-    }
-  }
-
-  const fetchDescription = async (slug: string) => {
+  const fetchDescription = React.useCallback(async (slug: string) => {
     if (user) {
+      const analysisItem = []
       const response = await JobDescriptionService.getAll(user.id, slug)
-      // console.log(response)
       if (response.status !== 200) {
         showToast('Unable to fetch all previous Job desctiptions', 'error', 3000)
       }
+      const data: JobDetailsWithAnalysis[] = response.data
 
+      for (const details of data) {
+        if (details.hasAnalysed) {
+          const analysis = details.analysis
+          if (analysis) {
+            const parsed = JSON.parse(analysis.result as string)
+            analysisItem.push({
+              ...parsed,
+              _analysisId: analysis.id,
+              _jobDescriptionId: details.id,
+              _analysedDate: analysis.updatedAt
+            } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
+          }
+        }
+      }
+
+      if (analysisItem.length > 0) {
+        setAnalysisData(analysisItem)
+      }
       setJobDetails(response.data)
     }
-  };
+  }, [showToast, user]);
 
   const extractResumeData = React.useCallback(async (active: boolean, slug: string) => {
     const response = await ResumeService.getSingle(slug)
@@ -161,34 +149,28 @@ const PreviewPage = () => {
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('scroll', handleScroll);
     };
-  }, [menu, reports, showTemplates]);
+  }, [menu, reports, showTemplates, showToast]);
 
 
 
   useEffect(() => {
     let active = true;
     if (!slug) return;
-
+    setStatus('loading');
     const fetchResume = async () => {
       if (!active) return;
-
       // If auth still resolving, keep loading skeleton regardless of slug
       if (authLoading) {
         setStatus('loading');
         return;
       }
-
       // Guest path (user null after auth resolved -> guest or signed out)
       if (!user) {
         loadLocalResume()
       }
-
       // Authenticated path
       try {
-        await Promise.all([extractAnalysisData(active, slug), extractResumeData(active, slug)])
-        // if (!analysisData.length) {
-        await fetchDescription(slug)
-        // }
+        await Promise.all([extractResumeData(active, slug), fetchDescription(slug)])
         active = false
       } catch (err) {
         if (active) {
@@ -213,7 +195,7 @@ const PreviewPage = () => {
     return () => {
       active = false;
     };
-  }, [slug, user, authLoading, showToast, extractResumeData, loadLocalResume]);
+  }, [slug, user, authLoading, showToast]);
 
   useEffect(() => {
     if (status === 'not-found') {
@@ -316,14 +298,14 @@ const PreviewPage = () => {
     }, 320);
   };
 
-  const handleRegerate = async (resumeData: ResumeData, analysis?: any) => {
+  const handleRegerate = async (resumeData: ResumeData, analysis?: any, jobDescription?: any) => {
     if (!user) {
       return showToast('This feature is not availbale on guest version', 'info', 3000);
     }
     setRegenerating(true);
     setPendingUpdate(true);
     showToast('Generating resume')
-    const response = await ResumeService.regenerate(resumeData, analysis);
+    const response = await ResumeService.regenerate(resumeData, analysis || jobDescription);
     const data = await response.json();
     if (!response.ok) {
       showToast('Error regenerating resume', 'error', 3000);
@@ -592,23 +574,31 @@ const PreviewPage = () => {
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
           {analysisData && analysisData?.length > 0 &&
-            <div className='max-[500px]:hidden'>
-              <h3 className='font-semibold px-2'>Analysis</h3>
-              <div className='flex '>
-                {analysisData && analysisData.map((analysis: any, count: number) => {
-                const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-                return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={`py-2 w-fit h-fit grid gap-2 items-center px-2   m-1 rounded shadow relative ${isSelected ? 'ring-2 ring-blue-300' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
-                  <JobAnalysisReport {...analysis} />
-                  <div className='md:flex grid items-center gap-2'>
-                    <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-                    <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
-                    <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+            <div className='max-[500px]:hidden flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] p-4'>
+              <div className='w-full'>
+                <h3 className='font-semibold px-2'>Analysis</h3>
+                <div className='w-full flex flex-wrap items-start justify-between'>
+                  {analysisData && analysisData.map((analysis: any, count: number) => {
+                    const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
+                    return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={` max-w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
+                      <JobAnalysisReport {...analysis} />
+                      <div className='md:flex grid items-center gap-2'>
+                        <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                        <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
+                        <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+                      </div>
+                    </div>
+                  })
+                  }
+                  <div className={analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'}>
+                    <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
                   </div>
                 </div>
-              })
-              }
+              </div>  
+
+
             </div>
-          </div>}
+          }
           <div
             className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm"
             id="resumeViewport"

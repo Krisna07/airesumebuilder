@@ -68,6 +68,7 @@ export interface UserResume {
 }
 
 export interface AnalysisResult {
+  id: string;
   jobDescription: string;
   description: string;
   matchingPercentage: number;
@@ -76,6 +77,7 @@ export interface AnalysisResult {
   result?: string;
   missingKeywords?: string[];
   strengths?: string[];
+  updatedAt?: string | Date;
 }
 
 export interface CoverLetter {
@@ -99,7 +101,7 @@ export interface JobDescription {
 }
 
 export type JobDetailsWithAnalysis = JobDescription & {
-  analysis?: AnalysisResult[];
+  analysis?: AnalysisResult;
   hasAnalysed?: boolean;
 };
 

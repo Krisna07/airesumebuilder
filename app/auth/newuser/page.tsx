@@ -6,7 +6,7 @@ import React from 'react'
 const page = async () => {
   await redirectIfAuthenticated('/builder')
   return (
-    <SignUpForm />
+    <div className='place-items-center md:py-8'><SignUpForm /></div>
   )
 }
 
