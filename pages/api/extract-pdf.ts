@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { PdfData } from 'pdfdataextract';
+// NOTE: `pdfdataextract` pulls in an ESM-only `pdfjs-dist` build which
+// causes `ERR_REQUIRE_ESM` when required from a CommonJS environment on Vercel.
+// To avoid that we dynamically import the library inside the request handler
+// so the ESM module is loaded with `import()` instead of a static `require`.
 
 const allowedOrigins = [
     'https://airesumebuilder-delta.vercel.app',
@@ -73,12 +77,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const buffer = Buffer.from(file, 'base64');
-        const data = await PdfData.extract(buffer);
 
-        return res.status(200).json({
-            text: (data.text ?? []).join('\n'),
-            meta: data,
-        });
+        // Prefer `pdf-parse` (CommonJS) which works in the Node serverless runtime.
+        try {
+            const pdfParseMod = await import('pdf-parse');
+            const pdfParse = (pdfParseMod as any).default ?? pdfParseMod;
+            if (typeof pdfParse === 'function') {
+                try {
+                    const parsed: unknown = await (pdfParse as (buf: Buffer) => Promise<unknown>)(buffer as Buffer);
+                    const parsedObj = parsed as { text?: string } | null;
+                    return res.status(200).json({ text: parsedObj?.text ?? '', meta: parsed });
+                } catch (pErr) {
+                    console.warn('extract-pdf: pdf-parse parsing failed', pErr);
+                }
+            }
+        } catch (pErr) {
+            console.warn('extract-pdf: pdf-parse import failed, falling back', pErr);
+        }
+
+        // Fallback to `pdfdataextract` if `pdf-parse` isn't available. Keep dynamic import
+        // to reduce chance of ESM require errors; still may fail if that package requires an
+        // ESM-only file via `require()` internally.
+        try {
+            const mod = await import('pdfdataextract');
+            const imported = mod as unknown;
+            const PdfData = ((imported as any).PdfData ?? (imported as any).default ?? imported) as unknown;
+            const extractor = PdfData as { extract?: (buf: Buffer) => Promise<unknown> };
+            if (typeof extractor.extract !== 'function') {
+                console.error('extract-pdf: PdfData.extract is not a function');
+                return res.status(500).json({ error: 'PDF extractor not available' });
+            }
+            const data: unknown = await extractor.extract(buffer as Buffer);
+            const dataObj = data as { text?: string[] } | null;
+            return res.status(200).json({ text: (dataObj?.text ?? []).join('\n'), meta: data });
+        } catch (parseErr) {
+            console.error('extract-pdf: parsing failed (both pdf-parse and pdfdataextract)', parseErr);
+            const message = parseErr instanceof Error ? parseErr.message : 'PDF extraction failed.';
+            return res.status(500).json({ error: message });
+        }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'PDF extraction failed.';
         return res.status(500).json({ error: errorMessage });
