@@ -34,11 +34,27 @@ export const config = {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     applyCorsHeaders(req, res);
 
+    // Diagnostic logging to help debug production routing/method issues
+    try {
+        console.log('extract-pdf: incoming method=', req.method);
+        console.log('extract-pdf: origin=', req.headers.origin || null);
+        console.log('extract-pdf: content-length=', req.headers['content-length'] || null);
+    } catch (e) {
+        console.error('extract-pdf: logging failed', e);
+    }
+
     if (req.method === 'OPTIONS') {
         return res.status(204).end();
     }
 
+    // Allow GET for quick health checks and debugging in production
+    if (req.method === 'GET') {
+        return res.status(200).json({ status: 'ok', message: 'extract-pdf route (pages API) is active' });
+    }
+
     if (req.method !== 'POST') {
+        console.warn('extract-pdf: method not allowed, received=', req.method);
+        console.warn('extract-pdf: headers=', JSON.stringify(req.headers));
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
