@@ -89,31 +89,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     return res.status(200).json({ text: parsedObj?.text ?? '', meta: parsed });
                 } catch (pErr) {
                     console.warn('extract-pdf: pdf-parse parsing failed', pErr);
+                    const message = pErr instanceof Error ? pErr.message : 'Invalid PDF or parsing error';
+                    return res.status(400).json({ error: message });
                 }
             }
         } catch (pErr) {
-            console.warn('extract-pdf: pdf-parse import failed, falling back', pErr);
-        }
-
-        // Fallback to `pdfdataextract` if `pdf-parse` isn't available. Keep dynamic import
-        // to reduce chance of ESM require errors; still may fail if that package requires an
-        // ESM-only file via `require()` internally.
-        try {
-            const mod = await import('pdfdataextract');
-            const imported = mod as unknown;
-            const PdfData = ((imported as any).PdfData ?? (imported as any).default ?? imported) as unknown;
-            const extractor = PdfData as { extract?: (buf: Buffer) => Promise<unknown> };
-            if (typeof extractor.extract !== 'function') {
-                console.error('extract-pdf: PdfData.extract is not a function');
-                return res.status(500).json({ error: 'PDF extractor not available' });
-            }
-            const data: unknown = await extractor.extract(buffer as Buffer);
-            const dataObj = data as { text?: string[] } | null;
-            return res.status(200).json({ text: (dataObj?.text ?? []).join('\n'), meta: data });
-        } catch (parseErr) {
-            console.error('extract-pdf: parsing failed (both pdf-parse and pdfdataextract)', parseErr);
-            const message = parseErr instanceof Error ? parseErr.message : 'PDF extraction failed.';
-            return res.status(500).json({ error: message });
+            console.error('extract-pdf: pdf-parse import failed; cannot parse PDFs on this deployment', pErr);
+            return res.status(500).json({ error: 'PDF parser not available on server (pdf-parse import failed)' });
         }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'PDF extraction failed.';
