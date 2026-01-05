@@ -135,14 +135,12 @@ export async function uploadResume(file: File, userId?: string) {
         if (!text || text.trim().length === 0) {
             throw new Error('No text extracted from PDF.');
         }
-        console.log('file name:', file.name)
-        console.log('extracted text length:', text.length)
-            // console.log('extracted text:', text.slice(0, 500)) // Log first 500 characters
             const respone = await fetch('/api/ai/extract-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: text })
             });
+
             const data = await respone.json();
             if (!respone.ok) {
                 throw new Error(data.error || 'Failed to extract resume data.');
@@ -150,7 +148,6 @@ export async function uploadResume(file: File, userId?: string) {
 
             if (!userId) {
                 const saveLocal = await LocalResumeService.create(data.data)
-                // console.log(saveLocal)
                 return NextResponse.json({ data: saveLocal }, { status: 200 })
             }
 
