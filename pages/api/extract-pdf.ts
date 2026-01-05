@@ -1,14 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextApiRequest, NextApiResponse } from 'next';
-// NOTE: `pdfdataextract` pulls in an ESM-only `pdfjs-dist` build which
-// causes `ERR_REQUIRE_ESM` when required from a CommonJS environment on Vercel.
-// To avoid that we dynamically import the library inside the request handler
-// so the ESM module is loaded with `import()` instead of a static `require`.
-
+import { extractText, getDocumentProxy } from 'unpdf';
 const allowedOrigins = [
     'https://airesumebuilder-delta.vercel.app',
     'https://airesumebuilder.vercel.app',
 ];
+
+
 
 function applyCorsHeaders(req: NextApiRequest, res: NextApiResponse) {
     const origin = req.headers.origin;
@@ -29,76 +26,40 @@ function applyCorsHeaders(req: NextApiRequest, res: NextApiResponse) {
 export const config = {
     api: {
         bodyParser: {
-            // Increase JSON body size limit to allow base64 PDF uploads
+            // Match the size limit for base64 PDF uploads
             sizeLimit: '10mb',
         },
     },
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    // 1. Setup CORS & Method Check
     applyCorsHeaders(req, res);
-
-    // Diagnostic logging to help debug production routing/method issues
-    try {
-        console.log('extract-pdf: incoming method=', req.method);
-        console.log('extract-pdf: origin=', req.headers.origin || null);
-        console.log('extract-pdf: content-length=', req.headers['content-length'] || null);
-    } catch (e) {
-        console.error('extract-pdf: logging failed', e);
-    }
-
-    if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-    }
-
-    // Allow GET for quick health checks and debugging in production
-    if (req.method === 'GET') {
-        return res.status(200).json({ status: 'ok', message: 'extract-pdf route (pages API) is active' });
-    }
-
-    if (req.method !== 'POST') {
-        console.warn('extract-pdf: method not allowed, received=', req.method);
-        console.warn('extract-pdf: headers=', JSON.stringify(req.headers));
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+    if (req.method === 'OPTIONS') return res.status(204).end();
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        const { file } = req.body ?? {};
+        const { file } = req.body || {};
+        if (!file) return res.status(400).json({ error: 'Missing file data' });
 
-        try {
-            const contentLength = req.headers['content-length'];
-            if (contentLength) console.log('extract-pdf: content-length header =', contentLength);
-        } catch (e) {
-            console.error('extract-pdf: failed to log content-length header', e);
-        }
+        // 2. Convert Base64 to Uint8Array (required for unpdf)
+        const base64Data = file.includes('base64,') ? file.split('base64,')[1] : file;
+        const buffer = Buffer.from(base64Data, 'base64');
+        const uint8Array = new Uint8Array(buffer);
 
-        if (!file || typeof file !== 'string') {
-            return res.status(400).json({ error: 'Missing or invalid file data' });
-        }
+        // 3. Load and Extract
+        const pdf = await getDocumentProxy(uint8Array);
+        const { text, totalPages } = await extractText(pdf, { mergePages: true });
 
-        const buffer = Buffer.from(file, 'base64');
+        // 4. Return the data
+        return res.status(200).json({
+            text: text,
+            pages: totalPages,
+            info: { message: "Extracted successfully" }
+        });
 
-        // Prefer `pdf-parse` (CommonJS) which works in the Node serverless runtime.
-        try {
-            const pdfParseMod = await import('pdf-parse');
-            const pdfParse = (pdfParseMod as any).default ?? pdfParseMod;
-            if (typeof pdfParse === 'function') {
-                try {
-                    const parsed: unknown = await (pdfParse as (buf: Buffer) => Promise<unknown>)(buffer as Buffer);
-                    const parsedObj = parsed as { text?: string } | null;
-                    return res.status(200).json({ text: parsedObj?.text ?? '', meta: parsed });
-                } catch (pErr) {
-                    console.warn('extract-pdf: pdf-parse parsing failed', pErr);
-                    const message = pErr instanceof Error ? pErr.message : 'Invalid PDF or parsing error';
-                    return res.status(400).json({ error: message });
-                }
-            }
-        } catch (pErr) {
-            console.error('extract-pdf: pdf-parse import failed; cannot parse PDFs on this deployment', pErr);
-            return res.status(500).json({ error: 'PDF parser not available on server (pdf-parse import failed)' });
-        }
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'PDF extraction failed.';
-        return res.status(500).json({ error: errorMessage });
+        console.error('Extraction Error:', error);
+        return res.status(500).json({ error: 'Failed to parse PDF' });
     }
 }

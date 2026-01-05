@@ -5,49 +5,46 @@ import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt 
 import { parseResponse } from "@/lib/jsonParse";
 import { OpenRouter } from '@openrouter/sdk';
 
-const openRouter = new OpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY || ''
-});
+const openRouterKey = process.env.OPENROUTER_API_KEY;
+const isServer = typeof window === 'undefined';
+
+// Lazily initialize server-only clients. This prevents throwing during module import
+// when this file is bundled into client-side code.
+const openRouter = isServer && openRouterKey && new OpenRouter({ apiKey: openRouterKey });
 
 const api = process.env.GEMINI_API_KEY;
-if (!api) {
-
-    throw new Error('GEMINI_API_KEY environment variable is not set. Please add it to your .env.local file.');
-}
-const genAI = new GoogleGenAI({
-    apiKey: api,
-});
+const genAI = isServer && api ? new GoogleGenAI({ apiKey: api }) : null;
 
 const aiModel = process.env.GENAI_MODEL || 'gemini-2.5-flash-lite';
-// const fallBackModel = 'gemini-2.5-flash';
+const fallBackModel = 'gemini-2.5-flash';
 
 function coerceArrayStrings(value: unknown): string[] {
     if (Array.isArray(value)) return value.filter((v) => typeof v === "string");
     return [];
 }
-
-// const callAIWithRetry = async (prompt: string, model: string, fallBackModel: string, retries = 3) => {
-//     try {
-//         let modelToUse = model;
-//         if (retries < 3) {
-//             modelToUse = fallBackModel; // switch to fallback model on retry
-//         }
-//         if (retries < 2) {
-//             modelToUse = 'gemini-3-flash'; // switch to extended context model on second retry
-//         }
-//         const response = await genAI.models.generateContent({
-//             model: modelToUse,
-//             contents: prompt
-//         });
-//         return response;
-//     } catch (error) {
-//         if (retries > 0) {
-//             console.warn(`AI call failed, retrying... (${retries} attempts left)`, error);
-//             return callAIWithRetry(prompt, model, fallBackModel, retries - 1);
-//         }
-//         throw error;
-//     }
-// };
+const callAIWithRetry = async (prompt: string, retries = 3) => {
+    if (!genAI && !openRouter) {
+        throw new Error('AI clients are not initialized. This function must be run on the server with GEMINI_API_KEY or OPENROUTER_API_KEY set.');
+    }
+    try {
+        let modelToUse = aiModel;
+        if (retries < 3) {
+            modelToUse = fallBackModel; // switch to fallback model on retry
+        }
+        if (retries < 2) {
+            modelToUse = 'gemini-3-flash'; // switch to extended context model on second retry
+        }
+        if (!genAI) throw new Error('Gemini client not available');
+        const response = await genAI.models.generateContent({ model: modelToUse, contents: prompt });
+        return response;
+    } catch (error) {
+        if (retries > 0) {
+            console.warn(`AI call failed, retrying... (${retries} attempts left)`, error);
+            return callAIWithRetry(prompt, retries - 1);
+        }
+        throw error;
+    }
+};
 
 
 const callOpenRouterAI = async (prompt: string, retries = 3) => {
@@ -59,6 +56,7 @@ const callOpenRouterAI = async (prompt: string, retries = 3) => {
         if (retries == 1) {
             modelToUse = 'meta-llama/llama-3.3-70b-instruct:free';
         }
+        if (!openRouter) throw new Error('OpenRouter client not available');
         const response = await openRouter.chat.send({
             model: modelToUse,
             messages: [
@@ -96,10 +94,10 @@ export class AIService {
         );
 
         try {
-            const response = await callOpenRouterAI(prompt);
+            const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
             const raw: any = response;
             const parsed = parseResponse(raw);
-            return parsed;
+            return parsed as ResumeData;
         } catch (error) {
             console.error("Error generating resume:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
             throw new Error("Failed to generate resume");
@@ -145,12 +143,9 @@ export class AIService {
     URL: ${url}
     OUTPUT:`;
         try {
-            const response = await genAI.models.generateContent({
-                model: aiModel,
-                contents: prompt
-            });
-
-            const raw = await response.text
+            if (!genAI) throw new Error('Gemini client not initialized on server');
+            const response = await genAI.models.generateContent({ model: aiModel, contents: prompt });
+            const raw = await response.text;
             return parseResponse(raw);
         } catch (error) {
             console.error("Error extracting URL data:", error);
@@ -171,6 +166,7 @@ export class AIService {
                 analysis ? analysis : undefined
             );
 
+            if (!openRouter) throw new Error('OpenRouter client not initialized on server');
             const response = await callOpenRouterAI(prompt);
             const raw: any = response;
             const parsed = parseResponse(raw);

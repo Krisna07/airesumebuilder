@@ -4,6 +4,7 @@ import { JobDescription, ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
+import { AIService } from "./aiServices";
 
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
@@ -135,24 +136,19 @@ export async function uploadResume(file: File, userId?: string) {
         if (!text || text.trim().length === 0) {
             throw new Error('No text extracted from PDF.');
         }
-            const respone = await fetch('/api/ai/extract-resume', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            });
+        const structuredData: ResumeData = await AIService.generateResume(undefined, text);;
 
-            const data = await respone.json();
-            if (!respone.ok) {
-                throw new Error(data.error || 'Failed to extract resume data.');
+        if (!structuredData) {
+            throw new Error('Failed to process resume data');
             }
 
             if (!userId) {
-                const saveLocal = await LocalResumeService.create(data.data)
+                const saveLocal = await LocalResumeService.create(structuredData)
                 return NextResponse.json({ data: saveLocal }, { status: 200 })
             }
 
             const resumeId = self.crypto.randomUUID();
-            const saveResume = await ResumeService.save(userId, resumeId, 'modern', data.data);
+        const saveResume = await ResumeService.save(userId, resumeId, 'modern', structuredData);
             return saveResume
         } catch (error) {
             throw error
