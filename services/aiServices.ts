@@ -6,14 +6,16 @@ import { parseResponse } from "@/lib/jsonParse";
 import { OpenRouter } from '@openrouter/sdk';
 
 const openRouterKey = process.env.OPENROUTER_API_KEY;
-const isServer = typeof window === 'undefined';
-
+const api = process.env.GEMINI_API_KEY;
 // Lazily initialize server-only clients. This prevents throwing during module import
 // when this file is bundled into client-side code.
-const openRouter = isServer && openRouterKey && new OpenRouter({ apiKey: openRouterKey });
 
-const api = process.env.GEMINI_API_KEY;
-const genAI = isServer && api ? new GoogleGenAI({ apiKey: api }) : null;
+if (!openRouterKey && !api) {
+    console.warn('AIService: No API keys found for Gemini or OpenRouter. AI functionalities will be disabled.');
+}
+const openRouter = new OpenRouter({ apiKey: openRouterKey });
+
+const genAI = new GoogleGenAI({ apiKey: api });
 
 const aiModel = process.env.GENAI_MODEL || 'gemini-2.5-flash-lite';
 const fallBackModel = 'gemini-2.5-flash';
