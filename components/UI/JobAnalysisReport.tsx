@@ -1,6 +1,6 @@
 
 import { AnalysisResult } from '@/types/types'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const generateReport = (match: number): { label: string; colorClass: string; description: string } => {
     let score = Number(match ?? 0)
@@ -48,21 +48,52 @@ const generateReport = (match: number): { label: string; colorClass: string; des
 
 const JobAnalysisReport = (analysis: AnalysisResult) => {
     const [showDetails, updateShowDetails] = useState(false)
-    const report = generateReport(analysis.matchingPercentage)
+    // Ensure matching percentage is a finite number between 0 and 100
+    const raw = Number(analysis.matchingPercentage ?? 0)
+    const percent = Number.isFinite(raw) && !Number.isNaN(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0
+    const dashOffset = String(100 - percent)
+
+    // Animated values for the chart
+    const [animatedOffset, setAnimatedOffset] = useState<string>('100')
+    const [displayPercent, setDisplayPercent] = useState<number>(0)
+
+    // Trigger animations whenever percent changes
+    useEffect(() => {
+        // reset to full circle then animate to target offset
+        setAnimatedOffset('100')
+        const t = setTimeout(() => setAnimatedOffset(dashOffset), 50)
+
+        // animate the numeric counter from 0 -> percent
+        const duration = 900
+        let start: number | null = null
+        let rafId = 0
+        const step = (timestamp: number) => {
+            if (start === null) start = timestamp
+            const elapsed = timestamp - start
+            const progress = Math.min(1, elapsed / duration)
+            const value = Math.round(progress * percent)
+            setDisplayPercent(value)
+            if (progress < 1) rafId = requestAnimationFrame(step)
+        }
+        rafId = requestAnimationFrame(step)
+
+        return () => {
+            clearTimeout(t)
+            if (rafId) cancelAnimationFrame(rafId)
+        }
+    }, [dashOffset, percent])
+
+    const report = generateReport(percent)
     return (
         <div className='w-full bg-white  rounded text-xs grid gap-2 shadow-[0_0_2px_0_gray'>
             <div className='w-full grid gap-1'>
-                {/* <p className='text-slate-600'>Matching: {analysis.matchingPercentage ?? '—'}%</p> */}
-                      <div className=''>
-                        <p className='text-xs font-semibold text-slate-600'>{analysis.role}</p>
-                    </div>
-                <div className='min-w-full flex items-center justify-between'>
-                
+                <div className='flex items-center justify-between'>
                     <div className=''>
-                        <span>Report</span>
-                        <p className='text-xs text-slate-600'>{report.description}</p>
+                        <p className='text-xs text-slate-500'>Position</p>
+                        <p className=' text-slate-700'>{analysis?.role ?? '—'}</p>
+                        <p className='text-xs text-slate-600 font-semibold'>{report.label}</p>
                     </div>
-                    <div className="relative  sm:min-w-[100px] w-[100px]   ">
+                    <div className="relative  sm:min-w-[100px] w-[100px]">
                         <svg className="size-full rotate-90" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="18" cy="18" r="16" fill="none" className="stroke-current " strokeWidth={0}></circle>
                             <circle
@@ -70,24 +101,30 @@ const JobAnalysisReport = (analysis: AnalysisResult) => {
                                 cy="18"
                                 r="16"
                                 fill="none"
-                                className={`stroke-current ${analysis.matchingPercentage > 50 ? report.colorClass : ''}`}
+                                className={`stroke-current ${percent > 50 ? report.colorClass : ''}`}
                                 strokeWidth={2}
                                 strokeDasharray={100}
-                                strokeDashoffset={100 - analysis.matchingPercentage}
+                                strokeDashoffset={animatedOffset}
+                                style={{ transition: 'stroke-dashoffset 900ms cubic-bezier(0.22,1,0.36,1)' }}
                                 strokeLinecap="round"
                             />
                         </svg>
                         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center">
-                            <span className=" font-bold text-green-600 dark:text-blue-400">{analysis.matchingPercentage}</span>
-                            <span className={`font-semibold text-[12px] ${analysis.matchingPercentage > 50 ? 'text-green-400' : 'text-orange-500'}`}>{analysis.matchingPercentage > 90 ? 'Very Good' : ''}</span>
+                            <span className=" font-bold text-green-600 dark:text-blue-400">{displayPercent}%</span>
+                            <span className={`font-semibold text-[12px] ${percent > 50 ? 'text-green-400' : 'text-orange-500'}`}>{percent > 90 ? 'Very Good' : ''}</span>
                         </div>
-                    </div></div>
+                    </div>
 
-                {showDetails && <>
+                </div>
+                <div className='min-w-full flex items-center justify-between'>
                     <div className=''>
                         <span>Summary</span>
-                        <p className='text-xs text-slate-600'>{analysis.description}</p>
+                        <p className='text-xs text-slate-600'>{showDetails ? analysis.description : analysis.description.slice(0, (50 * analysis.description.length) / 100)}</p>
                     </div>
+
+                </div>
+
+                {showDetails && <>
                     <div className=''>
                         <span className='font-semibold mt-2.5'>Missing keywords</span>
                         <div className='flex flex-wrap gap-x-2 gap-y-1 mt-1'>

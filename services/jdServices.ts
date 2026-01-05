@@ -141,8 +141,8 @@ export class JobDescriptionService {
                     const analysisData = data.data
                     return responseData.push({
                         ...jd,
-                        hasAnalysed: Array.isArray(analysisData) && analysisData.length > 0,
-                        analysis: analysisData ?? []
+                        hasAnalysed: analysisData ? true : false,
+                        analysis: analysisData ?? {}
                     })
                 } catch (err) {
                     console.warn('Error fetching analysis for job description:', jd.id, err);

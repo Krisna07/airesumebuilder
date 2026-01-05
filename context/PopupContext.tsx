@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, createContext, useContext, useCallback } from "react";
+import { useEffect, useState, createContext, useContext, useCallback, useMemo } from "react";
 import { createPortal } from 'react-dom';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -54,8 +54,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         setToasts([]);
     }, []);
 
+    const value = useMemo(() => ({ toasts, showToast, hideToast, clearAllToasts }), [toasts, showToast, hideToast, clearAllToasts]);
+
     return (
-        <ToastContext.Provider value={{ toasts, showToast, hideToast, clearAllToasts }}>
+        <ToastContext.Provider value={value}>
             {children}
             {mounted && createPortal(<ToastContainer />, document.body)}
         </ToastContext.Provider>
