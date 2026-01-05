@@ -130,7 +130,11 @@ export class ResumeService {
 
 export async function uploadResume(file: File, userId?: string) {
     try {
-            const text = await extractTextFromPdf(file)
+        const text = await extractTextFromPdf(file)
+        console.log(text)
+        if (!text || text.trim().length === 0) {
+            throw new Error('No text extracted from PDF.');
+        }
         console.log('file name:', file.name)
         console.log('extracted text length:', text.length)
             // console.log('extracted text:', text.slice(0, 500)) // Log first 500 characters
@@ -157,7 +161,6 @@ export async function uploadResume(file: File, userId?: string) {
             throw error
         }
     }
-
 
 type analyzeResumeParams = {
     resumeId: string;
