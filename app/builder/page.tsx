@@ -5,100 +5,66 @@ import React, { useEffect, useState } from 'react';
 import { File, Plus, Rocket, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
-import { useToast } from '@/context/PopupContext';
 import { useRouter } from 'next/navigation';
 import { ResumeData } from '@/types/types';
 import GuestUser from '@/components/BuilderComponents/GuestUser';
 import { PreviewContainer } from '@/components/BuilderComponents/PreviewContainer';
 import LoadingResumeState from '@/components/BuilderComponents/LoadingResumeState';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'react-toastify'
+
 
 const Page = () => {
   const { user, loading } = useAuth();
-  const toast = useToast();
-  const { showToast } = toast;
   const [resumes, setResumes] = useState<ResumeData[] | null>(null);
   const [creating, setCreating] = useState(false);
-  const [initialFetched, setInitialFetched] = useState(false);
-  const router = useRouter(); // Fixed: was 'route', should be 'router'
+  // let action: boolean = false
+  const router = useRouter();
+
+  const response = useQuery({
+    queryKey: ['resumeData'],
+    queryFn: () => ResumeService.getAll(user ? user.id : null)
+  })
 
   useEffect(() => {
-    if (!(loading || (user && !initialFetched))) return;
-    const interval = setInterval(() => { }, 55);
-    return () => clearInterval(interval);
-  }, [loading, initialFetched, user]);
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-
-    const fetchResumes = async () => {
-      try {
-        const response = await ResumeService.getAll(user.id);
-        const data = await response.json();
-        if (!response.ok) {
-          if (active) {
-            showToast(response.statusText || 'Failed to load resumes', 'error', 3500);
-            setResumes([]);
-          }
-          return;
-        }
-        if (active) setResumes(data.data || []);
-      } catch (error) {
-        console.error('Error fetching resumes:', error);
-        if (active) {
-          showToast('Network error loading resumes', 'error', 3500);
-          setResumes([]);
-        }
-      } finally {
-        if (active) setInitialFetched(true);
-      }
-    };
-
-    fetchResumes();
-
-    return () => {
-      active = false;
-    };
-  }, [user, showToast]);
-
-  // Only show loading when we are still resolving auth or fetching resumes for a logged-in user.
-  const isInitialLoading = (loading && user !== null) || (user && !initialFetched);
-
-  // If auth finished and there's no user, consider loading done to avoid blank page
-  useEffect(() => {
-    if (!loading && !user && !initialFetched) {
-      setInitialFetched(true);
+    if (response.isSuccess && response.data && !response.isPending) {
+      setResumes(response.data);
     }
-  }, [loading, user, initialFetched]);
+    if (response.isError) {
+      toast.error(response.error.message)
+    }
+    return
+  }, [response]);
 
-  if (isInitialLoading) {
-    return (
-      <LoadingResumeState />
-    );
+
+
+  if (response.isPending) {
+    return <LoadingResumeState />
   }
 
-  if (user) {
+  if (user && !response.isPending) {
     const handleCreateResume = async () => {
       setCreating(true);
       try {
         const response = await ResumeService.create(user.id);
         const data = await response.json();
         if (!response.ok) {
-          showToast(response.statusText, 'error', 3000);
+          toast.error(response.statusText);
           return;
         }
         router.push(`/builder/${data.data.id}`); // Fixed: using router instead of route
-        toast.showToast('Resume created successfully', 'success', 3000);
+        toast.success('Resume created successfully');
       } catch (error) {
         console.error('Error creating resume:', error);
-        toast.showToast('Error creating resume', 'error', 3000);
+        toast('Error creating resume');
       } finally {
         setCreating(false);
       }
     };
 
-    const handleResumeDeleted = (id: string) => {
-      setResumes((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
+    const handleResumeDeleted = async () => {
+      await response.refetch()
+    // setResumes((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
     };
 
     return (
@@ -115,7 +81,6 @@ const Page = () => {
                 {resumes.map((resume, index) => (
                   <PreviewContainer
                     resume={resume}
-                    toast={toast}
                     index={index}
                     key={resume.id}
                     onDeleted={handleResumeDeleted}
@@ -125,7 +90,7 @@ const Page = () => {
             </>
           ) : (
             <>
-              {!initialFetched ? (
+                {response.isPending ? (
                 <div className='grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4'>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className='h-[300px] max-w-[250px] w-full rounded-2xl shadow-inner bg-gray-100 skeleton-shimmer' />

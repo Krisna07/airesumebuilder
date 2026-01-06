@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './global.css';
 import Providers from '@/components/Providers';
 import Navbar from '@/components/Navbar';
+import { ToastContainer } from 'react-toastify';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className={`${inter.className} w-full min-h-screen  relative `}>
+        <ToastContainer />
         <Providers>
           <Navbar />
           <main className='w-full'>
