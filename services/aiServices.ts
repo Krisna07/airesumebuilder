@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { GoogleGenAI } from "@google/genai";
+import { Content, GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
 import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt } from "@/lib/prompts";
 import { parseResponse } from "@/lib/jsonParse";
@@ -7,8 +7,6 @@ import { OpenRouter } from '@openrouter/sdk';
 
 const openRouterKey = process.env.OPENROUTER_API_KEY;
 const api = process.env.GEMINI_API_KEY;
-// Lazily initialize server-only clients. This prevents throwing during module import
-// when this file is bundled into client-side code.
 
 if (!openRouterKey && !api) {
     console.warn('AIService: No API keys found for Gemini or OpenRouter. AI functionalities will be disabled.');
@@ -37,8 +35,21 @@ const callAIWithRetry = async (prompt: string, retries = 3) => {
             modelToUse = 'gemini-3-flash'; // switch to extended context model on second retry
         }
         if (!genAI) throw new Error('Gemini client not available');
-        const response = await genAI.models.generateContent({ model: modelToUse, contents: prompt });
-        return response;
+        const response: GenerateContentResponse = await genAI.models.generateContent({ model: modelToUse, contents: prompt });
+
+        // if(!response.candidates || response.candidates.length ===0){
+        //     throw new Error('No candidates returned from AI model');
+        // }{
+        const content: Content | undefined = (response && response?.candidates) ? response?.candidates[0]?.content : undefined;
+        if (!content) {
+            throw new Error('No content returned from AI model');
+        }
+        const raw: string | undefined = content.parts ? content.parts.map(part => part.text).join('') : undefined;
+        if (!raw) {
+            throw new Error('Ai cannot gennerate your response try again later');
+        }
+        return raw;
+
     } catch (error) {
         if (retries > 0) {
             console.warn(`AI call failed, retrying... (${retries} attempts left)`, error);
@@ -97,8 +108,9 @@ export class AIService {
 
         try {
             const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
-            const raw: any = response;
-            const parsed = parseResponse(raw);
+            const raw = response;
+            const parsed = parseResponse(raw as string);
+            console.log(parsed)
             return parsed as ResumeData;
         } catch (error) {
             console.error("Error generating resume:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
