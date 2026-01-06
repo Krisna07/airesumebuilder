@@ -4,7 +4,6 @@ import { JobDescription, ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
-import { AIService } from "./aiServices";
 
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
@@ -132,11 +131,15 @@ export class ResumeService {
 export async function uploadResume(file: File, userId?: string) {
     try {
         const text = await extractTextFromPdf(file)
-        console.log(text)
+        // console.log(text)
         if (!text || text.trim().length === 0) {
             throw new Error('No text extracted from PDF.');
         }
-        const structuredData: ResumeData = await AIService.generateResume(undefined, text);;
+        const structuredData: ResumeData = await fetch('/api/ai/extract-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        }).then(res => res.json()).then(data => data.data);
 
         if (!structuredData) {
             throw new Error('Failed to process resume data');
