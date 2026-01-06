@@ -16,8 +16,8 @@ import { FaMagnifyingGlass } from 'react-icons/fa6';
 import ReportsPanel from './ReportsPanel';
 import TemplatesPanel from './TemplatesPanel';
 import MenuPanel from './MenuPanel';
-import { JobDescriptionService } from '@/services/jdServices';
 import JobDescription from '@/components/Forms/JobDescription';
+import { useJobDescriptions } from '@/hooks/useJobDescriptions';
 
 
 const sanitizeFile = (s: string) =>
@@ -56,36 +56,40 @@ const PreviewPage = () => {
   const topBarRef = useRef<HTMLDivElement | null>(null);
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
 
-  const fetchDescription = React.useCallback(async (slug: string) => {
-    if (user) {
-      const analysisItem = []
-      const response = await JobDescriptionService.getAll(user.id, slug)
-      if (response.status !== 200) {
-        showToast('Unable to fetch all previous Job desctiptions', 'error', 3000)
-      }
-      const data: JobDetailsWithAnalysis[] = response.data
+  // const fetchDescription = React.useCallback(async (slug: string) => {
+  //   if (user) {
+  //     const analysisItem = []
+  //     const response = await JobDescriptionService.getAll(user.id, slug)
+  //     if (response.status !== 200) {
+  //       showToast('Unable to fetch all previous Job desctiptions', 'error', 3000)
+  //     }
+  //     const data: JobDetailsWithAnalysis[] = response.data
 
-      for (const details of data) {
-        if (details.hasAnalysed) {
-          const analysis = details.analysis
-          if (analysis) {
-            const parsed = JSON.parse(analysis.result as string)
-            analysisItem.push({
-              ...parsed,
-              _analysisId: analysis.id,
-              _jobDescriptionId: details.id,
-              _analysedDate: analysis.updatedAt
-            } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
-          }
-        }
-      }
+  //     for (const details of data) {
+  //       if (details.hasAnalysed) {
+  //         const analysis = details.analysis
+  //         if (analysis) {
+  //           const parsed = JSON.parse(analysis.result as string)
+  //           analysisItem.push({
+  //             ...parsed,
+  //             _analysisId: analysis.id,
+  //             _jobDescriptionId: details.id,
+  //             _analysedDate: analysis.updatedAt
+  //           } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
+  //         }
+  //       }
+  //     }
 
-      if (analysisItem.length > 0) {
-        setAnalysisData(analysisItem)
-      }
-      setJobDetails(response.data)
-    }
-  }, [showToast, user]);
+  //     if (analysisItem.length > 0) {
+  //       setAnalysisData(analysisItem)
+  //     }
+  //     setJobDetails(response.data)
+  //   }
+  // }, [showToast, user]);
+
+  const response = useJobDescriptions(user ? user.id : '', slug)
+
+
 
   const extractResumeData = React.useCallback(async (active: boolean, slug: string) => {
     const response = await ResumeService.getSingle(slug)
@@ -170,7 +174,30 @@ const PreviewPage = () => {
       }
       // Authenticated path
       try {
-        await Promise.all([extractResumeData(active, slug), fetchDescription(slug)])
+        await Promise.all([extractResumeData(active, slug)])
+        if (response.isSuccess) {
+          const analysisItem = []
+          const data: JobDetailsWithAnalysis[] = response.data.data
+          for (const details of data) {
+            if (details.hasAnalysed) {
+              const analysis = details.analysis
+              if (analysis) {
+                const parsed = JSON.parse(analysis.result as string)
+                analysisItem.push({
+                  ...parsed,
+                  _analysisId: analysis.id,
+                  _jobDescriptionId: details.id,
+                  _analysedDate: analysis.updatedAt
+                } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
+              }
+            }
+          }
+          if (analysisItem.length > 0) {
+            setAnalysisData(analysisItem)
+          }
+          setJobDetails(response.data.data)
+        }
+
         active = false
       } catch (err) {
         if (active) {
@@ -195,7 +222,7 @@ const PreviewPage = () => {
     return () => {
       active = false;
     };
-  }, [slug, user, authLoading, showToast]);
+  }, [slug, user, response, authLoading, showToast, extractResumeData, loadLocalResume]);
 
   useEffect(() => {
     if (status === 'not-found') {
@@ -594,7 +621,7 @@ const PreviewPage = () => {
                     <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
                   </div>
                 </div>
-              </div>  
+              </div>
 
 
             </div>
@@ -701,104 +728,104 @@ const PreviewPage = () => {
         </div>
 
         {showCoverLetter && coverLetter && (
-            <div className="fixed inset-0 z-90 grid place-items-center bg-black/30 p-4 top-4">
-              <div className="relative w-full max-w-4xl h-[90vh] max-[500px]:h-[80vh] bg-white rounded-2xl shadow-lg overflow-auto py-4">
+          <div className="fixed inset-0 z-90 grid place-items-center bg-black/30 p-4 top-4">
+            <div className="relative w-full max-w-4xl h-[90vh] max-[500px]:h-[80vh] bg-white rounded-2xl shadow-lg overflow-auto py-4">
+              <button
+                aria-label="Close cover letter"
+                onClick={() => setShowCoverLetter(false)}
+                className="absolute right-4 top-4 text-gray-600 hover:text-gray-900"
+              >
+                <X />
+              </button>
+              <div className="sm:ml-4 flex items-center gap-2">
                 <button
-                  aria-label="Close cover letter"
-                  onClick={() => setShowCoverLetter(false)}
-                  className="absolute right-4 top-4 text-gray-600 hover:text-gray-900"
+                  onClick={() => {
+                    const el = document.getElementById('coverletter');
+                    const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
+                    navigator.clipboard.writeText(text);
+                    showToast('Copied to clipboard', 'success', 3000)
+                    setShowCoverLetter(false)
+                  }} className="ml-2 px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200"
                 >
-                  <X />
+                  Copy
                 </button>
-                <div className="sm:ml-4 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById('coverletter');
-                      const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
-                      navigator.clipboard.writeText(text);
-                      showToast('Copied to clipboard', 'success', 3000)
-                      setShowCoverLetter(false)
-                    }} className="ml-2 px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById('coverletter');
-                      const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
-                      const blob = new Blob([text], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                  >
-                    Download
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('coverletter');
+                    const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  Download
+                </button>
+              </div>
 
-                <div id="coverletter">
-                  <header className="flex flex-col  items-start justify-between gap-4 p-6 ">
-                    <div>
-                      <div className="text-sm ">{coverLetter.userDetails?.fullname ?? '[Your Name]'}</div>
-                      <div className="text-xs ">{coverLetter.userDetails?.location}</div>
-                      <div className="text-xs ">{coverLetter.userDetails?.phone}</div>
-                      <div className='text-xs'>{coverLetter.userDetails?.email}</div>
+              <div id="coverletter">
+                <header className="flex flex-col  items-start justify-between gap-4 p-6 ">
+                  <div>
+                    <div className="text-sm ">{coverLetter.userDetails?.fullname ?? '[Your Name]'}</div>
+                    <div className="text-xs ">{coverLetter.userDetails?.location}</div>
+                    <div className="text-xs ">{coverLetter.userDetails?.phone}</div>
+                    <div className='text-xs'>{coverLetter.userDetails?.email}</div>
+                  </div>
+
+                  <div className="text-left">
+                    <div className="text-xs ">{coverLetter.jobTitle ?? '[Job Title]'}</div>
+                    <div className="text-xs ">{coverLetter.companyName ?? '[Company]'}</div>
+                    <div className="text-xs ">{coverLetter.location ?? ''}</div>
+                  </div>
+                </header>
+                <main className="p-6 space-y-6">
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                    <div className="mb-4 font-medium">{coverLetter.parsed?.salutation ?? coverLetter.salutation}</div>
+
+                    <div className="prose prose-sm max-w-none text-gray-800">
+                      {coverLetter.parsed?.coverLetter
+                        ? <div className="whitespace-pre-wrap">{coverLetter.parsed.coverLetter}</div>
+                        : <div className="whitespace-pre-wrap">{coverLetter.coverLetter}</div>}
                     </div>
 
-                    <div className="text-left">
-                      <div className="text-xs ">{coverLetter.jobTitle ?? '[Job Title]'}</div>
-                      <div className="text-xs ">{coverLetter.companyName ?? '[Company]'}</div>
-                      <div className="text-xs ">{coverLetter.location ?? ''}</div>
-                    </div>
-                  </header>
-                  <main className="p-6 space-y-6">
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      <div className="mb-4 font-medium">{coverLetter.parsed?.salutation ?? coverLetter.salutation}</div>
+                    <div className="mt-4 font-medium">{coverLetter.parsed?.closing ?? coverLetter.closing}</div>
+                  </div>
 
-                      <div className="prose prose-sm max-w-none text-gray-800">
-                        {coverLetter.parsed?.coverLetter
-                          ? <div className="whitespace-pre-wrap">{coverLetter.parsed.coverLetter}</div>
-                          : <div className="whitespace-pre-wrap">{coverLetter.coverLetter}</div>}
+                  {Array.isArray(coverLetter.keyParagraphs) && coverLetter.keyParagraphs.length > 0 && (
+                    <section>
+                      <h4 className="text-sm font-semibold mb-2">Key Paragraphs</h4>
+                      <div className="grid gap-3">
+                        {coverLetter.keyParagraphs.map((kp: any, idx: number) => (
+                          <div key={idx} className="text-sm text-gray-700">
+                            <div className="text-xs text-gray-500 font-medium">{kp.purpose}</div>
+                            <div className="whitespace-pre-wrap">{kp.text}</div>
+                          </div>
+                        ))}
                       </div>
+                    </section>
+                  )}
 
-                      <div className="mt-4 font-medium">{coverLetter.parsed?.closing ?? coverLetter.closing}</div>
-                    </div>
-
-                    {Array.isArray(coverLetter.keyParagraphs) && coverLetter.keyParagraphs.length > 0 && (
-                      <section>
-                        <h4 className="text-sm font-semibold mb-2">Key Paragraphs</h4>
-                        <div className="grid gap-3">
-                          {coverLetter.keyParagraphs.map((kp: any, idx: number) => (
-                            <div key={idx} className="text-sm text-gray-700">
-                              <div className="text-xs text-gray-500 font-medium">{kp.purpose}</div>
-                              <div className="whitespace-pre-wrap">{kp.text}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    )}
-
-                    {Array.isArray(coverLetter.highlights) && coverLetter.highlights.length > 0 && (
-                      <section>
-                        <h4 className="text-sm font-semibold mb-2">Highlights</h4>
-                        <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                          {coverLetter.highlights.map((h: any, i: number) => (
-                            <li key={i}><span className="font-medium">{h.title ? `${h.title}: ` : ''}</span>{h.text}</li>
-                          ))}
-                        </ul>
-                      </section>
-                    )}
-                  </main>
-                </div>
+                  {Array.isArray(coverLetter.highlights) && coverLetter.highlights.length > 0 && (
+                    <section>
+                      <h4 className="text-sm font-semibold mb-2">Highlights</h4>
+                      <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                        {coverLetter.highlights.map((h: any, i: number) => (
+                          <li key={i}><span className="font-medium">{h.title ? `${h.title}: ` : ''}</span>{h.text}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </main>
               </div>
             </div>
-          )
+          </div>
+        )
         }
 
         <ConfirmDialog

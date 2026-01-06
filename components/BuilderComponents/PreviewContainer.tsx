@@ -1,4 +1,4 @@
-import { useToast } from "@/context/PopupContext";
+// import { useToast } from "@/context/PopupContext";
 import { ResumeService } from "@/services/resumeServices";
 import { ResumeData } from "@/types/types";
 import React, { useState } from "react";
@@ -6,16 +6,16 @@ import Button from "../UI/Button";
 import ResumePreview from "../Templates/ResumePreview";
 import { Loader2, Trash2 } from "lucide-react";
 import ConfirmDialog from "../UI/ConfirmDialog";
+import { toast } from "react-toastify";
 
 
 interface PreviewContainerProps {
   resume: ResumeData;
   index: number;
-  toast: ReturnType<typeof useToast>;
   onDeleted: (id: string) => void;
 }
 
-export const PreviewContainer: React.FC<PreviewContainerProps> = ({ resume, toast, onDeleted }) => {
+export const PreviewContainer: React.FC<PreviewContainerProps> = ({ resume, onDeleted }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isGone, setIsGone] = useState(false);
@@ -27,17 +27,17 @@ export const PreviewContainer: React.FC<PreviewContainerProps> = ({ resume, toas
     try {
       const response = await ResumeService.delete(resume.id);
       if (!response.ok) {
-        toast.showToast('Error deleting resume', 'error', 3000);
+        toast.error('Error deleting resume');
         setIsDeleting(false);
         return;
       }
-      toast.showToast('Resume deleted', 'success', 2500);
+      toast.success('Resume deleted');
       // animate out then notify parent
       setIsGone(true);
       setTimeout(() => onDeleted(resume.id), 350);
     } catch (error) {
       console.error('Delete error:', error);
-      toast.showToast('Error deleting resume', 'error', 3000);
+      toast.error('Error deleting resume');
       setIsDeleting(false);
     }
   };
@@ -53,12 +53,14 @@ export const PreviewContainer: React.FC<PreviewContainerProps> = ({ resume, toas
         <div
           className={`absolute inset-0 z-10 transition-all duration-500 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] ${isDeleting ? 'grayscale blur-sm opacity-70' : ''}`}
         >
-
         </div>
         <div className="-z-10 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] transition-all">
           <ResumePreview template={resume.template} resumeData={resume} />
         </div>
 
+        <Trash2
+          onClick={() => setShowConfirm(true)}
+          className=" absolute z-40 right-0 top-0 bg-green-50 translate-x-8 m-4 opacity-1  -translate-y-4 group-hover:opacity-100 group-hover:translate-0 group-focus-within:opacity-100 group-focus-within:translate-0 transition-all ease-in-out" color="red" />
         <div
           className={`absolute inset-x-0 bottom-0 z-20 flex translate-y-full gap-2 p-3 transition-all duration-500 ease-out group-hover:translate-y-0  group-focus-within:translate-y-0 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
         >

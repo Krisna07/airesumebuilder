@@ -9,6 +9,7 @@ import { useToast } from '@/context/PopupContext';
 import JobDecriptionAnalysis from '../UI/jobDecriptionAnalysis';
 import { FaSpinner } from 'react-icons/fa6';
 import { BugIcon } from 'lucide-react';
+import { useJobDescriptions } from '@/hooks/useJobDescriptions';
 
 
 interface JDProps {
@@ -43,7 +44,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
   const { user } = useAuth()
 
   const { showToast } = useToast()
-  const userId = user?.id
+  const userId: string = user?.id ?? ''
   useEffect(() => {
     if (error) {
       showToast(error, 'error', 3000)
@@ -57,6 +58,8 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
     setTextField(!textField)
   }
 
+  const response = useJobDescriptions(userId, resumeId);
+
   useEffect(() => {
     if ((disabled || !userId) && resumeId) {
       const localDescriptions = JobDescriptionService.getLocal(resumeId)
@@ -66,28 +69,16 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
       return;
     }
 
-    (async () => {
-      setLoading(true)
-      try {
-        if (userId) {
-          const response = await JobDescriptionService.getAll(userId, resumeId)
-          if (response.status !== 200) {
-            setError('Unable to fetch all previous Job desctiptions')
-          }
-          if (response.status === 202) {
-            setTextField(true)
-            return
-          }
-          setJobDetails(response.data)
-        }
-      } catch (err: any) {
-        console.error('fetchDescription error', err)
-        setError(err?.message || 'Failed to fetch job descriptions')
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [disabled, resumeId, userId]);
+    setLoading(response.isLoading)
+    if (response.data?.status === 202) {
+      setTextField(true)
+      return
+    }
+    if (response.isSuccess) {
+      setJobDetails(response.data.data)
+      setLoading(false)
+    }
+  }, [disabled, response, resumeId, userId]);
 
   const updateJobDescription = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setError(null);
@@ -142,6 +133,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
 
         const response = await JobDescriptionService.save(resumeId, userId, raw[0])
 
+
         if (!response.ok) {
           setError('Uh oh! there is some error saving data')
           console.log(response)
@@ -157,6 +149,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
           return Array.from(map.values());
         })
       }
+      response.refetch()
     } catch (err: any) {
       console.error('extractDescriptions error', err);
       setError(err?.message || 'Failed to extract descriptions');
@@ -164,8 +157,6 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
       setExtracting(false);
     }
   }
-
-  console.log(hideAnalysis)
   return (
     <div className="w-full relative">
       {!hideInput && <div className="py-4 grid gap-2 px-2">

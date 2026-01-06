@@ -1,4 +1,4 @@
-// 'use client';
+
 import { ScrapeResult } from "@/components/Forms/JobDescription";
 import { JobDescription, ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
@@ -48,16 +48,19 @@ export class ResumeService {
         }
     }
 
-    static async getAll(userId: string | null) {
-        try {
-            const response = await fetch(`/api/resume/all?id=${userId}`, {
+    static async getAll(userId: string | null): Promise<ResumeData[]> {
+        if (!userId) {
+            throw new Error('User ID is required to fetch resumes');
+        }
+        const response = await fetch(`/api/resume/all?id=${userId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             })
-            return response
-        } catch (error) {
-            throw error
+        if (!response.ok) {
+            throw new Error('Failed to fetch resumes');
         }
+        const data = await response.json();
+        return data.data;
     }
 
     static async create(userId: string, template?: string, data?: Partial<ResumeData>) {

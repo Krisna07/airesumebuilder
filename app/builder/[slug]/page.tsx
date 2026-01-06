@@ -18,7 +18,7 @@ const BuilderPage: React.FC = () => {
     const fetchResume = async () => {
       if (slug === 'guest-resume') {
         console.log(slug);
-        const localResume = await localStorage.getItem(slug);
+        const localResume = localStorage.getItem(slug);
         console.log(JSON.parse(localResume ? localResume : ''));
         if (localResume) {
           setResumeData(JSON.parse(localResume));
