@@ -30,7 +30,8 @@ export class ResumeService {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             })
-            return response
+            const data = await response.json()
+            return data.data
         } catch (error) {
             throw error
         }

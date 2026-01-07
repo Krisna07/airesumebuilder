@@ -1,39 +1,121 @@
 @import "tailwindcss";
 
-@keyframes fade-in-soft {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
+@theme {
+    /* This replaces darkMode: 'class' */
+    --variant-dark: &:where(.dark, .dark *);
+    @keyframes fade-in-soft {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                }
 
-@keyframes fade-scale {
-    from {
-        opacity: 0;
-        transform: scale(.98);
-    }
+        @keyframes fade-scale {
+            from {
+                opacity: 0;
+                transform: scale(.98);
+            }
 
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                }
 
-@keyframes shimmer {
-    0% {
-        background-position: -100% 0;
-    }
+        @keyframes shimmer {
+            0% {
+                background-position: -100% 0;
+            }
 
-    100% {
-        background-position: 200% 0;
-    }
-}
+                100% {
+                    background-position: 200% 0;
+                }
+                }
 
+        @keyframes l5 {
+    
+            0%,
+            5% {
+                background-position: 33.4% 100%, 66.6% 100%
+            }
+    
+            25% {
+                background-position: 33.4% 100%, 100% 0
+            }
+    
+            50% {
+                background-position: 0 0, 100% 0
+            }
+    
+            75% {
+                background-position: 0 0, 66.6% 100%
+            }
+    
+            95%,
+            100% {
+                background-position: 33.4% 100%, 66.6% 100%
+            }
+        }
+    
+        @keyframes pop-in {
+            from {
+                opacity: 0;
+                transform: translateY(-6px) scale(0.985);
+            }
+    
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+    
+        /* Mobile panel entry animations */
+        @keyframes from-bottom-left {
+            0% {
+                opacity: 0;
+                transform: translate3d(-12px, 24px, 0) scale(.98);
+            }
+    
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+    
+        @keyframes from-bottom-center {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 28px, 0) scale(.96);
+            }
+    
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+    
+        @keyframes from-bottom-right {
+            0% {
+                opacity: 0;
+                transform: translate3d(12px, 24px, 0) scale(.98);
+            }
+    
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+    
+    
+        }
+    
+        /* In v4, you can also define the dark strategy like this if the variable fails: */
+        @custom-variant dark (&:where(.dark, .dark *));
 .ani-fade-in-soft {
     animation: fade-in-soft .4s ease-out both;
 }
@@ -68,54 +150,8 @@
     transform: scale(-1);
 }
 
-@keyframes l5 {
 
-    0%,
-    5% {
-        background-position: 33.4% 100%, 66.6% 100%
-    }
 
-    25% {
-        background-position: 33.4% 100%, 100% 0
-    }
-
-    50% {
-        background-position: 0 0, 100% 0
-    }
-
-    75% {
-        background-position: 0 0, 66.6% 100%
-    }
-
-    95%,
-    100% {
-        background-position: 33.4% 100%, 66.6% 100%
-    }
-}
-/* :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-} */
 
 /* Prevent iOS Safari from zooming on focus by ensuring readable font-size */
 html,
@@ -147,22 +183,12 @@ select {
     animation: pop-in 180ms cubic-bezier(.16, .84, .44, 1) both;
 }
 
-@keyframes pop-in {
-    from {
-        opacity: 0;
-        transform: translateY(-6px) scale(0.985);
-    }
 
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
 
 /* Small visual tweaks to datepicker internals */
 .react-datepicker__header {
     width: 100%;
-        background: linear-gradient(90deg, #000000 0%, #454545 100%);
+    background: linear-gradient(90deg, #000000 0%, #454545 100%);
         color: white !important;
     border-bottom: none;
     padding: 8px 10px;
@@ -194,46 +220,13 @@ select {
     background: linear-gradient(90deg, #060606 0%, #444444 100%) !important;
     /* padding: 1px 12px; */
 }
+
 /* remove triangle */
 .react-datepicker__triangle {
     display: none;
 }
-/* Mobile panel entry animations */
-@keyframes from-bottom-left {
-    0% {
-        opacity: 0;
-        transform: translate3d(-12px, 24px, 0) scale(.98);
-    }
 
-    100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-}
 
-@keyframes from-bottom-center {
-    0% {
-        opacity: 0;
-        transform: translate3d(0, 28px, 0) scale(.96);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-}
-
-@keyframes from-bottom-right {
-    0% {
-        opacity: 0;
-        transform: translate3d(12px, 24px, 0) scale(.98);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-}
 
 .panel-from-left {
     animation: from-bottom-left 320ms cubic-bezier(.2, .9, .2, 1) both;

@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body className={`${inter.className} w-full min-h-screen  relative `}>
+      <body className={`${inter.className} w-full h-screen  relative text-neutral-900 transition-colors duration-200 dark:bg-neutral-950 dark:text-neutral-50 `}>
         <ToastContainer />
         <Providers>
           <Navbar />
