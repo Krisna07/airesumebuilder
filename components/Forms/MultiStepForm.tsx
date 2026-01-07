@@ -15,6 +15,7 @@ import { LocalResumeService } from '@/services/localResumeService';
 import Templates from '../Templates/templates';
 import ResumePreview from '../Templates/ResumePreview';
 import JobDescription from './JobDescription';
+import { useSaveResume } from '@/hooks/useResume';
 
 interface MultiStepFormProps {
   resumeContent: ResumeData;
@@ -42,22 +43,24 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
   const [formData, setFormData] = useState<ResumeData>(resumeContent);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(resumeContent?.template);
   const [currentStep, setCurrentStep] = useState(1);
-  const toast = useToast();
+  const { showToast } = useToast();
 
   const displayTemplate = userId ? Templates : Templates.slice(0, 3);
 
+  const saveResume = useSaveResume(userId, resumeId, selectedTemplate, formData)
   const persist = useCallback(async () => {
     if (userId) {
-      const response = await ResumeService.save(userId, resumeId, selectedTemplate, formData);
-      if (!response.ok) {
-        toast.showToast(response.statusText, 'error', 3000);
+      saveResume.mutateAsync()
+      if (saveResume.isError) {
+        showToast(saveResume.error.message, 'error', 3000);
         return false;
       }
     } else {
       await LocalResumeService.update(resumeId, formData);
     }
     return true;
-  }, [userId, resumeId, selectedTemplate, formData, toast]);
+  }, [userId, resumeId, formData, showToast, saveResume]);
+
 
   const handleNext = useCallback(async () => {
     const ok = await persist();
@@ -76,7 +79,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
 
   const handleSaveDraft = async () => {
     const ok = await persist();
-    if (ok) toast.showToast('Draft saved successfully!', 'success');
+    if (ok) showToast('Draft saved successfully!', 'success');
   };
 
   // Keyboard arrow navigation
@@ -225,7 +228,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
             </div>
           </FormLayout>
         );
-      case 9:
+      case 8:
         return (
           <div className="w-full max-w-lg mx-auto py-10 px-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
@@ -260,10 +263,10 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
   };
 
   return (
-    <div className="w-full h-[calc(100vh-4rem)] flex flex-col bg-white relative overflow-hidden">
+    <div className="w-full h-full flex flex-col items-start bg-green-500  overflow-hidden">
       {currentStep !== FINAL_STEP_INDEX && (
         <div
-          className="shrink-0 w-full flex items-center gap-3 bg-white/95 backdrop-blur-sm  sticky top-0 z-40 px-3 py-2 overflow-x-auto md:justify-center"
+          className="shrink-0 w-full flex items-center gap-3 bg-white/95 backdrop-blur-sm  sticky z-40 px-3 py-2 overflow-x-auto md:justify-center"
           role="tablist"
           aria-label="Form steps"
         >
@@ -297,7 +300,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
       )}
 
       {/* Single scroll region */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 sm:px-4 mb-8 scroll-smooth"
+      <div className="flex-1 overflow-y-auto overscroll-contain px-2 sm:px-4 mb-8 scroll-smooth"
         id={`step-panel-${currentStep}`}
         role="tabpanel"
         aria-labelledby={`step-${currentStep}`}
@@ -316,8 +319,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({
                   variant="secondary"
                   size="small"
                   onClick={handlePrevious}
-                  aria-label="Previous step"
-                >
+                  aria-label="Previous step">
                   <FaChevronLeft />
                   Previous
                 </Button>

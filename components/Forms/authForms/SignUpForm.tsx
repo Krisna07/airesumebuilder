@@ -15,7 +15,7 @@ const SignUpForm: React.FC = () => {
     };
     const { register, loading, user, signIn } = useAuth();
     const [loader, setLoader] = useState(false)
-    // console.log(loading)
+
     const handleSubmit = async (e: React.FormEvent) => {
         setLoader(true)
         e.preventDefault();
@@ -33,12 +33,11 @@ const SignUpForm: React.FC = () => {
         return (window.location.href = '/builder');
     }
     return (
-
         <div className='min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-            {loader && <div className='w-full h-full absolute bg-gray-900/75 flex items-center justify-center'>
+            {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl bg-gray-900/75 flex items-center justify-center'>
                 <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
                     <div className="loader"></div>
-                    <h3 className='text-white animate-pulse'>Authenticating User....</h3>
+                    <h3 className='text-white animate-pulse'>Creating User....</h3>
                 </div>
             </div>}
             <h2 className='text-6xl font-bold'>Welcome</h2>
@@ -53,11 +52,6 @@ const SignUpForm: React.FC = () => {
                     <label className=''>Email *</label>
                     <input type='email' name='email' value={form.email} onChange={handleChange} className=' font-normal p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
                 </div>
-                {/* <div className='grid gap-2'>
-                    <label className=''>Username </label>
-                    <input type='text' name='username' value={form.username} onChange={handleChange} className=' font-normal p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
-                </div> */}
-
                 <div className='grid gap-2'>
                     <label className=''>Password *</label>
                     <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
