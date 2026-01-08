@@ -29,28 +29,41 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Sync local state when resumeData prop is provided
+  useEffect(() => {
+    if (resumeData) {
+      setData(resumeData);
+      setLoading(false);
+    }
+  }, [resumeData]);
+
   // Fetch when only id is provided
   useEffect(() => {
+    if (resumeData || !resumeId) return;
+
     let active = true;
-    if(resumeData){
-      return setData(resumeData)
-    }
-    // console.log(data)
     const fetchResume = async (id: string) => {
       setLoading(true);
       try {
         const response = await ResumeService.getSingle(id);
+        if (!active) return;
+        if (!response.ok) {
+          throw new Error('Failed to load resume');
+        }
         const json = await response.json();
         if (!active) return;
-        if (response.ok) {
-          setData(json.data);
+        setData(json?.data);
+      } catch (error) {
+        if (active) {
+          console.error(error);
+          setData(undefined);
         }
       } finally {
         if (active) setLoading(false);
       }
     };
 
-    if (!resumeData && resumeId) fetchResume(resumeId);
+    fetchResume(resumeId);
     return () => {
       active = false;
     };

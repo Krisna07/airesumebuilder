@@ -1,69 +1,73 @@
-import React from 'react';
+import { Sparkles, FileCheck, Zap, Target, Download, Shield } from "lucide-react"
 
-type Feature = {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-};
-
-const features: Feature[] = [
+const features = [
   {
-    title: 'Tailored for each job',
-    description: 'Paste a job description and get a resume optimized for that role — keywords, strengths and suggestions included.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M12 2v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M5 21a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    )
+    icon: Sparkles,
+    title: "AI-Powered Writing",
+    description: "Let AI help you craft compelling bullet points and professional summaries that stand out.",
   },
   {
-    title: 'ATS-friendly templates',
-    description: 'Choose clean, recruiter-tested templates that parse well through applicant tracking systems.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M7 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M7 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    )
+    icon: FileCheck,
+    title: "ATS-Optimized",
+    description: "Our templates are designed to pass Applicant Tracking Systems with flying colors.",
   },
   {
-    title: 'One-click export',
-    description: 'Export to PDF instantly with preserved layout and high print quality.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M8 11l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <rect x="4" y="17" width="16" height="3" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-      </svg>
-    )
-  }
-];
+    icon: Zap,
+    title: "Lightning Fast",
+    description: "Create a polished, professional resume in under 10 minutes with our intuitive builder.",
+  },
+  {
+    icon: Target,
+    title: "Job Matching",
+    description: "Analyze job descriptions and get personalized suggestions to tailor your resume.",
+  },
+  {
+    icon: Download,
+    title: "Multiple Formats",
+    description: "Export your resume as PDF, Word, or plain text - whatever the employer needs.",
+  },
+  {
+    icon: Shield,
+    title: "Privacy First",
+    description: "Your data is encrypted and never shared. Delete your account anytime.",
+  },
+]
 
-const FeaturesSection: React.FC = () => {
+const FeaturesSection = () => {
   return (
-    <section className="w-full py-12 bg-transparent" aria-label="Features">
+    <section className="w-full py-16 md:py-24 bg-slate-50 dark:bg-slate-900/50">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Everything you need to land the job</h2>
-          <p className="mt-2 text-slate-600 max-w-2xl mx-auto">Smart tools to create, tailor and export professional resumes in minutes.</p>
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+            Everything you need to land your dream job
+          </h2>
+          <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
+            Powerful features designed to help you create the perfect resume, faster than ever.
+          </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f, i) => (
-            <div key={i} className="p-6 bg-white/5 backdrop-blur-sm border border-slate-100/6 rounded-lg shadow-[0_0_2px_0_gray] grid place-items-center">
-              <div className="w-12 h-12 mb-4 flex items-center justify-center rounded-md bg-gray-600 text-white">
-                {f.icon}
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="group p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-lg hover:shadow-teal-500/5 transition-all duration-300"
+            >
+              {/* Icon */}
+              <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <feature.icon className="w-6 h-6 text-teal-600 dark:text-teal-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900">{f.title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{f.description}</p>
+
+              {/* Content */}
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{feature.title}</h3>
+              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
-export default FeaturesSection;
+export default FeaturesSection

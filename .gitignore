@@ -53,3 +53,4 @@ prisma/dev.db-journal
 /lib/generated/prisma
 
 
+.env*.local

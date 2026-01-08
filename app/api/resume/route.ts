@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
 
 
 
@@ -16,10 +16,8 @@ export async function GET(req: NextRequest) {
         if (!resume || resume.deleted) {
             return NextResponse.json({ error: "Resume not found" }, { status: 404 });
         }
-        // console.log(resume);
-        return NextResponse.json({
-            data: {
-               id:resume?.id, 
+        const responseData = {
+            id: resume?.id, 
                title:resume?.title, 
                template:resume?.template, 
                profile: resume?.profile ? JSON.parse(resume.profile as string) : {},
@@ -41,8 +39,8 @@ export async function GET(req: NextRequest) {
                 matchingScore: (resume as any)?.matchingScore ?? null,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                 analyzedAt: (resume as any)?.analyzedAt ?? null
-            }
-        }, { status: 200 });
+        }
+        return NextResponse.json({ data: responseData }, { status: 200 });
     } catch (err) {
         return NextResponse.json({
 

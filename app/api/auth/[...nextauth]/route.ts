@@ -3,12 +3,11 @@ import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import GitHubProvider from 'next-auth/providers/github'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaClient } from '@prisma/client';
 import type { JWT } from 'next-auth/jwt'
 import type { Account } from 'next-auth'
+import { prisma } from '@/lib/prisma'
 
 
-const prisma = new PrismaClient();
 
 
 const handleLogin = async (email: string, password: string) => {

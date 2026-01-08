@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { AIService } from '@/services/aiServices';
 import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
 
 interface JobDetails extends JobDescription {
   id: string;

@@ -1,105 +1,191 @@
-import React, { useState } from 'react';
-import Button from './Button';
-import { AnalysisResult, JobDescription, JobDetailsWithAnalysis, ResumeData } from '@/types/types';
-import { analyzeResume } from '@/services/resumeServices';
-import { BotIcon, ChevronDown } from 'lucide-react';
-import JobAnalysisReport from './JobAnalysisReport';
-import { useToast } from '@/context/PopupContext';
+"use client"
+import type React from "react"
+import { useState, useCallback, memo, useEffect } from "react"
+import Button from "./Button"
+import type { AnalysisResult, JobDescription, JobDetailsWithAnalysis, ResumeData } from "@/types/types"
+import { analyzeResume } from "@/services/resumeServices"
+import { BotIcon, ChevronDown } from "lucide-react"
+import JobAnalysisReport from "./JobAnalysisReport"
+import { useToast } from "@/context/PopupContext"
+import { UseQueryResult } from "@tanstack/react-query"
 
-type Props = {
-    job: JobDetailsWithAnalysis;
-    resumeId?: string;
-    itemKey?: number | string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    handleRegenerate?: (resumeData: ResumeData, analysis?: any, jobDescription?: any) => Promise<void>;
+interface Props {
+    job: JobDetailsWithAnalysis
+    resumeId?: string
+    itemKey?: number | string
+    handleRegenerate?: (resumeData: ResumeData, analysis?: AnalysisResult) => Promise<void>
     resumeData?: ResumeData
-};
+    response: UseQueryResult<{ status: number; data: JobDetailsWithAnalysis[]; }, Error>
+}
 
-const JobDecriptionAnalysis: React.FC<Props> = ({ job, resumeId, itemKey, handleRegenerate, resumeData }) => {
-    const [analyzing, setAnalyzing] = useState<boolean>(false);
-    const [analysis, setAnalysis] = useState<AnalysisResult>(job.hasAnalysed && JSON.parse(job.analysis?.result as string));
+const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnalysis({
+    job,
+    resumeId,
+    handleRegenerate,
+    resumeData,
+    response
+}) {
+    const [analyzing, setAnalyzing] = useState(false)
+    const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
     const { showToast } = useToast()
-    // console.log(job)
-    type ShowDetailsState = {
-        jobDescriptionVisibility: boolean;
-        analysisDetails: boolean;
-    };
 
-    const [showDetails, setShowDetails] = useState<ShowDetailsState>({
-        jobDescriptionVisibility: false,
-        analysisDetails: false
-    });
+    const [showDescription, setShowDescription] = useState(false)
 
-    const updateShowDetails = (key: keyof ShowDetailsState) => {
-        setShowDetails((prev) => ({ ...prev, [key]: !prev[key] }));
-    };
-
-    const startAnalysis = async (jobDetails: JobDescription) => {
-        if (!resumeId) return;
-        if (!jobDetails.description) return;
-        setAnalyzing(true);
-        try {
-            const result = await analyzeResume({
-                resumeId,
-                jobDetails
-            });
-            if (result.status !== 200) {
-                showToast('Error analysing resume', 'warning', 3000)
-                throw new Error(result.error || `Analysis failed with status ${result.status}`);
-
+    // parse initial analysis only when job changes
+    useEffect(() => {
+        if (job?.hasAnalysed && job?.analysis?.result) {
+            try {
+                const parsed = typeof job.analysis.result === 'string' ? JSON.parse(job.analysis.result as string) : job.analysis.result
+                setAnalysis(parsed)
+            } catch (err) {
+                console.warn('Failed to parse initial analysis for job', job.id, err)
+                setAnalysis(null)
             }
-            const parsed = result.data?.result ? JSON.parse(result.data.result) : null;
-            setAnalysis(parsed)
-            showToast('Resume has been analysed, successfully', 'success', 3000)
-
-        } catch (err) {
-            showToast('Error analysing resume', 'warning', 3000)
-            throw err;
-        } finally {
-            setAnalyzing(false);
+        } else {
+            setAnalysis(null)
         }
-    };
+    }, [job])
+
+    const toggleDescription = useCallback(() => {
+        setShowDescription((prev) => !prev)
+    }, [])
+
+    const startAnalysis = useCallback(
+        async (jobDetails: JobDescription) => {
+            if (!resumeId || !jobDetails.description) return
+
+            setAnalyzing(true)
+            try {
+                const result = await analyzeResume({ resumeId, jobDetails })
+
+                if (result.status !== 200) {
+                    showToast("Error analysing resume", "warning", 3000)
+                    return
+                }
+
+                const parsed = result.data?.result ? (typeof result.data.result === 'string' ? JSON.parse(result.data.result) : result.data.result) : null
+                setAnalysis(parsed)
+                // defensive: call refetch only if available
+                try { response?.refetch?.(); } catch { }
+                showToast("Resume analysed successfully", "success", 3000)
+            } catch (err) {
+                showToast("Error analysing resume", "warning", 3000)
+                console.error("Analysis error:", err)
+            } finally {
+                setAnalyzing(false)
+            }
+        },
+        [resumeId, showToast, response],
+    )
+
+    const handleOptimize = useCallback(() => {
+        if (resumeData && handleRegenerate && analysis) {
+            handleRegenerate(resumeData, analysis)
+        }
+    }, [resumeData, handleRegenerate, analysis])
 
 
     return (
-        <div key={itemKey} className='grid gap-2 mt-4 border-gray-500 rounded-md shadow-sm p-4 '>
-            {!analysis &&
-                <div className='grid text-xs grid-cols-1 md:grid-cols-3 gap-4'>
-                    <div >
-                        <p className='text-xs text-slate-500'>Position</p>
-                        <p className=' text-slate-700'>{job?.title ?? '—'}</p>
+        <div className="grid gap-3 mt-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-4 bg-white dark:bg-slate-800">
+            {/* Job info header - only show if no analysis yet */}
+            {!analysis && <>
+                <div className="grid text-xs grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <p className="text-slate-500 dark:text-slate-400">Position</p>
+                        <p className="text-slate-800 dark:text-slate-200 font-medium">{job?.title ?? "—"}</p>
                     </div>
                     <div>
-                        <p className='text-xs text-slate-500'>Location</p>
-                        <p className=' text-slate-700'>{job?.location ?? '—'}</p>
+                        <p className="text-slate-500 dark:text-slate-400">Location</p>
+                        <p className="text-slate-800 dark:text-slate-200 font-medium">{job?.location ?? "—"}</p>
                     </div>
-                </div>}
-            {job.hasAnalysed && analysis && (
-                <JobAnalysisReport {...analysis} />
-            )}
-            {showDetails.jobDescriptionVisibility &&
-                <div className=''>
-                    <p className='text-xs text-slate-500 mb-2'>Description</p>
-                    <div className='w-full max-h-[220px]  overflow-y-scroll border shadow-md text-xs text-slate-600 rounded-md p-2 outline-green-300 active:border-green-300 resize-y'>{job.description ?? '—'}</div>
                 </div>
+
+                {showDescription && (
+                    <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Description</p>
+                        <div className="w-full max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 rounded-md p-3 bg-slate-50 dark:bg-slate-900">
+                            {job.description ?? "—"}
+                        </div>
+                    </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+                    <Button
+                        size="small"
+                        variant="ghost"
+                        className="text-xs text-slate-500 dark:text-slate-400 w-full sm:w-fit"
+                        onClick={toggleDescription}
+                    >
+                        <ChevronDown size={12} className={`transition-transform ${showDescription ? "rotate-180" : "rotate-0"}`} />
+                        {showDescription ? "Hide description" : "View description"}
+                    </Button>
+
+                    <div className="flex gap-2 flex-col sm:flex-row">
+                        {resumeData && handleRegenerate && (
+                            <Button variant="primary" className="w-full sm:w-fit" size="small" onClick={handleOptimize}>
+                                <BotIcon size={14} />
+                                Optimise Resume
+                            </Button>
+                        )}
+
+                        <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() => startAnalysis(job)}
+                            disabled={analyzing}
+                            className={`w-full sm:w-fit ${analyzing ? "animate-pulse" : ""}`}
+                        >
+                            {analyzing ? "Analyzing…" : job?.hasAnalysed ? "Re-analyse" : "Analyse"}
+                        </Button>
+                    </div>
+                </div></>
             }
+            {/* Analysis report */}
+            {job.hasAnalysed && analysis && (
+                <>
+                    <JobAnalysisReport analysis={{ ...analysis, company: job.company }} />
+                    {showDescription && (
+                        <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Description</p>
+                            <div className="w-full max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 rounded-md p-3 bg-slate-50 dark:bg-slate-900">
+                                {job.description ?? "—"}
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+                        <Button
+                            size="small"
+                            variant="ghost"
+                            className="text-xs text-slate-500 dark:text-slate-400 w-full sm:w-fit"
+                            onClick={toggleDescription}
+                        >
+                            <ChevronDown size={12} className={`transition-transform ${showDescription ? "rotate-180" : "rotate-0"}`} />
+                            {showDescription ? "Hide description" : "View description"}
+                        </Button>
 
-            <div className='flex max-[650px]:flex-col gap-2 items-center justify-between'>
-                <Button size='small' variant='secondary' className='text-[10px] text-slate-500 w-fit max-[650px]:w-full  shadow px-2 py-1 rounded flex items-center' onClick={() => updateShowDetails('jobDescriptionVisibility')}>
-                    <ChevronDown size={12} className={`transition-transform ${showDetails.jobDescriptionVisibility ? 'rotate-180' : 'rotate-0'}`} />
-                    {showDetails.jobDescriptionVisibility ? 'Hide description' : 'View description'}
-                </Button >
-                {
-                    resumeData && handleRegenerate &&
-                    <Button variant='primary' className={`md:w-fit w-full`} size='small' onClick={() => handleRegenerate(resumeData, analysis || job.description)} ><BotIcon size={14} /> Optimise Resume</Button>
+                        <div className="flex gap-2 flex-col sm:flex-row">
+                            {resumeData && handleRegenerate && (
+                                <Button variant="primary" className="w-full sm:w-fit" size="small" onClick={handleOptimize}>
+                                    <BotIcon size={14} />
+                                    Optimise Resume
+                                </Button>
+                            )}
 
-                }
-                <Button variant='secondary' size='small' onClick={() => startAnalysis(job)} disabled={analyzing} className={`${analyzing ? 'animate-pulse' : ''} max-[650px]:w-full`}>
-                    {analyzing ? 'Analyzing…' : job?.hasAnalysed ? 'Re-analyse' : 'Analyse'}
-                </Button>
-            </div>
+                            <Button
+                                variant="secondary"
+                                size="small"
+                                onClick={() => startAnalysis(job)}
+                                disabled={analyzing}
+                                className={`w-full sm:w-fit ${analyzing ? "animate-pulse" : ""}`}
+                            >
+                                {analyzing ? "Analyzing…" : job?.hasAnalysed ? "Re-analyse" : "Analyse"}
+                            </Button>
+                        </div>
+                    </div>
+
+                </>
+            )}
         </div>
-    );
-};
+    )
+})
 
-export default JobDecriptionAnalysis;
+export default JobDescriptionAnalysis
