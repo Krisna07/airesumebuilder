@@ -207,14 +207,14 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
         {jobDetails?.length && (
           <div className="w-full mt-2 grid gap-4  ">
             {!hideAnalysis && <div>
-              <h3 className="text-lg font-semibold mb-3 text-slate-800 flex items-center gap-2"><BugIcon size={16} /> Reports </h3>
+              <h3 className="text-lg font-semibold mb-3  flex items-center gap-2"><BugIcon size={16} /> Reports </h3>
               {jobDetails && jobDetails.filter((jd) => jd.hasAnalysed).sort().map((job: JobDetailsWithAnalysis, count: number) =>
                 <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} response={response} />
               )}
             </div>}
 
             <div>
-              {!hideTitle && <h3 className="text-lg font-semibold mb-3 text-slate-800">Available Job Description</h3>}
+              {!hideTitle && <h3 className="text-lg font-semibold mb-3 ">Available Job Description</h3>}
               {jobDetails && jobDetails.filter((jd) => !jd.hasAnalysed).map((job: JobDetailsWithAnalysis, count: number) =>
                 <JobDecriptionAnalysis response={response} key={count} job={job} resumeId={resumeId} handleRegenerate={handleRegenerate} resumeData={resumeData} />
               )}

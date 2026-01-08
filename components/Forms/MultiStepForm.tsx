@@ -228,7 +228,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       {/* Step indicators */}
       {currentStep !== FINAL_STEP_INDEX && (
         <div
-          className="shrink-0 w-full flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm sticky z-40 px-3 py-2 overflow-x-auto md:justify-center border-b border-slate-200 dark:border-slate-700"
+          className="shrink-0 w-full flex items-center justify-center max-[500px]:justify-start min-[760px]:max-[900px]:justify-start gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm sticky z-40 px-3 py-2 overflow-x-auto  border-b border-slate-200 dark:border-slate-700"
           role="tablist"
           aria-label="Form steps"
         >
