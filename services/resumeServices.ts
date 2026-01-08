@@ -24,14 +24,13 @@ export class ResumeService {
         }
     }
 
-    static async getSingle(resumeId: string) {
+    static async getSingle(resumeId: string): Promise<Response> {
         try {
             const response = await fetch(`/api/resume?id=${resumeId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             })
-            const data = await response.json()
-            return data.data
+            return response
         } catch (error) {
             throw error
         }

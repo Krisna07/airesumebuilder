@@ -1,6 +1,5 @@
 import { AIService } from "@/services/aiServices";
 import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { prisma } from '@/lib/prisma'
