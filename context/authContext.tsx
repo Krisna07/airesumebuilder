@@ -1,6 +1,6 @@
 // context/authContext.tsx - Enhanced version
 'use client'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useSession, signIn, getSession, signOut } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
 import { useToast } from './PopupContext'
@@ -111,10 +111,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     sessionStorage.clear()
     signOut()
   };
+  const userDetail = useMemo(() => (user), [user])
 
   return (
     <AuthContext.Provider value={{
-      user,
+      user: userDetail,
       loading,
       signIn,
       logOut,

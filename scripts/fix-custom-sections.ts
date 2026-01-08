@@ -1,9 +1,9 @@
 // Database utility to fix corrupted customSections data
 // Run this once to clean up any invalid customSections data
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+
+import { prisma } from '@/lib/prisma'
 
 async function fixCustomSections() {
     try {
