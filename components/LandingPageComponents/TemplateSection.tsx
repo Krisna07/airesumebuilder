@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import Button from "../UI/Button"
 import { ArrowRight, Check } from "lucide-react"
-
+import dummyResume from './../../app/data/dummyResume.json'
+import ResumePreview from "../Templates/ResumePreview"
 const templates = [
   {
     id: "professional",
@@ -38,7 +39,10 @@ const templates = [
 
 const TemplatesSection = () => {
   const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null)
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mockResume: any = {
+    ...dummyResume
+  }
   return (
     <section className="w-full py-16 md:py-24">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
@@ -63,10 +67,10 @@ const TemplatesSection = () => {
             >
               {/* Template Preview */}
               <div
-                className={`aspect-[3/4] rounded-xl ${template.color} p-4 relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl`}
+                className={`aspect-3/4 rounded-xl ${template.color} p-4 relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl`}
               >
                 {/* Mock Resume Lines */}
-                <div className="space-y-3">
+                {/* <div className="space-y-3 animate-pulse">
                   <div className="h-4 w-3/4 bg-white/20 rounded" />
                   <div className="h-2 w-1/2 bg-white/15 rounded" />
                   <div className="mt-6 space-y-2">
@@ -78,11 +82,13 @@ const TemplatesSection = () => {
                     <div className="h-2 w-full bg-white/10 rounded" />
                     <div className="h-2 w-3/4 bg-white/10 rounded" />
                   </div>
-                </div>
+                </div> */}
+                <ResumePreview resumeData={mockResume} template={template.name} />
+
 
                 {/* Hover Overlay */}
                 <div
-                  className={`absolute inset-0 bg-teal-600/90 flex items-center justify-center transition-opacity duration-300 ${hoveredTemplate === template.id ? "opacity-100" : "opacity-0"}`}
+                  className={`absolute inset-0 bg-teal-600/20 flex items-center justify-center transition-opacity duration-300 ${hoveredTemplate === template.id ? "opacity-100" : "opacity-0"}`}
                 >
                   <Link href="/builder">
                     <Button variant="secondary" size="medium" className="bg-white text-teal-700 hover:bg-teal-50">
