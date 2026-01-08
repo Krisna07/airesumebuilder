@@ -85,7 +85,6 @@ JOB_DESCRIPTION_TEXT:\n${jobDescription}
 OUTPUT:`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const coverLetterPrompt = (sourceResume: ResumeData, jobDescription: JobDescription, analysis?: AnalysisResult | undefined) => {
   const resumeJson = sourceResume ? JSON.stringify(sourceResume) : '{}';
   const jobDescriptionJson = jobDescription ? JSON.stringify(jobDescription) : '';

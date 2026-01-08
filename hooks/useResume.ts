@@ -4,10 +4,19 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 
 export const useGetResume = (resumeId: string) => {
-  return useQuery({
+  return useQuery<ResumeData | undefined>({
     queryKey: ['allJd', resumeId], // Unique key based on userId 
-    queryFn: async () => { 
-     return await ResumeService.getSingle(resumeId);
+    queryFn: async () => {
+      const response = await ResumeService.getSingle(resumeId);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody?.error || 'Failed to fetch resume');
+      }
+      const payload = await response.json();
+      if (!payload?.data) {
+        throw new Error('Resume not found');
+      }
+      return payload.data as ResumeData;
     }
 });
 };

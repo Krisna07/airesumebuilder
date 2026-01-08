@@ -66,7 +66,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
       <div className='flex flex-wrap items-center gap-2'>
         {skillsList.length &&
           skillsList.map(({ type, skills }, index) => (
-            <div key={index} className=' grid bg-gray-100 px-2 text-sm gap-2 w-full p-4'>
+            <div key={index} className=' grid  px-2 text-sm gap-2 w-full p-4 dark:shadow-[0_0_2px_0_white] shadow-[0_0_2px_0_gray] rounded-2xl'>
               <h3 className='w-full flex items-center justify-between '>
                 <span className='font-semibold'>{type || 'General'}</span>
                 <FaTimes color='red' onClick={() => removeType(type || 'General')} />
@@ -75,7 +75,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
               <div className='flex flex-wrap items-center gap-2'>
                 {skills?.length &&
                   skills?.map((skill, i) => (
-                    <span key={i} className='bg-gray-300 whitespace-nowrap flex items-center gap-2 px-2 rounded-full leading-4 py-1'>
+                    <span key={i} className=' whitespace-nowrap flex items-center gap-2 px-2 rounded-full leading-4 py-1'>
                       {skill} <FaTimes onClick={() => removeSkill(skill)} />
                     </span>
                   ))}
@@ -83,7 +83,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
             </div>
           ))}
       </div>
-      <form onSubmit={addSkill} className='w-full grid gap-4'>
+      <form onSubmit={addSkill} className='w-full grid gap-4 shadow'>
         <Input type='text' name='type' value={type} onChange={(e) => setType(e.target.value)} placeholder='Enter skill type (optional)' />
         <Input type='text' name='skill' value={skill} onChange={(e) => setSkill(e.target.value)} placeholder='Add a skill' />
         <Button type='submit' variant='secondary' size='small' fullWidth={false}>

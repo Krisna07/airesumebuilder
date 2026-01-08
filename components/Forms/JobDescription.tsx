@@ -37,51 +37,53 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
   const [jobDescription, setJobDescription] = useState<string>('');
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const [url, setUrl] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false)
   const [textField, setTextField] = useState<boolean>(false)
   const { user } = useAuth()
-
   const { showToast } = useToast()
   const userId: string = user?.id ?? ''
-  useEffect(() => {
-    if (error) {
-      showToast(error, 'error', 3000)
-      setLoading(false)
-      setExtracting(false)
-    }
-  }, [error, showToast])
-
 
   const triggerTextField = () => {
     setTextField(!textField)
   }
 
   const response = useJobDescriptions(userId, resumeId);
+  // shallow compare job details by id to avoid unnecessary state updates
+  const sameJobDetails = (a?: JobDetailsWithAnalysis[], b?: JobDetailsWithAnalysis[]) => {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if ((a[i] as any).id !== (b[i] as any).id) return false;
+    }
+    return true;
+  }
 
   useEffect(() => {
+    // if disabled or no user, prefer local stored descriptions
     if ((disabled || !userId) && resumeId) {
       const localDescriptions = JobDescriptionService.getLocal(resumeId)
       if (localDescriptions.length) {
-        setJobDetails(localDescriptions)
+        if (!sameJobDetails(jobDetails, localDescriptions)) setJobDetails(localDescriptions)
       }
       return;
     }
 
-    setLoading(response.isLoading)
+    // If server suggests paste mode
     if (response.data?.status === 202) {
-      setTextField(true)
-      return
+      if (!textField) setTextField(true);
+      return;
     }
+
+    // Only update when query reports success and data changed
     if (response.isSuccess) {
-      setJobDetails(response.data.data)
-      setLoading(false)
+      const incoming = response.data?.data as JobDetailsWithAnalysis[] | undefined;
+      if (!sameJobDetails(jobDetails, incoming)) setJobDetails(incoming)
     }
-  }, [disabled, response, resumeId, userId]);
+    // Only watch stable flags rather than the whole response object
+  }, [disabled, resumeId, userId, response.isSuccess, response.data?.status, response.refetch]);
 
   const updateJobDescription = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setError(null);
     setJobDescription(e.target.value);
   };
 
@@ -92,29 +94,29 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
   };
 
   const extractDescriptions = async () => {
-    setError(null);
+
     const userId = user?.id;
     const trimmed = url.trim();
     if (!trimmed) {
-      setError('Enter at least one URL');
+      showToast('Enter at least one URL', 'warning');
       setExtracting(false)
       return;
     }
     const candidates = trimmed.split(/[,\s]+/).filter(Boolean);
     const valid = candidates.filter(u => /^https?:\/\//i.test(u));
     if (!valid.length) {
-      setError('No valid URL detected');
+      showToast('No valid URL detected', 'warning');
       return;
     }
 
     try {
       const result = await getJobDescription(valid);
       if ((disabled || !userId) && resumeId) {
-        setError(result.message || 'Failed to fetch description');
+        showToast(result.message || 'Failed to fetch description', 'error');
         return;
       }
       if (result.blocked) {
-        setError(result.message || 'Site blocked automated scraping. Please paste manually.');
+        showToast(result.message || 'Site blocked automated scraping. Please paste manually.', 'error');
       }
 
       const raw = result.raw || [];
@@ -133,9 +135,8 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
 
         const response = await JobDescriptionService.save(resumeId, userId, raw[0])
 
-
         if (!response.ok) {
-          setError('Uh oh! there is some error saving data')
+          showToast('Uh oh! there is some error saving data', 'error')
           console.log(response)
           return
         }
@@ -149,12 +150,14 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
           return Array.from(map.values());
         })
       }
-      response.refetch()
+      await response.refetch()
+
     } catch (err: any) {
       console.error('extractDescriptions error', err);
-      setError(err?.message || 'Failed to extract descriptions');
+      showToast(err?.message || 'Failed to extract descriptions', 'error');
     } finally {
       setExtracting(false);
+
     }
   }
   return (
@@ -171,7 +174,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
           variant="primary"
           size="small"
           onClick={extractDescriptions}
-          disabled={extracting || loading}
+          disabled={extracting}
           className={extracting ? 'animate-pulse' : ''}
         >
           {extracting ? 'Extracting…' : 'Extract'}
@@ -180,7 +183,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
             variant="secondary"
             size="small"
             onClick={() => triggerTextField()}
-            disabled={extracting || loading}
+            disabled={extracting}
             className={extracting ? 'animate-pulse' : ''}
           >
             {textField ? 'Hide' : 'Paste Description'}
@@ -188,7 +191,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
 
         </div>
       </div>}
-      {loading && <div className='flex items-center gap-2 animate-pulse'>Loading available job details  <div className='animate-bounce'><FaSpinner className='text-4xl animate-spin ' /></div></div>}
+      {response.isLoading && <div className='flex items-center gap-2 animate-pulse'>Loading available job details  <div className='animate-bounce'><FaSpinner className='text-4xl animate-spin ' /></div></div>}
 
       <div className='relative'>
         {
@@ -202,18 +205,18 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
         }
 
         {jobDetails?.length && (
-          <div className="w-full mt-2 grid gap-4 bg-white ">
+          <div className="w-full mt-2 grid gap-4  ">
             {!hideAnalysis && <div>
               <h3 className="text-lg font-semibold mb-3 text-slate-800 flex items-center gap-2"><BugIcon size={16} /> Reports </h3>
-              {jobDetails && jobDetails.filter((jd) => jd.hasAnalysed).map((job: JobDetailsWithAnalysis, count: number) =>
-                <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} />
+              {jobDetails && jobDetails.filter((jd) => jd.hasAnalysed).sort().map((job: JobDetailsWithAnalysis, count: number) =>
+                <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} response={response} />
               )}
             </div>}
 
             <div>
               {!hideTitle && <h3 className="text-lg font-semibold mb-3 text-slate-800">Available Job Description</h3>}
               {jobDetails && jobDetails.filter((jd) => !jd.hasAnalysed).map((job: JobDetailsWithAnalysis, count: number) =>
-                <JobDecriptionAnalysis key={count} job={job} resumeId={resumeId} handleRegenerate={handleRegenerate} resumeData={resumeData} />
+                <JobDecriptionAnalysis response={response} key={count} job={job} resumeId={resumeId} handleRegenerate={handleRegenerate} resumeData={resumeData} />
               )}
             </div>
           </div>

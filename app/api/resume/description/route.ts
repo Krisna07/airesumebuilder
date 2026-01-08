@@ -57,10 +57,26 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const slug = searchParams.get('slug');
-        if (slug === 'all') {
+        const resumeId = searchParams.get('resumeId');
+        console.log(resumeId)
+        if (resumeId) {
             const allDescriptions = await prisma.jobDescription.findMany();
-            return NextResponse.json({ data: allDescriptions }, { status: 200 });
+            const jobDescriptionWithAnalysis = await Promise.all(allDescriptions.map(async (desc) => {
+                const jobId = desc.id;
+                const analysis = await prisma.analysisResult.findFirst({
+                    where: {
+                        jobDescriptionId: jobId,
+                        resumeId: resumeId
+                    }
+                });
+                return {
+                    ...desc,
+                    hasAnalysed: analysis ? true : false,
+                    analysis: analysis
+                }
+
+            }))
+            return NextResponse.json({ data: jobDescriptionWithAnalysis }, { status: 200 });
         }
 
         const descriptionId = searchParams.get('id') || undefined;

@@ -1,68 +1,73 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import MultiStepForm from '@/components/Forms/MultiStepForm';
-import { ResumeData } from '@/types/types';
-import { useAuth } from '@/context/authContext';
-import { useToast } from '@/context/PopupContext';
-import { useGetResume } from '@/hooks/useResume';
+"use client"
+import type React from "react"
+import { useMemo } from "react"
+import { useParams } from "next/navigation"
+import MultiStepForm from "@/components/Forms/MultiStepForm"
+import type { ResumeData } from "@/types/types"
+import { useAuth } from "@/context/authContext"
+import { useGetResume } from "@/hooks/useResume"
+import { Loader2 } from "lucide-react"
 
 const BuilderPage: React.FC = () => {
-  const params = useParams();
-  const slug = (params?.slug ?? "") as string;
-  const [resumeData, setResumeData] = useState<ResumeData>();
-  const { user } = useAuth();
-  const response = useGetResume(slug)
-  const { showToast } = useToast()
+  const params = useParams()
+  const slug = (params?.slug ?? "") as string
+  const { user } = useAuth()
 
-  useEffect(() => {
-    if (!slug) return;
-      if (slug === 'guest-resume') {
-        console.log(slug);
-        const localResume = localStorage.getItem(slug);
-        console.log(JSON.parse(localResume ? localResume : ''));
-        if (localResume) {
-          setResumeData(JSON.parse(localResume));
-          return;
-        }
+  const isGuestResume = slug === "guest-resume"
+  const {
+    data: apiResume,
+    isLoading,
+    error,
+  } = useGetResume(slug)
+
+  const resumeData = useMemo<ResumeData | null>(() => {
+    if (isGuestResume) {
+      try {
+        const localResume = localStorage.getItem(slug)
+        return localResume ? JSON.parse(localResume) : null
+      } catch {
+        return null
       }
-    if (response.error) {
-      showToast(response.error.message, 'error', 3000)
     }
+    return apiResume ?? null
+  }, [isGuestResume, slug, apiResume])
 
-    if (response.data) {
-      setResumeData(response.data)
-    }
-  }, [slug, response, response.error, showToast]);
-
-  if (response.isLoading) {
+  // Loading state
+  if (!isGuestResume && isLoading) {
     return (
-      <div className='w-full min-h-[60vh] flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-          <p className='text-gray-600'>Loading your resume...</p>
+      <div className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-teal-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">Loading your resume...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  if (!resumeData) {
+  // Error or not found state
+  if (error || !resumeData) {
     return (
-      <div className='w-full min-h-[60vh] flex items-center justify-center'>
-        <div className='text-center'>
-          <h2 className='text-2xl font-bold text-gray-800 mb-4'>You have wondered to an abyss. Please get back</h2>
-          <p className='text-gray-600 mb-6'>The resume you&#39;re looking for doesn&#39;t exist or has been deleted.</p>
-          <button onClick={() => (window.location.href = '/builder')} className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+      <div className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">🔍</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-4">Resume Not Found</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">
+            {error?.message || "The resume you're looking for doesn't exist or has been deleted."}
+          </p>
+          <button
+            onClick={() => (window.location.href = "/builder")}
+            className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
+          >
             Back to Builder
           </button>
         </div>
       </div>
-    );
+    )
   }
 
-  return (
-    <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user ? user.id : ''} />
-  );
-};
+  return <MultiStepForm resumeContent={resumeData} resumeId={slug} userId={user?.id ?? ""} />
+}
 
-export default BuilderPage;
+export default BuilderPage

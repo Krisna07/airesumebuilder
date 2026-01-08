@@ -2,7 +2,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/types';
+import { JobDetailsWithAnalysis, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
@@ -18,23 +18,19 @@ import TemplatesPanel from './TemplatesPanel';
 import MenuPanel from './MenuPanel';
 import JobDescription from '@/components/Forms/JobDescription';
 import { useJobDescriptions } from '@/hooks/useJobDescriptions';
+import { useGetResume } from '@/hooks/useResume';
 
 
-const sanitizeFile = (s: string) =>
-  s
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^\w.\-]+/g, '');
+const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
 
 const PreviewPage = () => {
   const params = useParams();
   const slug = (params?.slug ?? "") as string;
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [resumeData, setResumeData] = useState<ResumeData>();
   const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
-  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>('loading');
-  const [showFallback, setShowFallback] = useState(false); // delay gate for not-found
+  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>('loading');; // delay gate for not-found
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -54,58 +50,9 @@ const PreviewPage = () => {
   const reportsRef = useRef<HTMLDivElement | null>(null);
   const templatesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
-  const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
-
-  // const fetchDescription = React.useCallback(async (slug: string) => {
-  //   if (user) {
-  //     const analysisItem = []
-  //     const response = await JobDescriptionService.getAll(user.id, slug)
-  //     if (response.status !== 200) {
-  //       showToast('Unable to fetch all previous Job desctiptions', 'error', 3000)
-  //     }
-  //     const data: JobDetailsWithAnalysis[] = response.data
-
-  //     for (const details of data) {
-  //       if (details.hasAnalysed) {
-  //         const analysis = details.analysis
-  //         if (analysis) {
-  //           const parsed = JSON.parse(analysis.result as string)
-  //           analysisItem.push({
-  //             ...parsed,
-  //             _analysisId: analysis.id,
-  //             _jobDescriptionId: details.id,
-  //             _analysedDate: analysis.updatedAt
-  //           } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
-  //         }
-  //       }
-  //     }
-
-  //     if (analysisItem.length > 0) {
-  //       setAnalysisData(analysisItem)
-  //     }
-  //     setJobDetails(response.data)
-  //   }
-  // }, [showToast, user]);
 
   const response = useJobDescriptions(user ? user.id : '', slug)
-
-
-
-  const extractResumeData = React.useCallback(async (active: boolean, slug: string) => {
-    const response = await ResumeService.getSingle(slug)
-    const data = await response.json()
-    if (!response.ok || !data?.data) {
-      // Important: Only mark not-found AFTER auth loading false AND we have confirmed user exists
-      setStatus('not-found');
-      showToast('No resume data found', 'warning', 2500);
-      return;
-    }
-
-    setResumeData(data.data);
-    setSelectedTemplate(data.data.template);
-    const hasMinimum = !!(data.data.profile?.fullname && data.data.profile?.email);
-    setStatus(hasMinimum ? 'ready' : 'incomplete');
-  }, [showToast]);
+  const resumeResponse = useGetResume(slug)
 
   const loadLocalResume = React.useCallback(() => {
     const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;
@@ -125,6 +72,46 @@ const PreviewPage = () => {
   }, [slug]);
 
   useEffect(() => {
+    if (!user) {
+      return loadLocalResume()
+    }
+
+    if (resumeResponse.isFetched && resumeResponse.isError) {
+      // avoid re-setting identical status/toast repeatedly
+      setStatus(prev => (prev === 'not-found' ? prev : 'not-found'));
+      showToast(resumeResponse.error?.message || 'No resume data found', 'warning', 2500);
+      return;
+    }
+
+    if (resumeResponse.isSuccess && resumeResponse.data) {
+      const resume = resumeResponse.data
+      // only update local state if data changed
+      setResumeData(prev => {
+        if (prev && prev.id === resume.id) return prev;
+        setSelectedTemplate(resume.template);
+        const hasMinimum = !!(resume.profile?.fullname && resume.profile?.email);
+        setStatus(hasMinimum ? 'ready' : 'incomplete');
+        return resume;
+      })
+    }
+    // watch only primitive flags and stable callbacks to avoid effect instability
+  }, [resumeResponse.isFetched, resumeResponse.isError, resumeResponse.isSuccess, resumeResponse.data?.id, user, loadLocalResume, showToast])
+
+  // Load local coverletter once on mount
+  useEffect(() => {
+    const localCoverletter = typeof window !== 'undefined' ? localStorage.getItem('coverLetter') : null;
+    if (typeof localCoverletter === 'string') {
+      try {
+        const localData = JSON.parse(localCoverletter);
+        setCoverLetter(localData);
+      } catch (err) {
+        console.warn('Failed to parse local cover letter', err);
+      }
+    }
+  }, []);
+
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node | null;
       // ignore clicks from top bar icons
@@ -142,7 +129,6 @@ const PreviewPage = () => {
 
     const handleScroll = () => {
       showMenu(false);
-      // showReports(false);
       setShowTemplates(false);
 
     };
@@ -156,82 +142,33 @@ const PreviewPage = () => {
   }, [menu, reports, showTemplates, showToast]);
 
 
-
+  // Process job descriptions when the query completes successfully
   useEffect(() => {
-    let active = true;
-    if (!slug) return;
-    setStatus('loading');
-    const fetchResume = async () => {
-      if (!active) return;
-      // If auth still resolving, keep loading skeleton regardless of slug
-      if (authLoading) {
-        setStatus('loading');
-        return;
-      }
-      // Guest path (user null after auth resolved -> guest or signed out)
-      if (!user) {
-        loadLocalResume()
-      }
-      // Authenticated path
-      try {
-        await Promise.all([extractResumeData(active, slug)])
-        if (response.isSuccess) {
-          const analysisItem = []
-          const data: JobDetailsWithAnalysis[] = response.data.data
-          for (const details of data) {
-            if (details.hasAnalysed) {
-              const analysis = details.analysis
-              if (analysis) {
-                const parsed = JSON.parse(analysis.result as string)
-                analysisItem.push({
-                  ...parsed,
-                  _analysisId: analysis.id,
-                  _jobDescriptionId: details.id,
-                  _analysedDate: analysis.updatedAt
-                } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
-              }
-            }
+    if (!response || !response.isSuccess || !response.data) return;
+    const data: JobDetailsWithAnalysis[] = response.data.data || [];
+    const analysisItem: any[] = [];
+    for (const details of data) {
+      if (details.hasAnalysed) {
+        const analysis = details.analysis;
+        if (analysis) {
+          try {
+            const parsed = typeof analysis.result === 'string' ? JSON.parse(analysis.result as string) : analysis.result;
+            analysisItem.push({
+              ...parsed,
+              _analysisId: analysis.id,
+              _jobDescriptionId: details.id,
+              _analysedDate: analysis.updatedAt,
+            });
+          } catch (err) {
+            console.warn('Failed to parse analysis result for', details.id, err);
           }
-          if (analysisItem.length > 0) {
-            setAnalysisData(analysisItem)
-          }
-          setJobDetails(response.data.data)
-        }
-
-        active = false
-      } catch (err) {
-        if (active) {
-          console.error('Error loading resume data:', err);
-          showToast('Error loading resume. Redirecting…', 'error', 2500);
-          setStatus('error');
-          // setTimeout(() => (window.location.href = '/builder'), 600);
         }
       }
-    };
-
-    fetchResume();
-    const localCoverletter = typeof window !== 'undefined' ? localStorage.getItem('coverLetter') : null;
-    if (typeof localCoverletter === 'string') {
-      try {
-        const localData = JSON.parse(localCoverletter);
-        setCoverLetter(localData);
-      } catch (err) {
-        console.warn('Failed to parse local cover letter', err);
-      }
     }
-    return () => {
-      active = false;
-    };
-  }, [slug, user, response, authLoading, showToast, extractResumeData, loadLocalResume]);
-
-  useEffect(() => {
-    if (status === 'not-found') {
-      const timer = setTimeout(() => setShowFallback(true), 250); // slight delay to suppress flash
-      return () => clearTimeout(timer);
-    } else if (showFallback) {
-      setShowFallback(false);
+    if (analysisItem.length > 0) {
+      setAnalysisData(analysisItem);
     }
-  }, [status, showFallback]);
+  }, [response.isSuccess, response.data]);
 
   const handleTemplateChange = async (templateId: string) => {
     if (!resumeData) return;
@@ -307,7 +244,7 @@ const PreviewPage = () => {
     if (!resumeData) return;
     setDeleting(true);
     if (!user) {
-      await localStorage.removeItem(slug);
+      localStorage.removeItem(slug);
       setDeleting(false);
       return showToast('Resume deleted', 'success', 2200);
     }
@@ -438,7 +375,7 @@ const PreviewPage = () => {
   }
 
   // Unified rendering logic to prevent 'No Resume Data' flash
-  if (status === 'loading') {
+  if (resumeResponse.isLoading) {
     return (
       <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl grid gap-8">
@@ -457,7 +394,7 @@ const PreviewPage = () => {
     );
   }
 
-  if (status === 'incomplete' && resumeData) {
+  if (resumeResponse.isSuccess && status === 'incomplete') {
     return (
       <div className="h-full bg-gray-50 flex items-center justify-center">
         <div className="text-center flex flex-col items-center justify-center p-2">
@@ -477,7 +414,7 @@ const PreviewPage = () => {
     );
   }
 
-  if (status === 'ready' && resumeData) {
+  if (resumeResponse.isFetched && resumeResponse.isSuccess && resumeData) {
     const displayTemplate = user ? Templates : Templates.slice(0, 3);
     return (
       <div
@@ -519,13 +456,12 @@ const PreviewPage = () => {
                   selectedAnalysis={selectedAnalysis}
                   setSelectedAnalysis={setSelectedAnalysis}
                   handleReAnalysis={handleReAnalysis}
-                  handleRegerate={handleRegerate}
+                  handleRegenerate={handleRegerate}
                   generateCoverLetter={generateCoverLetter}
                   generatingCoverLetter={generatingCoverLetter}
                   resumeData={resumeData}
                   analyzing={analyzing}
                   generating={generating}
-                  jobDetails={jobDetails}
                   reportsRef={reportsRef}
                 />
               </div>
@@ -534,7 +470,6 @@ const PreviewPage = () => {
 
           {showTemplates && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-center'>
             <TemplatesPanel
-              showTemplates={showTemplates}
               displayTemplate={displayTemplate}
               selectedTemplate={selectedTemplate}
               handleTemplateChange={handleTemplateChange}
@@ -548,9 +483,6 @@ const PreviewPage = () => {
               setShowConfirm={setShowConfirm}
               slug={slug}
               menuRef={menuRef}
-              showMenu={showMenu}
-              showReports={showReports}
-              setShowTemplates={setShowTemplates}
             />
           </div>}
         </div>
@@ -848,7 +780,7 @@ const PreviewPage = () => {
   }
   // No data fallback only when status is not-found
 
-  if (status === 'error') {
+  if (resumeResponse.isError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -858,7 +790,7 @@ const PreviewPage = () => {
       </div>
     );
   }
-  if (status === 'not-found' && showFallback) {
+  if (status === 'not-found') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -891,9 +823,6 @@ const PreviewPage = () => {
       </div>
     </div>
   );
-
-
-
 };
 
 export default PreviewPage;

@@ -1,40 +1,69 @@
-import React from "react";
+"use client"
+
+import type React from "react"
+import clsx from "clsx"
 
 interface InputProps {
-  type: string;
-  name?: string;
-  value: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder: string;
-  required?: boolean;
-  label?: boolean
+  type?: string
+  name?: string
+  value?: string
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  required?: boolean
+  label?: string | boolean
+  disabled?: boolean
+  error?: string
+  className?: string
+  id?: string
 }
 
 const Input: React.FC<InputProps> = ({
-  type,
+  type = "text",
   name,
   value,
   onChange,
   placeholder,
   required,
   label,
+  disabled,
+  error,
+  className,
+  id,
 }) => {
+  const inputId = id || name || placeholder?.toLowerCase().replace(/\s+/g, "-")
+
   return (
-    <div className="w-full grid gap-1 transition-all ease-in-out text-[14px] font-sans">
-      {label !== false && <label className="w-full font-semibold transition-all ease-in-out px-1">
-        {placeholder}
-      </label>}
+    <div className="w-full grid gap-1.5 transition-all ease-in-out text-sm">
+      {label !== false && (
+        <label htmlFor={inputId} className="font-medium text-slate-700 dark:text-slate-200 px-0.5">
+          {typeof label === "string" ? label : placeholder}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+      )}
       <input
+        id={inputId}
         type={type}
         name={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className="w-full outline-none ring-1 focus:ring-green-600 ring-gray-200 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative z-10"
+        disabled={disabled}
+        className={clsx(
+          "w-full px-3 py-2 rounded-lg border transition-all duration-200 ease-in-out",
+          "bg-white dark:bg-slate-900",
+          "text-slate-900 dark:text-slate-100 placeholder:text-slate-400",
+          "border-slate-200 dark:border-slate-700",
+          "focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500",
+          "hover:border-slate-300 dark:hover:border-slate-600",
+          "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50",
+          error && "border-red-500 focus:ring-red-500/20 focus:border-red-500",
+          className,
+        )}
       />
+      {error && <p className="text-xs text-red-500 px-0.5">{error}</p>}
     </div>
-  );
-};
+  )
+}
 
-export default Input;
+export default Input

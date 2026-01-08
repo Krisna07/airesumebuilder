@@ -110,7 +110,7 @@ export class JobDescriptionService {
 
     static async getAll(userId: string, resumeId?: string) {
         try {
-            const response = await fetch(`/api/resume/description?userId=${userId}&slug=all`, {
+            const response = await fetch(`/api/resume/description?userId=${userId}&resumeId=${resumeId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             })
@@ -119,35 +119,7 @@ export class JobDescriptionService {
                 throw new Error('Failed to fetch job descriptions');
             }
             const data = await response.json();
-            const allDescriptions: JobDescription[] = data.data || [];
-            const responseData: JobDetailsWithAnalysis[] = []
-
-            await Promise.all(allDescriptions.map(async (jd: JobDescription) => {
-                if (!resumeId) return;
-
-                try {
-                    const response = await fetch(`/api/ai/analyze?resumeId=${encodeURIComponent(resumeId)}&jobDescriptionId=${encodeURIComponent(jd.id || '')}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-
-                    if (!response.ok) {
-                        console.warn('Failed to fetch analysis for job description:', jd.id, response.status);
-                        return;
-                    }
-
-                    const data = await response.json();
-
-                    const analysisData = data.data
-                    return responseData.push({
-                        ...jd,
-                        hasAnalysed: analysisData ? true : false,
-                        analysis: analysisData ?? {}
-                    })
-                } catch (err) {
-                    console.warn('Error fetching analysis for job description:', jd.id, err);
-                }
-            }))
+            const responseData: JobDetailsWithAnalysis[] = data.data
 
             return {
                 status: response.status || 200,
