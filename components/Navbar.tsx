@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import UniversalImage from "./UI/UniversalImage"
@@ -14,18 +13,31 @@ const Navbar = () => {
   const menuRef = useRef<HTMLDivElement | null>(null)
   const route = usePathname()
   const [activeTab, setActivetab] = useState<string>("")
+  // avoid reading `window` during SSR — sync theme on mount
   const [isDark, setIsDark] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setMounted(true)
+    const stored = localStorage.getItem("theme")
+    if (stored) {
+      const next = stored === "dark"
+      document.documentElement.classList.toggle("dark", next)
+      setIsDark(next)
+      return
+    }
+
+    // if no stored preference, prefer current document class or OS preference
+    const hasClass = document.documentElement.classList.contains("dark")
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+    setIsDark(hasClass || prefersDark)
+  }, [])
+  console.log(mounted)
   useEffect(() => {
     setActivetab(route ?? "")
     setMenu(false)
   }, [route])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsDark(document.documentElement.classList.contains("dark"))
-    }
-  }, [])
 
   const toggleTheme = () => {
     if (typeof window === "undefined") return
@@ -117,13 +129,13 @@ const Navbar = () => {
             className="relative flex items-center w-14 h-7 rounded-full bg-slate-200 dark:bg-slate-700 p-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
           >
             <Sun
-              className={`w-4 h-4 absolute left-1.5 transition-opacity duration-200 ${isDark ? "opacity-50 text-slate-400" : "opacity-100 text-amber-500"}`}
+              className={`w-4 h-4 absolute z-20 left-1.5 transition-opacity duration-200 ${isDark ? "dark:opacity-50 dark:text-slate-400" : "opacity-100 text-amber-500"}`}
             />
             <Moon
-              className={`w-4 h-4 absolute right-1.5 transition-opacity duration-200 ${isDark ? "opacity-100 text-teal-400" : "opacity-50 text-slate-400"}`}
+              className={`w-4 h-4 absolute z-20 right-1.5 transition-opacity duration-200 ${isDark ? "opacity-100 text-teal-400" : "opacity-50 text-slate-400"}`}
             />
             <div
-              className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-7" : "translate-x-0"}`}
+              className={`w-5 h-5 rounded-full z-10 bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-7" : "translate-x-0"}`}
             />
           </button>
 
@@ -159,7 +171,7 @@ const Navbar = () => {
                 {/* User Info */}
                 <div className="p-3 border-b border-slate-100 dark:border-slate-700">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-teal-400 to-teal-600 flex items-center justify-center  font-semibold">
                       {user ? user.name?.charAt(0).toUpperCase() : "G"}
                     </div>
                     <div>

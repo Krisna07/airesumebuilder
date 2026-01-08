@@ -34,7 +34,7 @@ const SignUpForm: React.FC = () => {
     }
     return (
         <div className='min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-            {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl bg-gray-900/75 flex items-center justify-center'>
+            {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl  flex items-center justify-center'>
                 <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
                     <div className="loader"></div>
                     <h3 className='text-white animate-pulse'>Creating User....</h3>
@@ -50,11 +50,11 @@ const SignUpForm: React.FC = () => {
             <form onSubmit={handleSubmit} className='w-full  grid gap-4   p-4 font-semibold '>
                 <div className='grid gap-2'>
                     <label className=''>Email *</label>
-                    <input type='email' name='email' value={form.email} onChange={handleChange} className=' font-normal p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
+                    <input type='email' name='email' value={form.email} onChange={handleChange} className=' font-normal p-2  outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
                 </div>
                 <div className='grid gap-2'>
                     <label className=''>Password *</label>
-                    <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
+                    <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2  outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
                 </div>
 
                 <Button variant='primary' size='large' className='w-full flex items-center justify-center rounded-full mt-4 pt-2 pb-2' disabled={loading ? true : false}>
