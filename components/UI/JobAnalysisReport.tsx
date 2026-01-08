@@ -55,9 +55,9 @@ interface JobAnalysisReportProps {
 const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnalysisReportProps) {
     const [showDetails, setShowDetails] = useState(false)
     const percent = useMemo(() => {
-    const raw = Number(analysis.matchingPercentage ?? 0)
+        const raw = Number(analysis ? analysis.matchingPercentage : 0)
         return Number.isFinite(raw) && !Number.isNaN(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0
-    }, [analysis.matchingPercentage])
+    }, [analysis?.matchingPercentage])
 
     const dashOffset = useMemo(() => String(100 - percent), [percent])
     const report = useMemo(() => generateReport(percent), [percent])
@@ -96,9 +96,9 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
 
     const truncatedDescription = useMemo(() => {
         if (showDetails) return analysis.description
-        const cutoff = Math.floor(analysis.description.length * 0.5)
-        return analysis.description.slice(0, cutoff)
-    }, [showDetails, analysis.description])
+        const cutoff = Math.floor(analysis?.description.length * 0.5)
+        return analysis && analysis.description.slice(0, cutoff)
+    }, [showDetails, analysis?.description])
 
     return (
         <div className="w-full bg-white dark:bg-slate-800 rounded-lg text-xs shadow-sm border border-slate-200 dark:border-slate-700 p-4">
