@@ -421,7 +421,7 @@ const PreviewPage = () => {
         className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
         <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
-          <div className='w-full flex items-start justify-between bg-white p-4'>
+          <div className='w-full flex items-start justify-between dark:bg-gray-800 shadow  p-4'>
             <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
               e.stopPropagation();
               showMenu(false);
@@ -448,7 +448,7 @@ const PreviewPage = () => {
           </div>
 
           {reports && (
-            <div className='w-full absolute bottom-12 grid place-items-start bg-white p-4 panel-from-left'>
+            <div className='w-full absolute bottom-12 grid place-items-start  p-4 panel-from-left'>
               <div className='w-full max-h-[60vh] md:max-h-[70vh] overflow-auto'>
                 <ReportsPanel
                   reports={reports}
@@ -468,7 +468,7 @@ const PreviewPage = () => {
             </div>
           )}
 
-          {showTemplates && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-center'>
+          {showTemplates && <div className='w-full absolute bottom-12 p-4 panel-from-center'>
             <TemplatesPanel
               displayTemplate={displayTemplate}
               selectedTemplate={selectedTemplate}
@@ -477,7 +477,7 @@ const PreviewPage = () => {
               templatesRef={templatesRef}
             />
           </div>}
-          {menu && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-right'>
+          {menu && <div className='w-full absolute bottom-12 p-4 panel-from-right'>
             <MenuPanel
               menu={menu}
               setShowConfirm={setShowConfirm}
@@ -533,10 +533,10 @@ const PreviewPage = () => {
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
           {analysisData && analysisData?.length > 0 &&
-            <div className='max-[500px]:hidden flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] p-4'>
-              <div className='w-full'>
+            <div className='max-[500px]:hidden max-h-[350px] box-border overflow-hidden flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] pl-4 py-4'>
+              <div className='w-full h-full'>
                 <h3 className='font-semibold px-2'>Analysis</h3>
-                <div className='w-full flex flex-wrap items-start justify-between'>
+                <div className='w-full h-full flex flex-wrap items-start justify-between'>
                   {analysisData && analysisData.map((analysis: any, count: number) => {
                     const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
                     return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={` max-w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
@@ -549,9 +549,10 @@ const PreviewPage = () => {
                     </div>
                   })
                   }
-                  <div className={analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'}>
+                  <div className={`overflow-y-scroll h-full ${analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'} pb-4`}>
+                    <div className='h-fit'>
                     <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
-                  </div>
+                    </div></div>
                 </div>
               </div>
 
