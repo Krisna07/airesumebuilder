@@ -60,7 +60,7 @@ const ReportItem = memo(function ReportItem({
         ${isProcessing ? "animate-pulse" : ""}
       `}
     >
-      <JobAnalysisReport {...analysis} />
+      <JobAnalysisReport analysis={analysis} />
       <div className="flex flex-wrap items-center gap-2 mt-3">
         <Button
           disabled={generating || generatingCoverLetter}
