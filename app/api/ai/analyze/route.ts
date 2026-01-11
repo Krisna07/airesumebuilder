@@ -146,3 +146,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 })
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const analysisId = searchParams.get('analysisId');
+    const resumeId = searchParams.get('resumeId');
+    if (!analysisId || !resumeId) {
+      return NextResponse.json({ error: 'analysisId and resumeId are required' }, { status: 400 });
+    }
+    const deletion = await prisma.analysisResult.deleteMany({
+      where: {
+        id: analysisId,
+        resumeId: resumeId
+      }
+    });
+    return NextResponse.json({ data: deletion });
+  } catch (error) {
+    console.error('Delete Analysis API error:', error);
+    return NextResponse.json({ error: 'Failed to delete analysis' }, { status: 500 })
+  }
+}

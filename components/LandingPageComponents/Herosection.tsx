@@ -71,7 +71,7 @@ const HeroSection: React.FC<HeroProps> = ({
         </p>
 
         {/* Stats */}
-        <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700">
+        {/* <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700">
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
             <div className="text-center">
               <p className="text-3xl font-bold text-slate-900 dark:text-white">10K+</p>
@@ -86,7 +86,7 @@ const HeroSection: React.FC<HeroProps> = ({
               <p className="text-sm text-slate-500 dark:text-slate-400">User rating</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </header>
   )

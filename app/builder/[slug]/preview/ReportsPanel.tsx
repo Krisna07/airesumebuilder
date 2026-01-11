@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import type React from "react"
 import { memo, useState, useCallback } from "react"
@@ -10,10 +11,9 @@ import type { AnalysisResult, ResumeData } from "@/types/types"
 interface ReportsPanelProps {
   reports: boolean
   analysisData: AnalysisResult[]
-  selectedAnalysis: AnalysisResult | null
-  setSelectedAnalysis: (analysis: AnalysisResult) => void
+  selectedAnalysis: any | null
+  setSelectedAnalysis: (analysis: any) => void
   handleReAnalysis: (analysis: AnalysisResult) => void
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleRegenerate: (resumeData: ResumeData, analysis?: any, jobDescription?: any) => Promise<void>
   resumeData: ResumeData
   analyzing: boolean
@@ -35,7 +35,7 @@ const ReportItem = memo(function ReportItem({
   onCoverLetter,
   onReAnalyze,
 }: {
-  analysis: AnalysisResult
+    analysis: any;
   isSelected: boolean
   isProcessing: boolean
   generating: boolean
@@ -45,8 +45,7 @@ const ReportItem = memo(function ReportItem({
   onOptimize: () => void
   onCoverLetter: () => void
   onReAnalyze: () => void
-}) {
-
+  }) {
   return (
     <div
       onClick={onSelect}
@@ -57,10 +56,10 @@ const ReportItem = memo(function ReportItem({
           ? "ring-2 ring-teal-400 border-teal-400 bg-teal-50/50 dark:bg-teal-900/20"
           : "border-slate-200 hover:border-teal-300 bg-white dark:hover:border-teal-600"
         }
-        ${isProcessing ? "animate-pulse" : ""}
+        ${isSelected && (isProcessing || analyzing) ? "animate-pulse" : ""}
       `}
     >
-      <JobAnalysisReport analysis={analysis} />
+      <JobAnalysisReport analysis={{ ...analysis, company: analysis._company }} />
       <div className="flex flex-wrap items-center gap-2 mt-3">
         <Button
           disabled={generating || generatingCoverLetter}
@@ -140,7 +139,6 @@ const ReportsPanel = memo(function ReportsPanel({
   }, [])
 
   const hasReports = reports && analysisData?.length > 0
-
   return (
     <div
       onClick={(e) => e.stopPropagation()}
@@ -155,8 +153,8 @@ const ReportsPanel = memo(function ReportsPanel({
           </p>
 
           <div className="overflow-auto mt-3 flex-1">
-            {analysisData.map((analysis, index) => {
-              const isSelected = selectedAnalysis?.id === analysis.id
+            {analysisData.map((analysis: any, index) => {
+              const isSelected = selectedAnalysis?._analysisId === analysis._analysisId
               return (
                 <ReportItem
                   key={analysis.id || index}

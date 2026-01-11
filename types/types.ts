@@ -18,6 +18,7 @@ export interface ResumeData {
   matchingScore?: number;
   analyzedAt?: string | Date;
   description?: string;
+  createdAt?: string | Date;
 }
 
 export interface skills {
@@ -97,7 +98,9 @@ export interface JobDescription {
   company: string;
   location: string;
   domain: string;
-  url: string
+  url: string;
+  cretedAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export type JobDetailsWithAnalysis = JobDescription & {
