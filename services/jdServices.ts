@@ -108,6 +108,36 @@ export class JobDescriptionService {
         }
     }
 
+    static async remove(userId: string, jobDescriptionId: string) {
+        try {
+            const response = await fetch(`/api/resume/description?userId=${userId}&jobDescriptionId=${jobDescriptionId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            if (!response.ok) {
+                throw new Error('Failed to delete job description');
+            }
+            return response;
+        } catch (error) {
+            throw error
+        }
+    }
+
+    static async removeAnalysisReport(analysisId: string, resumeId: string) {
+        try {
+            const response = await fetch(`/api/ai/analyze?analysisId=${analysisId}&resumeId=${resumeId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            if (!response.ok) {
+                throw new Error('Failed to delete analysis report');
+            }
+            return response;
+        } catch (error) {
+            throw error
+        }
+    }
+
     static async getAll(userId: string, resumeId?: string) {
         try {
             const response = await fetch(`/api/resume/description?userId=${userId}&resumeId=${resumeId}`, {

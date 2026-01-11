@@ -3,6 +3,7 @@ import { extractText, getDocumentProxy } from 'unpdf';
 const allowedOrigins = [
     'https://airesumebuilder-delta.vercel.app',
     'https://airesumebuilder.vercel.app',
+    'https://airesumecraft.xyz/'
 ];
 
 

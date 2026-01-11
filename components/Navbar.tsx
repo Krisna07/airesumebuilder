@@ -15,11 +15,11 @@ const Navbar = () => {
   const [activeTab, setActivetab] = useState<string>("")
   // avoid reading `window` during SSR — sync theme on mount
   const [isDark, setIsDark] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  // const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    setMounted(true)
+    // setMounted(true)
     const stored = localStorage.getItem("theme")
     if (stored) {
       const next = stored === "dark"
@@ -33,7 +33,7 @@ const Navbar = () => {
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
     setIsDark(hasClass || prefersDark)
   }, [])
-  console.log(mounted)
+
   useEffect(() => {
     setActivetab(route ?? "")
     setMenu(false)

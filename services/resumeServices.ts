@@ -1,10 +1,16 @@
 
 import { ScrapeResult } from "@/components/Forms/JobDescription";
-import { JobDescription, ResumeData } from "@/types/types";
+import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
 
+
+type analyzeResumeParams = {
+    resumeId: string;
+    jobDetails?: JobDescription;
+    jobDescriptionId?: string
+}
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
         try {
@@ -113,14 +119,15 @@ export class ResumeService {
         return response
     }
 
-    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult) {
+    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult, analysis?: AnalysisResult): Promise<Response> {
         try {
             const response = await fetch('/api/ai/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resume: resumeData,
-                    jobDescription: jobDescription
+                    jobDescription: jobDescription,
+                    analysis: analysis
                 })
             });
             return response
@@ -161,11 +168,7 @@ export async function uploadResume(file: File, userId?: string) {
         }
     }
 
-type analyzeResumeParams = {
-    resumeId: string;
-    jobDetails?: JobDescription;
-    jobDescriptionId?: string
-}
+
 export async function analyzeResume(analyzeResumeParams: analyzeResumeParams) {
     try {
         const response = await fetch('/api/ai/analyze', {

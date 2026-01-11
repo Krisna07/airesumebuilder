@@ -2,7 +2,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { JobDetailsWithAnalysis, ResumeData } from '@/types/types';
+import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
@@ -19,6 +19,7 @@ import MenuPanel from './MenuPanel';
 import JobDescription from '@/components/Forms/JobDescription';
 import { useJobDescriptions } from '@/hooks/useJobDescriptions';
 import { useGetResume } from '@/hooks/useResume';
+import { JobDescriptionService } from '@/services/jdServices';
 
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
@@ -46,6 +47,7 @@ const PreviewPage = () => {
   const [generatingCoverLetter, setRegeneratingCoverLetter] = useState(false)
   const [coverLetter, setCoverLetter] = useState<any>()
   const [showCoverLetter, setShowCoverLetter] = useState(false)
+  const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const menuRef = useRef<HTMLDivElement | null>(null);
   const reportsRef = useRef<HTMLDivElement | null>(null);
   const templatesRef = useRef<HTMLDivElement | null>(null);
@@ -95,7 +97,7 @@ const PreviewPage = () => {
       })
     }
     // watch only primitive flags and stable callbacks to avoid effect instability
-  }, [resumeResponse.isFetched, resumeResponse.isError, resumeResponse.isSuccess, resumeResponse.data?.id, user, loadLocalResume, showToast])
+  }, [resumeResponse.isFetched, resumeResponse.isError, resumeResponse.isSuccess, user, loadLocalResume, showToast, resumeResponse.data, resumeResponse.error?.message])
 
   // Load local coverletter once on mount
   useEffect(() => {
@@ -146,6 +148,7 @@ const PreviewPage = () => {
   useEffect(() => {
     if (!response || !response.isSuccess || !response.data) return;
     const data: JobDetailsWithAnalysis[] = response.data.data || [];
+    setJobDetails(data)
     const analysisItem: any[] = [];
     for (const details of data) {
       if (details.hasAnalysed) {
@@ -158,6 +161,10 @@ const PreviewPage = () => {
               _analysisId: analysis.id,
               _jobDescriptionId: details.id,
               _analysedDate: analysis.updatedAt,
+              _company: details.company,
+              _title: details.title,
+              _url: details.url,
+              _jobCreatedDate: details.cretedAt
             });
           } catch (err) {
             console.warn('Failed to parse analysis result for', details.id, err);
@@ -262,14 +269,14 @@ const PreviewPage = () => {
     }, 320);
   };
 
-  const handleRegerate = async (resumeData: ResumeData, analysis?: any, jobDescription?: any) => {
+  const handleRegerate = async (resumeData: ResumeData, analysis?: AnalysisResult, jobDescription?: any) => {
     if (!user) {
       return showToast('This feature is not availbale on guest version', 'info', 3000);
     }
     setRegenerating(true);
     setPendingUpdate(true);
     showToast('Generating resume')
-    const response = await ResumeService.regenerate(resumeData, analysis || jobDescription);
+    const response = await ResumeService.regenerate(resumeData, jobDescription, analysis);
     const data = await response.json();
     if (!response.ok) {
       showToast('Error regenerating resume', 'error', 3000);
@@ -320,7 +327,6 @@ const PreviewPage = () => {
       jobDescriptionId
     })
     if (!response.ok) {
-      console.log(response)
       setAnalyzing(false)
     }
     const data = response.data
@@ -371,6 +377,24 @@ const PreviewPage = () => {
       setShowCoverLetter(true)
       localStorage.setItem('coverLetter', JSON.stringify(data.data))
       setRegeneratingCoverLetter(false)
+    }
+  }
+
+  const deletAnalysisReport = async (id: string) => {
+    if (!resumeData) {
+      showToast("Cannot delete this report", 'error', 3000)
+      return
+    }
+    try {
+      const deleteResponse = await JobDescriptionService.removeAnalysisReport(id, resumeData.id)
+      if (!deleteResponse.ok) {
+        showToast('Sorry, we cannot delete this report at the moment, Please try again.', 'error', 3000)
+      }
+      const remainingAnalysis = analysisData.filter((analysis: any) => analysis._analysisId !== id)
+      setAnalysisData(remainingAnalysis)
+      response.refetch()
+    } catch (error) {
+      throw error
     }
   }
 
@@ -532,31 +556,34 @@ const PreviewPage = () => {
           {coverLetter &&
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
-          {analysisData && analysisData?.length > 0 &&
-            <div className='max-[500px]:hidden max-h-[350px] box-border overflow-hidden flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] pl-4 py-4'>
+          {jobDetails && jobDetails?.length > 0 &&
+            <div className='max-[500px]:hidden max-h-[450px] box-border overflow-y-scroll flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] pl-4 py-4'>
               <div className='w-full h-full'>
                 <h3 className='font-semibold px-2'>Analysis</h3>
-                <div className='w-full h-full flex flex-wrap items-start justify-between'>
-                  {analysisData && analysisData.map((analysis: any, count: number) => {
+                <div className='w-full h-full flex flex-wrap items-start justify-between '>
+                  {jobDetails && analysisData.map((analysis: any, count: number) => {
                     const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-                    return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={` max-w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
-                      <JobAnalysisReport {...analysis} />
-                      <div className='md:flex grid items-center gap-2'>
-                        <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-                        <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
-                        <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+                    return <div
+                      onClick={() => setSelectedAnalysis(analysis)} key={count}
+                      className={`w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''} 
+                    ${isSelected && (generatingCoverLetter || generating || analyzing) ? 'animate-pulse' : ''}`}>
+                      <Trash className='absolute top-4 right-4 backdrop-blur-xs hover:scale-110' color={'orange'} size={16} onClick={() => deletAnalysisReport(analysis._analysisId)} />
+                      <JobAnalysisReport analysis={{ ...analysis, company: analysis._company }} />
+
+                      <div className='flex flex-wrap items-center gap-2'>
+                        <Button variant='secondary' size='small' className='md:w-fit w-full whitespace-nowrap' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                        <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full whitespace-nowrap ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
+                        <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full whitespace-nowrap ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
                       </div>
                     </div>
                   })
                   }
-                  <div className={`overflow-y-scroll h-full ${analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'} pb-4`}>
+                  <div className={`h-full ${analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'} pb-4`}>
                     <div className='h-fit'>
                     <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
                     </div></div>
                 </div>
               </div>
-
-
             </div>
           }
           <div

@@ -30,7 +30,8 @@ export function middleware(request: NextRequest) {
       } else {
           const allowedOrigins = [
             'https://airesumebuilder-delta.vercel.app',
-            'https://airesumebuilder.vercel.app'
+            'https://airesumebuilder.vercel.app',
+            'https://airesumecraft.xyz/'
           ];
 
         // Check if origin is in allowed list, otherwise allow all for now
