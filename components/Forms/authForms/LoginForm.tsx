@@ -1,5 +1,6 @@
 'use client';
 import Button from '@/components/UI/Button';
+import { UserAuthLoading } from '@/components/UI/LoadingScreen';
 import { useAuth } from '@/context/authContext'; import { useToast } from '@/context/PopupContext';
 import React, { useState } from 'react';
 import { FaGithub, FaGoogle } from 'react-icons/fa6';
@@ -46,11 +47,8 @@ const LoginForm: React.FC = () => {
     }
     return (
         <div className=' overflow-hidden min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-            {loader && <div className='w-screen h-screen fixed top-0 z-1000  flex items-center justify-center'>
-                <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
-                    <div className="loader"></div>
-                    <h3 className=' animate-pulse'>Authenticating User....</h3>
-                </div>
+            {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl  flex items-center justify-center'>
+                <UserAuthLoading />
             </div>}
             <h2 className='text-[2rem] font-bold'>Welcome back</h2>
             <p>

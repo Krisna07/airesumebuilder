@@ -44,7 +44,7 @@ const TemplatesSection = () => {
     ...dummyResume
   }
   return (
-    <section className="w-full py-16 md:py-24">
+    <section className="w-full py-16 md:py-24" id="templates">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -69,23 +69,7 @@ const TemplatesSection = () => {
               <div
                 className={`aspect-3/4 rounded-xl ${template.color} p-4 relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl`}
               >
-                {/* Mock Resume Lines */}
-                {/* <div className="space-y-3 animate-pulse">
-                  <div className="h-4 w-3/4 bg-white/20 rounded" />
-                  <div className="h-2 w-1/2 bg-white/15 rounded" />
-                  <div className="mt-6 space-y-2">
-                    <div className="h-2 w-full bg-white/10 rounded" />
-                    <div className="h-2 w-5/6 bg-white/10 rounded" />
-                    <div className="h-2 w-4/6 bg-white/10 rounded" />
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    <div className="h-2 w-full bg-white/10 rounded" />
-                    <div className="h-2 w-3/4 bg-white/10 rounded" />
-                  </div>
-                </div> */}
                 <ResumePreview resumeData={mockResume} template={template.name} />
-
-
                 {/* Hover Overlay */}
                 <div
                   className={`absolute inset-0 bg-teal-600/20 flex items-center justify-center transition-opacity duration-300 ${hoveredTemplate === template.id ? "opacity-100" : "opacity-0"}`}
