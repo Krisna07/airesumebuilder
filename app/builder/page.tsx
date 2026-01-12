@@ -77,7 +77,7 @@ const Page = () => {
             Create Your First AI-Ready Resume
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed">
-            Sign in to build, analyze and optimize resumes with automated job description matching.
+            <Link href={'/auth/signin'} className="text-blue-500 underline">Sign in</Link> to save, analyze and optimize your resumes with automated job description matching.
           </p>
         </div>
         <GuestUser />

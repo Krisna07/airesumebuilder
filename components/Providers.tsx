@@ -16,14 +16,16 @@ const queryClient = new QueryClient({
 export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
+    <ThemeProvider>
     <ToastProvider>
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <ThemeProvider>{children}</ThemeProvider>
+              {children}
           </AuthProvider>
         </QueryClientProvider>
       </SessionProvider>
     </ToastProvider>
+    </ThemeProvider>
   );
 }

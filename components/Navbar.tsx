@@ -6,6 +6,7 @@ import { FaDashcube, FaUser } from "react-icons/fa6"
 import { useAuth } from "@/context/authContext"
 import { LogIn, LogOut, Moon, Sun } from "lucide-react"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
 
 const Navbar = () => {
   const [menu, setMenu] = useState<boolean>(false)
@@ -77,6 +78,7 @@ const Navbar = () => {
 
   const userImage = user?.image
 
+
   return (
     <nav className="w-full grid place-items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 z-50 transition-colors duration-200">
       <div className="min-[800px]:w-[800px] w-full p-3 px-4 flex items-center justify-between">
@@ -85,16 +87,15 @@ const Navbar = () => {
           href="/"
           className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
         >
-          <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md shadow-teal-500/20">
-            <UniversalImage
-              src="/icon.svg"
+          <div className="shadow-md shadow-teal-500/20">
+            <Image
+              src='/icon.svg'
               alt="AI Resume Builder"
               width={24}
               height={24}
-              className="brightness-0 invert"
             />
           </div>
-          <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeAI</span>
+          <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span>
         </Link>
 
         {/* Navigation */}

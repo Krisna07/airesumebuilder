@@ -60,14 +60,16 @@ const HeroSection: React.FC<HeroProps> = ({
             </Button>
           </Link>
 
+          <Link href={'#templates'}>
           <Button variant="secondary" size="large" className="px-8">
             {secondaryLabel}
-          </Button>
+            </Button>
+          </Link>
         </div>
 
         {/* Trust indicators */}
         <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
-          Free plan available · No credit card required · Export to PDF
+          Free available ·  Export to PDF
         </p>
 
         {/* Stats */}
