@@ -8,8 +8,8 @@ import { ToastContainer } from 'react-toastify';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AI Resume Builder',
-  description: 'Create a professional resume with the help of AI.',
+  title: 'AI Resume Craft',
+  description: 'Build and Taylor your job search process with AI',
 };
 
 export default function RootLayout({
