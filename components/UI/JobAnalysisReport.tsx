@@ -140,8 +140,8 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
                                 strokeLinecap="round"
                             />
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className={`text-lg font-bold ${report.colorClass}`}>{displayPercent}%</span>
+                        <div className="absolute inset-0  flex flex-col items-center justify-center">
+                            <span className={`text-[1rem] font-bold ${report.colorClass}`}>{displayPercent}%</span>
                             {percent >= 70 && <span className="text-[10px] text-teal-500">Match</span>}
                         </div>
                     </div>

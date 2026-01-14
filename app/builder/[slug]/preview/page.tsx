@@ -557,15 +557,15 @@ const PreviewPage = () => {
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
           {jobDetails && jobDetails?.length > 0 &&
-            <div className='max-[500px]:hidden max-h-[450px] box-border overflow-y-scroll flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] pl-4 py-4'>
+            <div className='max-[500px]:hidden max-h-[450px] box-border hide-scrollbar flex gap-4 w-full overflow-auto scroll-smooth scroll-m-3 rounded shadow-[0_0_2px_0_gray]  py-4 px-4'>
               <div className='w-full h-full'>
                 <h3 className='font-semibold px-2'>Analysis</h3>
                 <div className='w-full h-full flex flex-wrap items-start justify-between '>
-                  {jobDetails && analysisData.map((analysis: any, count: number) => {
+                  {analysisData && analysisData.length && analysisData.map((analysis: any, count: number) => {
                     const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
                     return <div
                       onClick={() => setSelectedAnalysis(analysis)} key={count}
-                      className={`w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''} 
+                      className={`w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''}
                     ${isSelected && (generatingCoverLetter || generating || analyzing) ? 'animate-pulse' : ''}`}>
                       <Trash className='absolute top-4 right-4 backdrop-blur-xs hover:scale-110' color={'orange'} size={16} onClick={() => deletAnalysisReport(analysis._analysisId)} />
                       <JobAnalysisReport analysis={{ ...analysis, company: analysis._company }} />
@@ -578,10 +578,11 @@ const PreviewPage = () => {
                     </div>
                   })
                   }
-                  <div className={`h-full ${analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'} pb-4`}>
+                  <div className={`h-full ${analysisData ? analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]' : 'w-full'} overflow-y-scroll hide-scrollbar pb-4`}>
                     <div className='h-fit'>
                     <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
-                    </div></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

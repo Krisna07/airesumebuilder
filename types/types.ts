@@ -55,6 +55,7 @@ export interface CustomSubsection {
   id: string;
   title: string;
   content: string; // Rich text/markdown content
+  url?: string;
   date?: string; // Single date field
 }
 

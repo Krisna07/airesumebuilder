@@ -4,7 +4,7 @@ import { useState, useCallback, memo, useEffect } from "react"
 import Button from "./Button"
 import type { AnalysisResult, JobDescription, JobDetailsWithAnalysis, ResumeData } from "@/types/types"
 import { analyzeResume } from "@/services/resumeServices"
-import { BotIcon, ChevronDown } from "lucide-react"
+import { BarChart, BotIcon, ChevronDown } from "lucide-react"
 import JobAnalysisReport from "./JobAnalysisReport"
 import { useToast } from "@/context/PopupContext"
 import { UseQueryResult } from "@tanstack/react-query"
@@ -86,10 +86,10 @@ const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnal
 
 
     return (
-        <div className="grid gap-3 mt-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-4 bg-white dark:bg-slate-800">
+        <div className=" grid gap-3 mt-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-4  dark:bg-slate-800">
             {/* Job info header - only show if no analysis yet */}
             {!analysis && <>
-                <div className="grid text-xs grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="w-full text-xs gap-4">
                     <div>
                         <p className="text-slate-500 dark:text-slate-400">Position</p>
                         <p className="text-slate-800 dark:text-slate-200 font-medium">{job?.title ?? "—"}</p>
@@ -108,20 +108,20 @@ const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnal
                         </div>
                     </div>
                 )}
-                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+                <div className="flex gap-2 flex-col min-[1000px]:flex-row items-stretch sm:items-center ">
                     <Button
                         size="small"
                         variant="ghost"
-                        className="text-xs text-slate-500 dark:text-slate-400 w-full sm:w-fit"
+                        className=" w-full text-xs text-slate-500 whitespace-nowrap dark:text-slate-400"
                         onClick={toggleDescription}
                     >
                         <ChevronDown size={12} className={`transition-transform ${showDescription ? "rotate-180" : "rotate-0"}`} />
                         {showDescription ? "Hide description" : "View description"}
                     </Button>
 
-                    <div className="flex gap-2 flex-col sm:flex-row">
+                    <div className="w-full flex gap-2 flex-col sm:flex-row">
                         {resumeData && handleRegenerate && (
-                            <Button variant="primary" className="w-full sm:w-fit" size="small" onClick={handleOptimize}>
+                            <Button variant="primary" className=" w-full whitespace-nowrap" size="small" onClick={handleOptimize}>
                                 <BotIcon size={14} />
                                 Optimise Resume
                             </Button>
@@ -132,9 +132,9 @@ const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnal
                             size="small"
                             onClick={() => startAnalysis(job)}
                             disabled={analyzing}
-                            className={`w-full sm:w-fit ${analyzing ? "animate-pulse" : ""}`}
+                            className={` w-full ${analyzing ? "animate-pulse" : ""}`}
                         >
-                            {analyzing ? "Analyzing…" : job?.hasAnalysed ? "Re-analyse" : "Analyse"}
+                            <BarChart size={14} />  {analyzing ? "Analyzing…" : job?.hasAnalysed ? "Re-analyse" : "Analyse"}
                         </Button>
                     </div>
                 </div></>

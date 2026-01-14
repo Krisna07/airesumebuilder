@@ -15,6 +15,8 @@ interface InputProps {
   error?: string
   className?: string
   id?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onBlur?: (e: any) => void | undefined
 }
 
 const Input: React.FC<InputProps> = ({
@@ -25,6 +27,7 @@ const Input: React.FC<InputProps> = ({
   placeholder,
   required,
   label,
+  onBlur,
   disabled,
   error,
   className,
@@ -44,7 +47,8 @@ const Input: React.FC<InputProps> = ({
         id={inputId}
         type={type}
         name={name}
-        value={value}
+        onBlur={onBlur}
+        value={value ?? ''}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
