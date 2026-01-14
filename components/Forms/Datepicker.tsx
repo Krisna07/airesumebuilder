@@ -45,7 +45,7 @@ export default function Datepicker({ value, index, target, update, label }: Date
           onClickOutside={() => setOpen(false)}
           shouldCloseOnSelect={true}
           showMonthYearPicker
-          placeholderText={value ? value : 'Select Date'}
+          placeholderText={value ? value.toString() : 'Select Date'}
           dateFormat="yyyy-MM"
           maxDate={new Date()}
           className="w-full outline-none"

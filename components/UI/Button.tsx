@@ -25,7 +25,7 @@ const buttonStyles = cva(
         success: "bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 shadow-md shadow-emerald-500/20",
         danger: "bg-red-500 text-white hover:bg-red-600 active:bg-red-700 shadow-md shadow-red-500/20",
         ghost:
-          "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-teal-600 dark:text-slate-300 dark:hover:bg-slate-800",
+          "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-teal-600 dark:text-slate-300 dark:hover:bg-slate-700 shadow dark:shadow-[0_0_2px_0_white]",
       },
       size: {
         small: "text-xs px-3 py-1.5 h-8",

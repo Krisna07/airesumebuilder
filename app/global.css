@@ -291,3 +291,20 @@ background: linear-gradient(90deg, #0d9488 0%, #14b8a6 100%) !important;
 .react-datepicker__triangle {
 display: none;
 }
+
+.hide-scrollbar {
+
+    /* For Chrome, Safari, and Opera (WebKit browsers) */
+    /* Targets the scrollbar pseudo-element and hides it */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* For Internet Explorer and Edge */
+    /* Removes the default scrollbar style */
+    -ms-overflow-style: none;
+
+    /* For Firefox */
+    /* Sets the scrollbar width to none */
+    scrollbar-width: none;
+}

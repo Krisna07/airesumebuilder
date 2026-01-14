@@ -5,8 +5,8 @@ import { Plus, X } from 'lucide-react';
 import Input from '../Input';
 import Datepicker from './Datepicker';
 import MarkdownEditor from './MarkdownEditor';
-
 import { CustomSectionData, CustomSubsection } from '@/types/types';
+
 
 interface CustomSectionBuilderProps {
     data?: CustomSectionData[];
@@ -14,23 +14,77 @@ interface CustomSectionBuilderProps {
 }
 
 const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], onChange }) => {
-    const [sections, setSections] = useState<CustomSectionData[]>(data);
 
+    const isValidUrl = (url: string): boolean => {
+        const trimmed = url.trim()
+        if (!trimmed) return false
+        const candidates = trimmed.split(/[,\s]+/).filter(Boolean)
+        if (!candidates.length) return false
+        return candidates.every((u) => /^https?:\/\//i.test(u))
+    }
+    const generateId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+    const [sections, setSections] = useState<CustomSectionData[]>(() =>
+        (data ?? []).map((section) => ({
+            ...section,
+            id: section.id ?? generateId(),
+            title: section.title ?? '',
+            subsections: Array.isArray(section.subsections)
+                ? section.subsections.map((sub) => ({
+                    ...sub,
+                    id: sub.id ?? generateId(),
+                    title: sub.title ?? '',
+                    content: sub.content ?? '',
+                    url: sub.url && isValidUrl(sub.url) ? sub.url.trim() : undefined,
+                }))
+                : [],
+        }))
+    )
     const MAX_SECTIONS = 2;
     const MAX_SUBSECTIONS = 2;
 
+
     // Sync with parent component - only when data prop changes
     useEffect(() => {
-        if (data && data.length > 0) {
-            setSections(data);
+        if (!data) {
+            setSections([])
+            return
         }
+
+        const sectionData = data.map((section) => ({
+            ...section,
+            id: section.id ?? generateId(),
+            title: section.title ?? '',
+            subsections: Array.isArray(section.subsections)
+                ? section.subsections.map((sub: CustomSubsection) => ({
+                    ...sub,
+                    id: sub.id ?? generateId(),
+                    title: sub.title ?? '',
+                    content: sub.content ?? '',
+                    url: sub.url && isValidUrl(sub.url) ? sub.url.trim() : undefined,
+                }))
+                : [],
+        }))
+
+        setSections(sectionData)
     }, [data]);
 
     // Notify parent of changes
     const updateSections = (newSections: CustomSectionData[]) => {
-        console.log('Custom sections updated:', newSections);
-        setSections(newSections);
-        onChange?.(newSections);
+        const normalized = newSections.map((section) => ({
+            ...section,
+            id: section.id ?? generateId(),
+            title: section.title ?? '',
+            subsections: section.subsections.map((subsection) => ({
+                ...subsection,
+                id: subsection.id ?? generateId(),
+                title: subsection.title ?? '',
+                content: subsection.content ?? '',
+                url: subsection.url && isValidUrl(subsection.url) ? subsection.url.trim() : undefined,
+            })),
+        }))
+
+        setSections(normalized)
+        onChange?.(normalized)
     };
 
     // Validation helpers
@@ -50,7 +104,6 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
         return lastSection.subsections.some((subsection) => hasRequiredFields(subsection));
     };
 
-    const generateId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
 
     const handleAddSection = () => {
         if (sections.length >= MAX_SECTIONS) return;
@@ -61,17 +114,18 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
             return;
         }
 
+        const newSectionId = generateId()
+
         const newSection: CustomSectionData = {
-            id: Date.now().toString(),
+            id: newSectionId,
             title: '',
             subsections: [
                 {
-                id: Date.now().toString() + '_sub',
-                title: '',
-                content: '',
-                date: ''
-              }
-          ]
+                    id: generateId(),
+                    title: '',
+                    content: '',
+                },
+            ],
         };
         updateSections([...sections, newSection]);
     };
@@ -90,7 +144,6 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
             id: generateId(),
             title: '',
             content: '',
-            date: ''
         };
 
         updateSections(sections.map((s) => (s.id === sectionId ? { ...s, subsections: [...s.subsections, newSubsection] } : s)));
@@ -100,11 +153,14 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
         updateSections(sections.map((section) => (section.id === sectionId ? { ...section, title } : section)));
     };
 
+
+
     const updateSubsection = (sectionId: string, subsectionId: string, updates: Partial<CustomSubsection>) => {
         updateSections(
             sections.map((section) =>
                 section.id === sectionId
-                    ? {
+                    ?
+                    {
                         ...section,
                         subsections: section.subsections.map((subsection) => (subsection.id === subsectionId ? { ...subsection, ...updates } : subsection))
                     }
@@ -131,12 +187,6 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
         <div className='space-y-6'>
             {/* Header */}
             <div className='flex items-center justify-between'>
-                {/* <div>
-                    <h3 className="text-lg font-semibold">Custom Sections</h3>
-                    <p className="text-sm text-gray-600">
-                        Create up to {MAX_SECTIONS} custom sections, each with up to {MAX_SUBSECTIONS} subsections
-                    </p>
-                </div> */}
                 <div className='w-full grid gap-1'>
                     <Button variant='primary' size='small' onClick={handleAddSection} disabled={sections.length >= MAX_SECTIONS || (sections.length > 0 && !canAddSection())} className='whitespace-nowrap'>
                         <Plus size={16} /> Add Section ({sections.length}/{MAX_SECTIONS})
@@ -153,8 +203,8 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
                 </div>
             ) : (
                     <div className='space-y-6'>
-                        {sections.map((section, count) => (
-                            <div key={count} className='border-2 border-gray-200 rounded-lg p-4 space-y-4 shadow-sm'>
+                        {sections.map((section) => (
+                            <div key={section.id} className='border-2 border-gray-200 rounded-lg p-4 space-y-4 shadow-sm'>
                                 {/* Section Header */}
                                 <div className='flex gap-4 pb-3 border-b border-gray-200'>
                                     <div className='flex-1'>
@@ -191,7 +241,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
                                 ) : (
                                         <div className='space-y-4'>
                                             {section.subsections.map((subsection, subsectionIndex) => (
-                                                <div key={subsectionIndex} className='border border-gray-300 rounded p-4  space-y-4'>
+                                                <div key={subsection.id} className='border border-gray-300 rounded p-4  space-y-4'>
                                                   {/* Subsection Header */}
                                                   <div className='flex items-center justify-between'>
                                                       <div className='flex items-center gap-2'>
@@ -222,7 +272,17 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
                                                               placeholder='e.g., Project Name, Award Title, Organization'
                                                               label={false}
                                                           />
+
                                                       </div>
+
+                                                        <label className='block text-sm font-medium  mb-1'>Link</label>
+                                                        <Input
+                                                            type='url'
+                                                            value={subsection.url}
+                                                            onChange={(e) => updateSubsection(section.id, subsection.id, { url: e.target.value })}
+                                                            placeholder='e.g., Related Link to the project'
+                                                            label={false}
+                                                        />
 
                                                       {/* Summary */}
                                                       <div>
@@ -237,7 +297,7 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
                                                       {/* Date Picker */}
                                                       <div className='space-y-2'>
                                                             <label className='text-sm font-medium '>Date (Optional)</label>
-                                                          <Datepicker value={subsection.date || ''} index={0} target='date' update={handleDateUpdate(section.id, subsection.id)} />
+                                                            <Datepicker value={subsection.date} index={0} target='date' update={handleDateUpdate(section.id, subsection.id)} />
                                                       </div>
                                                   </div>
                                               </div>

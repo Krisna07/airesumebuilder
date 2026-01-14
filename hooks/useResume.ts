@@ -1,6 +1,9 @@
+import { useAuth } from '@/context/authContext';
 import { ResumeService } from '@/services/resumeServices';
 import { ResumeData } from '@/types/types';
 import { useMutation, useQuery } from '@tanstack/react-query';
+
+
 
 
 export const useGetResume = (resumeId: string) => {
@@ -22,6 +25,8 @@ export const useGetResume = (resumeId: string) => {
 };
 
 export const useGetAllResumes = (userId: string | null) => {
+  const { user } = useAuth()
+  if (!user) throw new Error('User ID is required');
   return useQuery({
     queryKey: ['allResumes', userId], // Unique key based on userId 
     queryFn: async () => { 
@@ -31,9 +36,10 @@ export const useGetAllResumes = (userId: string | null) => {
 }
 
 export const useSaveResume = (userId: string | undefined, resumeId: string, template: string, resumeData: ResumeData) => {
-  if(!userId) throw new Error('User ID is required');
+  const { user } = useAuth()
+  if (!user) throw new Error('User ID is required');
   return useMutation({
-    mutationFn: async()=> await ResumeService.save(userId, resumeId, template, resumeData)
+    mutationFn: async () => await ResumeService.save(userId ?? user.id, resumeId, template, resumeData)
   })
 }
 
