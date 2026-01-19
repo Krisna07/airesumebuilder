@@ -1,7 +1,7 @@
 import React from 'react'
 import dummyResume from '@/app/data/dummyResume.json';
 import ResumePreview from '../Templates/ResumePreview';
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import Link from 'next/link';           
 
 const TemplateSlider = () => {

@@ -2,7 +2,7 @@ import React from "react";
 import Input from "../Input";
 
 import { Profile } from "@/types/types";
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import { FaTrash } from "react-icons/fa6";
 
 interface UserInfoStepProps {

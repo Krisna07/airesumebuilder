@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import { useState, useCallback } from "react"
-import Button from "../UI/Button"
+import Button from "../Ui/Button"
 import { ResumeService } from "@/services/resumeServices"
 import { useRouter } from "next/navigation"
 import Link from "next/link"

@@ -15,7 +15,7 @@ const nextConfig = {
         contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    webpack: (config: { externals: any[]; }, { isServer }: any) => {
+    Turbopack: (config: { externals: any[]; }, { isServer }: any) => {
         if (isServer) {
             config.externals = [
                 ...config.externals,

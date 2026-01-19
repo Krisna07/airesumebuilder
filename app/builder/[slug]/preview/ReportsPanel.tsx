@@ -3,8 +3,8 @@
 import type React from "react"
 import { memo, useState, useCallback } from "react"
 import JobDescription from "@/components/Forms/JobDescription"
-import Button from "@/components/UI/Button"
-import JobAnalysisReport from "@/components/UI/JobAnalysisReport"
+import Button from "@/components/Ui/Button"
+import JobAnalysisReport from "@/components/Ui/JobAnalysisReport"
 import { BotIcon, CircleUser as FileUser, Search } from "lucide-react"
 import type { AnalysisResult, ResumeData } from "@/types/types"
 

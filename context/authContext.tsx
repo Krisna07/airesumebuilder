@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useSession, signIn, getSession, signOut } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
 import { useToast } from './PopupContext'
+import type { IncrementKey, Subscription } from '@/types/subscription'
 
 
 interface User {
@@ -12,6 +13,7 @@ interface User {
   name?: string | null
   password?: string | null
   image?: string | null
+  isVerified?: boolean
 }
 
 interface AuthContextType {
@@ -20,8 +22,13 @@ interface AuthContextType {
   signIn: typeof signIn
   logOut: () => void
   register: (user: RegisterData) => Promise<void>
+  verifyCode: (code: string) => Promise<boolean>
+  resendVerification: () => Promise<{ expiresAt?: string | null } | null>
   isGuest: boolean
   migrateGuestData: () => Promise<void>
+  getSubscription: () => Promise<Subscription | null>
+  setSubscriptionPlan: (plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE') => Promise<Subscription | null>
+  incrementUsage: (key: IncrementKey, amount?: number) => Promise<Subscription | null>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,6 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const register = async (user: RegisterData) => {
     const response = await UserService.createUser(user)
     const data = await response.json()
+    console.log(data)
     if (!response.ok) {
       toast.showToast(`${data.error}`, 'error', 3000)
       return data
@@ -41,6 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (data.data.provider !== 'credentials') {
       return
     }
+    // verification data is stored server-side in the Verification table
     const signInResult = await signIn('credentials', {
       email: user.email,
       password: user.password,
@@ -56,12 +65,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: refreshed.user.name ?? undefined,
           email: refreshed.user.email ?? null,
           image: refreshed.user.image ?? undefined,
+          isVerified: refreshed.user.isVerified || false 
         })
       }
       window.location.href = '/builder'
 
     }
 
+  }
+
+  const getSubscription = async () => {
+    try {
+      const resp = await fetch('/api/subscription')
+      if (!resp.ok) return null
+      return await resp.json()
+    } catch (err) {
+      console.error('Error fetching subscription', err)
+      return null
+    }
+  }
+
+  const setSubscriptionPlan = async (plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE') => {
+    try {
+      const resp = await fetch('/api/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan })
+      })
+      if (!resp.ok) return null
+      return await resp.json()
+    } catch (err) {
+      console.error('Error setting subscription plan', err)
+      return null
+    }
+  }
+
+  const incrementUsage = async (key: IncrementKey, amount = 1) => {
+    try {
+      const resp = await fetch('/api/subscription/increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, amount })
+      })
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}))
+        throw new Error(body.error || 'Failed to increment usage')
+      }
+      return await resp.json()
+    } catch (err) {
+      console.error('Error incrementing usage', err)
+      toast.showToast((err as Error).message || 'Error incrementing usage', 'error', 3000)
+      return null
+    }
   }
 
   useEffect(() => {
@@ -71,9 +126,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           id: sessionUser.id,
           name: sessionUser.name,
           email: sessionUser.email,
-          image: sessionUser.image
+          image: sessionUser.image,
+          isVerified: sessionUser.isVerified || false
         })
-      } 
+      }
     }
     getUser()
   }, [sessionUser])
@@ -111,6 +167,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     sessionStorage.clear()
     signOut()
   };
+
+  // Verify a code entered by the user. This compares the code with the
+  // verification object in sessionStorage, and if it matches calls the
+  // server to mark the user verified and updates local user state.
+  const verifyCode = async (code: string) => {
+    try {
+      if (!user?.email) {
+        toast.showToast('No user email available for verification', 'error', 3000)
+        return false
+      }
+
+      const resp = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, code }),
+      })
+
+      const result = await resp.json()
+      if (!resp.ok) {
+        toast.showToast(result.error || 'Verification failed', 'error', 3000)
+        return false
+      }
+
+      // Update local user state
+      setUser(prev => prev ? { ...prev, isVerified: true } : prev)
+      toast.showToast('Email verified successfully!', 'success', 3000)
+      return true
+    } catch (err) {
+      console.error('Error verifying code:', err)
+      toast.showToast('Error verifying code', 'error', 3000)
+      return false
+    }
+  }
+
+  const resendVerification = async () => {
+    try {
+      if (!user?.email) {
+        toast.showToast('No user email available to resend code', 'error', 3000)
+        return null
+      }
+
+      const resp = await fetch('/api/auth/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      })
+
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}))
+        toast.showToast(body.error || 'Failed to resend code', 'error', 3000)
+        return null
+      }
+
+      const data = await resp.json()
+      toast.showToast('Verification code resent', 'success', 2500)
+      return { expiresAt: data.expiresAt }
+    } catch (err) {
+      console.error('Error resending verification code', err)
+      toast.showToast('Error resending code', 'error', 3000)
+      return null
+    }
+  }
   const userDetail = useMemo(() => (user), [user])
 
   return (
@@ -121,6 +239,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       logOut,
       isGuest,
       register,
+      verifyCode,
+      resendVerification,
+      getSubscription,
+      setSubscriptionPlan,
+      incrementUsage,
       migrateGuestData
     }}>
       {children}

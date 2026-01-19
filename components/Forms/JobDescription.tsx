@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { JobDetailsWithAnalysis, ResumeData } from '@/types/types';
 import Input from '../Input';
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import { getJobDescription, JobDescriptionService } from '@/services/jdServices';
 import { useAuth } from '@/context/authContext';
 import { useToast } from '@/context/PopupContext';
-import JobDecriptionAnalysis from '../UI/jobDecriptionAnalysis';
+import JobDecriptionAnalysis from '../Ui/jobDecriptionAnalysis';
 import { FaSpinner } from 'react-icons/fa6';
 import { BugIcon } from 'lucide-react';
 import { useJobDescriptions } from '@/hooks/useJobDescriptions';
