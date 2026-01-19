@@ -1,7 +1,6 @@
 'use client';
-// import Input from '@/components/Input';
-import Button from '@/components/UI/Button';
-import { UserAuthLoading } from '@/components/UI/LoadingScreen';
+import Button from '@/components/Ui/Button';
+import { UserAuthLoading } from '@/components/Ui/LoadingScreen';
 import { useAuth } from '@/context/authContext';
 import { useToast } from '@/context/PopupContext';
 import React, { useState } from 'react';
@@ -15,6 +14,7 @@ const SignUpForm: React.FC = () => {
     const { register, loading, user, signIn } = useAuth();
     const [loader, setLoader] = useState(false)
     const [isError, setIsError] = useState(false)
+
 
     const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setIsError(false)
@@ -37,6 +37,7 @@ const SignUpForm: React.FC = () => {
                 showToast('Please complete mandatory fields', 'error', 3000)
                 return
             }
+
             await register(registerData);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

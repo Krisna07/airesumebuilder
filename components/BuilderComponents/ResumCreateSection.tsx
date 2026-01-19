@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { File, Loader2, Plus } from 'lucide-react';

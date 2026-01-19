@@ -1,6 +1,6 @@
 import type React from "react"
 import Link from "next/link"
-import Button from "../UI/Button"
+import Button from "../Ui/Button"
 import { ArrowRight, Sparkles } from "lucide-react"
 
 type HeroProps = {

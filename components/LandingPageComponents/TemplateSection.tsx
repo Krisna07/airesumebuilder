@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Button from "../UI/Button"
+import Button from "../Ui/Button"
 import { ArrowRight, Check } from "lucide-react"
 import dummyResume from './../../app/data/dummyResume.json'
 import ResumePreview from "../Templates/ResumePreview"

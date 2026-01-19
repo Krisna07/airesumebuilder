@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import { Plus, X } from 'lucide-react';
 import Input from '../Input';
 import Datepicker from './Datepicker';

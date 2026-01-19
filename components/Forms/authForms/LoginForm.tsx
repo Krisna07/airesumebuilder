@@ -1,6 +1,6 @@
 'use client';
-import Button from '@/components/UI/Button';
-import { UserAuthLoading } from '@/components/UI/LoadingScreen';
+import Button from '@/components/Ui/Button';
+import { UserAuthLoading } from '@/components/Ui/LoadingScreen';
 import { useAuth } from '@/context/authContext'; import { useToast } from '@/context/PopupContext';
 import React, { useState } from 'react';
 import { FaGithub, FaGoogle } from 'react-icons/fa6';

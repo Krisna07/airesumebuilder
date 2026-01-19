@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import Input from "../Input";
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import { FaTimes } from "react-icons/fa";
 import { skills } from "@/types/types";
 import { useToast } from "@/context/PopupContext";

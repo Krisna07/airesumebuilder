@@ -10,6 +10,7 @@ declare module "next-auth" {
       image?: string | null
       provider: string | null
       providerId?: string | null
+      isVerified?: boolean | null
     }
   }
 }
