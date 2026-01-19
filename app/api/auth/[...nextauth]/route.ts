@@ -133,6 +133,23 @@ const handler = NextAuth({
         // @ts-ignore
         token.isVerified = Boolean(user.isVerified)
       }
+
+      // Attach subscription plan to token (fallback to FREE if none)
+      if (token.id && typeof token.plan === 'undefined') {
+        try {
+          const sub = await prisma.subscription.findUnique({
+            where: { userId: token.id as string },
+            select: { plan: true },
+          })
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          token.plan = sub?.plan ?? 'FREE'
+        } catch (err) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          token.plan = token.plan ?? 'FREE'
+        }
+      }
       return token
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,17 +163,29 @@ const handler = NextAuth({
           if (token.id) {
             const dbUser = await prisma.user.findUnique({ where: { id: token.id as string } })
             session.user.isVerified = dbUser?.isVerified ?? false
+
+            const dbSub = await prisma.subscription.findUnique({
+              where: { userId: token.id as string },
+              select: { plan: true },
+            })
+            session.user.plan = dbSub?.plan ?? 'FREE'
           } else {
             // fallback to token value if DB not available
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             session.user.isVerified = Boolean(token.isVerified)
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            session.user.plan = token.plan ?? 'FREE'
           }
         } catch (err) {
           // fallback to token value
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           session.user.isVerified = Boolean(token.isVerified)
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          session.user.plan = token.plan ?? 'FREE'
         }
       }
       return session

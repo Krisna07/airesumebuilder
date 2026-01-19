@@ -14,6 +14,7 @@ interface User {
   password?: string | null
   image?: string | null
   isVerified?: boolean
+  plan?: 'FREE' | 'SUPPORTER' | 'ULTIMATE'
 }
 
 interface AuthContextType {
@@ -26,7 +27,8 @@ interface AuthContextType {
   resendVerification: () => Promise<{ expiresAt?: string | null } | null>
   isGuest: boolean
   migrateGuestData: () => Promise<void>
-  getSubscription: () => Promise<Subscription | null>
+  subscription: Subscription | null
+  getSubscription: (forceRefresh?: boolean) => Promise<Subscription | null>
   setSubscriptionPlan: (plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE') => Promise<Subscription | null>
   incrementUsage: (key: IncrementKey, amount?: number) => Promise<Subscription | null>
 }
@@ -36,6 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
   const sessionUser = session?.user
   const toast = useToast()
   const register = async (user: RegisterData) => {
@@ -65,7 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: refreshed.user.name ?? undefined,
           email: refreshed.user.email ?? null,
           image: refreshed.user.image ?? undefined,
-          isVerified: refreshed.user.isVerified || false 
+          isVerified: refreshed.user.isVerified || false,
+          plan: refreshed.user.plan ?? 'FREE'
         })
       }
       window.location.href = '/builder'
@@ -74,11 +78,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   }
 
-  const getSubscription = async () => {
+  const getSubscription = async (forceRefresh = false) => {
     try {
+      if (subscription && !forceRefresh) return subscription
       const resp = await fetch('/api/subscription')
       if (!resp.ok) return null
-      return await resp.json()
+      const data = await resp.json()
+      setSubscription(data)
+      return data
     } catch (err) {
       console.error('Error fetching subscription', err)
       return null
@@ -93,7 +100,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         body: JSON.stringify({ plan })
       })
       if (!resp.ok) return null
-      return await resp.json()
+      const updated = await resp.json()
+      setSubscription(updated)
+      setUser(prev => prev ? { ...prev, plan: updated.plan } : prev)
+      const refreshed = await getSession()
+      if (refreshed?.user?.plan) {
+        setUser(prev => prev ? { ...prev, plan: refreshed.user.plan } : prev)
+      }
+      return updated
     } catch (err) {
       console.error('Error setting subscription plan', err)
       return null
@@ -111,7 +125,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const body = await resp.json().catch(() => ({}))
         throw new Error(body.error || 'Failed to increment usage')
       }
-      return await resp.json()
+      const updated = await resp.json()
+      setSubscription(updated)
+      return updated
     } catch (err) {
       console.error('Error incrementing usage', err)
       toast.showToast((err as Error).message || 'Error incrementing usage', 'error', 3000)
@@ -127,12 +143,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: sessionUser.name,
           email: sessionUser.email,
           image: sessionUser.image,
-          isVerified: sessionUser.isVerified || false
+          isVerified: sessionUser.isVerified || false,
+          plan: sessionUser.plan ?? 'FREE'
         })
       }
     }
     getUser()
   }, [sessionUser])
+
+  useEffect(() => {
+    if (user?.id && !subscription) {
+      getSubscription(true)
+    }
+  }, [user?.id, subscription])
 
   const migrateGuestData = async () => {
     //disabling thr function 
@@ -241,6 +264,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       register,
       verifyCode,
       resendVerification,
+      subscription,
       getSubscription,
       setSubscriptionPlan,
       incrementUsage,

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import GuestUser from "@/components/BuilderComponents/GuestUser"
 import { PreviewContainer } from "@/components/BuilderComponents/PreviewContainer"
 import LoadingResumeState from "@/components/BuilderComponents/LoadingResumeState"
+import SubscriptionStatus from "@/components/SubscriptionStatus"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "react-toastify"
 
@@ -93,6 +94,9 @@ const Page = () => {
       <div
         className={`p-4 w-full min-[850px]:w-[850px] ${hasResumes ? "place-self-start" : "md:place-self-end"} transition-opacity duration-300 anim-fade-in-soft`}
       >
+        <div className="hidden md:block mb-4">
+          <SubscriptionStatus className="border rounded-xl bg-white dark:bg-slate-900 dark:border-slate-700" />
+        </div>
         {hasResumes ? (
           <>
             <div className="w-full flex items-center justify-between">

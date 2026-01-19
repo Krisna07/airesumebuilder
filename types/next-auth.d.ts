@@ -11,6 +11,7 @@ declare module "next-auth" {
       provider: string | null
       providerId?: string | null
       isVerified?: boolean | null
+      plan?: 'FREE' | 'SUPPORTER' | 'ULTIMATE'
     }
   }
 }
@@ -20,5 +21,7 @@ declare module "next-auth/jwt" {
     id?: string
     provider?: string
     providerId?: string
+    plan?: 'FREE' | 'SUPPORTER' | 'ULTIMATE'
+    isVerified?: boolean
   }
 }
