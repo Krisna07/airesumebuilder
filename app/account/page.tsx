@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useToast } from '@/context/PopupContext'
 import type { Subscription } from '@/types/subscription'
+import SubscriptionStatus from '@/components/SubscriptionStatus'
 
 const AccountPage = () => {
   const { user, getSubscription, setSubscriptionPlan } = useAuth()
@@ -81,6 +82,10 @@ const AccountPage = () => {
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-semibold text-slate-800 dark:text-white">Account Settings</h1>
+
+          <div className="block md:hidden">
+              <SubscriptionStatus className="border rounded-xl bg-white dark:bg-slate-900 dark:border-slate-700" />
+          </div>
 
       <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-medium text-slate-800 dark:text-white">Profile</h2>

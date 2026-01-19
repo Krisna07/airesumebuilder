@@ -1,17 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { getQuotaForPlan, UsageKey } from '@/lib/subscription'
-
-type Subscription = {
-  plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE'
-  regenCount: number
-  downloadCount: number
-  clCount: number
-  analysisCount: number
-  uploadCount: number
-}
+import type { Subscription } from '@/types/subscription'
 
 const USAGE_LABELS: Record<UsageKey, string> = {
   regen: 'Regenerations',
@@ -29,19 +21,8 @@ const USAGE_FIELDS: Record<UsageKey, keyof Subscription> = {
   upload: 'uploadCount',
 }
 
-export default function SubscriptionStatus() {
-  const { getSubscription } = useAuth()
-  const [sub, setSub] = useState<Subscription | null>(null)
-
-  useEffect(() => {
-    let mounted = true
-    getSubscription().then(data => {
-      if (mounted && data) setSub(data)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [getSubscription])
+export default function SubscriptionStatus({ className = '' }: { className?: string }) {
+    const { subscription: sub } = useAuth()
 
   const rows = useMemo(() => {
     if (!sub) return []
@@ -57,7 +38,7 @@ export default function SubscriptionStatus() {
   if (!sub) return null
 
   return (
-    <div className="p-3 border-t border-slate-100 dark:border-slate-700">
+      <div className={`p-3 border-t border-slate-100 dark:border-slate-700 ${className}`}>
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Plan</p>
         <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">{sub.plan}</span>
