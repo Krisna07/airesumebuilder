@@ -65,6 +65,9 @@ const LoginForm: React.FC = () => {
                 <div className='grid gap-2'>
                     <label className=''>Password</label>
                     <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2  outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
+                    <div className="flex justify-end">
+                        <a href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline">Forgot password?</a>
+                    </div>
                 </div>
 
                 <Button variant='primary' size='large' className='w-full flex items-center justify-center rounded-full mt-4 pt-2 pb-2' disabled={loading ? true : false}>
