@@ -109,8 +109,8 @@ The AireSumeCraft Team
 
         // Send the email
         const authTransporter = createTransporter({
-            user: process.env.ZOHO_EMAIL || "authentication@airesumecraft.xyz",
-            pass: process.env.ZOHO_PASSWORD || "Kr!shn@19981",
+            user: process.env.ZOHO_EMAIL,
+            pass: process.env.ZOHO_PASSWORD,
         })
         const info = await authTransporter.sendMail({
             from: `"AiResumeCraft Support" <${senderEmail}>`,
