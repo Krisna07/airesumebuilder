@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     // send email
     try {
-      await EmailService.sendWelcomeEmail(user.email!, user.name || '', code)
+      await EmailService.sendVerificationCode(user.email!, user.name || '', code)
     } catch (e) {
       console.error('Failed to send verification email', e)
     }

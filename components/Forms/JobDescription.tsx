@@ -38,6 +38,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const [url, setUrl] = useState<string>('');
   const [extracting, setExtracting] = useState(false)
+  const [extractingFromText, setExtractingFromText] = useState(false)
   const [textField, setTextField] = useState<boolean>(false)
   const { user } = useAuth()
   const { showToast } = useToast()
@@ -160,6 +161,95 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
 
     }
   }
+
+  const extractFromPastedText = async () => {
+    const trimmed = jobDescription.trim();
+    if (!trimmed) {
+      showToast('Please paste job description text first', 'warning');
+      return;
+    }
+
+    if (trimmed.length < 50) {
+      showToast('Job description seems too short. Please paste complete text.', 'warning');
+      return;
+    }
+
+    setExtractingFromText(true);
+
+    try {
+      const aiResponse = await fetch('/api/ai/extract-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: trimmed })
+      });
+
+      const result = await aiResponse.json();
+
+      if (!aiResponse.ok) {
+        if (result.quotaExceeded) {
+          showToast('Daily AI extraction limit reached. Please upgrade your plan.', 'error');
+        } else {
+          showToast(result.error || 'Failed to extract job details', 'error');
+        }
+        return;
+      }
+
+      if (!result.success || !result.data) {
+        showToast('Could not extract job details from text', 'error');
+        return;
+      }
+
+      // Save extracted job details
+      const extractedJob = result.data;
+
+      if (disabled || !userId) {
+        if (resumeId) {
+          const saved = await JobDescriptionService.saveLocal(resumeId, extractedJob);
+          setJobDetails(prev => {
+            const merged = [...(prev || []), saved];
+            const map = new Map<string, any>(
+              merged.map((j: any) => [j && j.id ? String(j.id) : JSON.stringify(j), j])
+            );
+            return Array.from(map.values());
+          });
+          showToast('Job description extracted and saved locally!', 'success');
+          setJobDescription('');
+          setTextField(false);
+        }
+      } else {
+        if (!resumeId) {
+          showToast('No resume ID found', 'error');
+          return;
+        }
+
+        const saveResponse = await JobDescriptionService.save(resumeId, userId, extractedJob);
+
+        if (!saveResponse.ok) {
+          showToast('Failed to save extracted job details', 'error');
+          return;
+        }
+
+        const savedData = await saveResponse.json();
+        setJobDetails(prev => {
+          const merged = [...(prev || []), savedData.data];
+          const map = new Map<string, any>(
+            merged.map((j: any) => [j && j.id ? String(j.id) : JSON.stringify(j), j])
+          );
+          return Array.from(map.values());
+        });
+
+        await response.refetch();
+        showToast('Job description extracted and saved!', 'success');
+        setJobDescription('');
+        setTextField(false);
+      }
+    } catch (err: any) {
+      console.error('Extract from text error:', err);
+      showToast(err?.message || 'Failed to extract job details', 'error');
+    } finally {
+      setExtractingFromText(false);
+    }
+  };
   return (
     <div className="w-full relative">
       {!hideInput && <div className="py-4 grid gap-2 px-2">
@@ -196,12 +286,36 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
       <div className='relative'>
         {
           textField &&
-          <textarea
-            onChange={updateJobDescription}
-            value={jobDescription}
-            placeholder="Paste or extract a job description..."
-            className="w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y"
-          />
+          <div className="w-full grid gap-2">
+              <textarea
+                onChange={updateJobDescription}
+                value={jobDescription}
+                placeholder="Paste job description text here (title, company, location, requirements, etc.)..."
+                className="w-full min-h-[220px] border shadow-md rounded-md p-2 outline-green-300 active:border-green-300 resize-y"
+              />
+              <div className="flex gap-2 items-center justify-end">
+                <Button
+                  variant="primary"
+                  size="small"
+                  onClick={extractFromPastedText}
+                  disabled={extractingFromText || !jobDescription.trim()}
+                  className={extractingFromText ? 'animate-pulse' : ''}
+                >
+                  {extractingFromText ? 'Extracting with AI…' : '✨ Extract & Save'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  onClick={() => {
+                    setJobDescription('');
+                    setTextField(false);
+                  }}
+                  disabled={extractingFromText}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
         }
 
         {jobDetails?.length && (

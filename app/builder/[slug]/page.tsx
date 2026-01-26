@@ -1,17 +1,23 @@
 "use client"
 import type React from "react"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import MultiStepForm from "@/components/Forms/MultiStepForm"
 import type { ResumeData } from "@/types/types"
 import { useAuth } from "@/context/authContext"
 import { useGetResume } from "@/hooks/useResume"
 import { Loader2 } from "lucide-react"
+import { ResumeCache } from "@/lib/resumeCache"
 
 const BuilderPage: React.FC = () => {
   const params = useParams()
   const slug = (params?.slug ?? "") as string
   const { user } = useAuth()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const isGuestResume = slug === "guest-resume"
   const {
@@ -29,8 +35,21 @@ const BuilderPage: React.FC = () => {
         return null
       }
     }
-    return apiResume ?? null
+    // Load from cache first for instant UI, then use API data when available
+    const cached = ResumeCache.get(slug);
+    return apiResume ?? cached?.data ?? null;
   }, [isGuestResume, slug, apiResume])
+
+  if (!mounted) {
+    return (
+      <div className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-teal-600 animate-spin mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400">Preparing your builder…</p>
+        </div>
+      </div>
+    )
+  }
 
   // Loading state
   if (!isGuestResume && isLoading) {

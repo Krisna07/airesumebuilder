@@ -26,8 +26,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({
           <p className="text-sm text-gray-600 mt-1 leading-relaxed">{subheading}</p>
         )}
       </div>
-      {/* Let parent (MultiStepForm) control scrolling */}
-      <div className="px-4 sm:px-6 py-4 space-y-4 relative z-10 overflow-hidden">
+      <div className="px-4 sm:px-6 py-4 space-y-4 relative z-10 ">
         {children}
       </div>
     </section>

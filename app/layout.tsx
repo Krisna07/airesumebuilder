@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en'>
-      <body className={`${inter.className} w-full h-screen  relative text-neutral-900 transition-colors duration-200 dark:bg-neutral-950 dark:text-neutral-50 scroll-smooth`}>
+    <html lang='en' data-scroll-behavior="smooth">
+      <body className={`${inter.className} w-full min-h-screen  relative text-neutral-900 transition-colors duration-200 dark:bg-neutral-950 dark:text-neutral-50 scroll-smooth`}>
         <ToastContainer />
         <Providers>
           <Navbar />

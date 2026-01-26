@@ -7,7 +7,7 @@ import { uploadResume } from '@/services/resumeServices';
 import React from 'react'
 
 const Page = () => {
-  const { user } = useAuth();
+  const { user, getSubscription } = useAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +53,8 @@ const Page = () => {
       }
       showToast('Resume uploaded successfully!', 'success');
       setSuccess(true);
+      // Avoid forced subscription refresh; counts update server-side
+      await getSubscription(false);
       // Start a 2-second interval when upload is successful
       const redirect = setInterval(() => {
         return (window.location.href = `/builder/${data.data.id}`);

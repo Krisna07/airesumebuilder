@@ -2,17 +2,16 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import UniversalImage from "./Ui/UniversalImage"
-import { FaDashcube, FaUser } from "react-icons/fa6"
 import { useAuth } from "@/context/authContext"
 import VerificationModal from './VerificationModal'
-import { LogIn, LogOut, Moon, Sun } from "lucide-react"
+import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import SubscriptionStatus from "./SubscriptionStatus"
 
 const Navbar = () => {
   const [menu, setMenu] = useState<boolean>(false)
-  const { user, logOut } = useAuth()
+  const { user, logOut, subscription } = useAuth()
   const menuRef = useRef<HTMLDivElement | null>(null)
   const route = usePathname()
   const [activeTab, setActivetab] = useState<string>("")
@@ -167,7 +166,7 @@ const Navbar = () => {
                   )}
                 </div>
               ) : (
-                <FaUser className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <User2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               )}
             </button>
 
@@ -188,7 +187,7 @@ const Navbar = () => {
                         {user ? user.name : "Guest User"}
                       </p>
                       <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 border border-dashed border-teal-300 dark:border-teal-600">
-                        {user ? "Member" : "Free"}
+                        {subscription ? subscription.plan : 'free'}
                       </span>
                     </div>
                   </div>
@@ -200,22 +199,23 @@ const Navbar = () => {
                 <div className="py-1">
                   {user && (
                     <Link
-                      href="/builder"
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                      onClick={() => setMenu(false)}
-                    >
-                      <FaDashcube className="w-4 h-4 text-teal-500" />
-                      Dashboard
-                    </Link>
-                  )}
-                  {user && (
-                    <Link
                       href="/account"
                       className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                       onClick={() => setMenu(false)}
                     >
-                      <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-600" />
+                      <User2 className="w-4 h-4" />
                       Account settings
+                    </Link>
+                  )}
+                  {user && (
+                    <Link
+                      href="https://buymeacoffee.com/krisnachhe0"
+                      target="_blank"
+                      className=" flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                      onClick={() => setMenu(false)}
+                    >
+                      <LucideHeartHandshake className="w-4 h-4" />
+                      Support Creator
                     </Link>
                   )}
                   {user && !user.isVerified && (

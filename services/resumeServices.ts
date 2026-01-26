@@ -124,6 +124,7 @@ export class ResumeService {
             const response = await fetch('/api/ai/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     resume: resumeData,
                     jobDescription: jobDescription,
@@ -148,6 +149,7 @@ export async function uploadResume(file: File, userId?: string) {
         const structuredData: ResumeData = await fetch('/api/ai/extract-resume', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ text })
         }).then(res => res.json()).then(data => data.data);
 
@@ -156,7 +158,7 @@ export async function uploadResume(file: File, userId?: string) {
             }
 
             if (!userId) {
-                const saveLocal = await LocalResumeService.create(structuredData)
+                const saveLocal = await LocalResumeService.create('classic', structuredData)
                 return NextResponse.json({ data: saveLocal }, { status: 200 })
             }
 
@@ -174,6 +176,7 @@ export async function analyzeResume(analyzeResumeParams: analyzeResumeParams) {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ analyzeResumeParams })
         });
         const data = await response.json();

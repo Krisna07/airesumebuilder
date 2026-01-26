@@ -128,6 +128,7 @@ export class JobDescriptionService {
             const response = await fetch(`/api/ai/analyze?analysisId=${analysisId}&resumeId=${resumeId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
             })
             if (!response.ok) {
                 throw new Error('Failed to delete analysis report');

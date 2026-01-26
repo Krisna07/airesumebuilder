@@ -2,21 +2,19 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function PATCH(req: Request) {
-  const session = await getServerSession()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   const body = await req.json()
-  const { name, currentPassword, newPassword } = body as {
+  const { email, name, currentPassword, newPassword } = body as {
+    email: string
     name?: string
     currentPassword?: string
     newPassword?: string
   }
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+  const user = await prisma.user.findUnique({ where: { email: email } })
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   const updateData: { name?: string; password?: string } = {}
@@ -59,4 +57,44 @@ export async function PATCH(req: Request) {
   })
 
   return NextResponse.json({ user: updated })
+}
+
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await req.json()
+  const { password, confirmText } = body as { password?: string; confirmText?: string }
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+  // Verify confirmation text
+  if (confirmText !== 'DELETE') {
+    return NextResponse.json({ error: 'Confirmation text must be DELETE' }, { status: 400 })
+  }
+
+  // Verify password for credentials users
+  if (user.password) {
+    if (!password) {
+      return NextResponse.json({ error: 'Password required to delete account' }, { status: 400 })
+    }
+    const ok = await bcrypt.compare(password, user.password)
+    if (!ok) {
+      return NextResponse.json({ error: 'Incorrect password' }, { status: 400 })
+    }
+  }
+
+  // Delete user and ALL related data (Prisma cascade will handle this)
+  const deleted = await prisma.user.delete({ where: { id: user.id } })
+
+  // Return success response
+  // Frontend will handle calling signOut() to clear the session
+  return NextResponse.json({
+    success: true,
+    message: 'Account and all associated data deleted successfully',
+    deletedUserId: deleted.id
+  })
 }

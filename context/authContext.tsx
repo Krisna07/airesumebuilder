@@ -1,6 +1,6 @@
 // context/authContext.tsx - Enhanced version
 'use client'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useSession, signIn, getSession, signOut } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
 import { useToast } from './PopupContext'
@@ -21,7 +21,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: typeof signIn
-  logOut: () => void
+  logOut: () => Promise<void>
   register: (user: RegisterData) => Promise<void>
   verifyCode: (code: string) => Promise<boolean>
   resendVerification: () => Promise<{ expiresAt?: string | null } | null>
@@ -31,6 +31,7 @@ interface AuthContextType {
   getSubscription: (forceRefresh?: boolean) => Promise<Subscription | null>
   setSubscriptionPlan: (plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE') => Promise<Subscription | null>
   incrementUsage: (key: IncrementKey, amount?: number) => Promise<Subscription | null>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const subscriptionRef = useRef<Subscription | null>(null)
   const sessionUser = session?.user
   const toast = useToast()
   const register = async (user: RegisterData) => {
@@ -78,21 +80,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   }
 
-  const getSubscription = async (forceRefresh = false) => {
+  useEffect(() => {
+    subscriptionRef.current = subscription
+  }, [subscription])
+
+  const getSubscription = useCallback(async (forceRefresh = false) => {
+    // Deduplicate in-flight requests and throttle refreshes
+    const inflightRef = (getSubscription as unknown as { inflight?: Promise<Subscription | null>; lastFetch?: number })
+    const now = Date.now()
+    const THROTTLE_MS = 2000
     try {
-      if (subscription && !forceRefresh) return subscription
-      const resp = await fetch('/api/subscription')
-      if (!resp.ok) return null
-      const data = await resp.json()
-      setSubscription(data)
-      return data
+      if (!forceRefresh && subscriptionRef.current) return subscriptionRef.current
+      if (inflightRef.inflight) return inflightRef.inflight
+      if (inflightRef.lastFetch && now - inflightRef.lastFetch < THROTTLE_MS) {
+        return subscriptionRef.current
+      }
+      inflightRef.lastFetch = now
+      inflightRef.inflight = (async () => {
+        const resp = await fetch('/api/subscription')
+        inflightRef.inflight = undefined
+        if (!resp.ok) return null
+        const data = await resp.json()
+        setSubscription(data)
+        return data
+      })()
+      return inflightRef.inflight
     } catch (err) {
       console.error('Error fetching subscription', err)
+      inflightRef.inflight = undefined
       return null
     }
-  }
+  }, [])
 
-  const setSubscriptionPlan = async (plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE') => {
+  const setSubscriptionPlan = useCallback(async (plan: 'FREE' | 'SUPPORTER' | 'ULTIMATE') => {
     try {
       const resp = await fetch('/api/subscription', {
         method: 'POST',
@@ -112,9 +132,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Error setting subscription plan', err)
       return null
     }
-  }
+  }, [])
 
-  const incrementUsage = async (key: IncrementKey, amount = 1) => {
+  const incrementUsage = useCallback(async (key: IncrementKey, amount = 1) => {
     try {
       const resp = await fetch('/api/subscription/increment', {
         method: 'POST',
@@ -133,7 +153,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast.showToast((err as Error).message || 'Error incrementing usage', 'error', 3000)
       return null
     }
-  }
+  }, [toast])
+
+  const refreshUser = useCallback(async () => {
+    const refreshed = await getSession()
+    if (refreshed?.user) {
+      setUser({
+        id: refreshed.user.id!,
+        name: refreshed.user.name ?? undefined,
+        email: refreshed.user.email ?? null,
+        image: refreshed.user.image ?? undefined,
+        isVerified: refreshed.user.isVerified || false,
+        plan: refreshed.user.plan ?? 'FREE'
+      })
+      // refresh subscription from server so Account page reflects plan changes immediately
+      await getSubscription(true)
+    }
+  }, [getSubscription])
 
   useEffect(() => {
     const getUser = async () => {
@@ -155,7 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (user?.id && !subscription) {
       getSubscription(true)
     }
-  }, [user?.id, subscription])
+  }, [user?.id, subscription, getSubscription])
 
   const migrateGuestData = async () => {
     //disabling thr function 
@@ -184,11 +220,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loading = status === 'loading'
   const isGuest = !user && !loading
 
-  const logOut = () => {
+  const logOut = async () => {
     setUser(null);
     sessionStorage.removeItem('user');
     sessionStorage.clear()
-    signOut()
+    // Prevent NEXTAUTH_URL from forcing prod domain; we handle redirect manually
+    await signOut({ redirect: false })
+    if (typeof window !== 'undefined') {
+      window.location.href = '/'
+    }
   };
 
   // Verify a code entered by the user. This compares the code with the
@@ -268,6 +308,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       getSubscription,
       setSubscriptionPlan,
       incrementUsage,
+      refreshUser,
       migrateGuestData
     }}>
       {children}

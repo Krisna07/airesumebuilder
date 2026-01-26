@@ -2,7 +2,7 @@
 import FeaturesSection from '@/components/LandingPageComponents/FeaturesSection';
 import HeroSection from '@/components/LandingPageComponents/Herosection';
 import TemplatesSection from '@/components/LandingPageComponents/TemplateSection';
-import React from 'react';
+
 
 const page = () => {
   return (

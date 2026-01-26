@@ -76,8 +76,7 @@ export async function PUT(req: NextRequest) {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
 
         // Send welcome email with the code
-        await EmailService.sendWelcomeEmail(email, name || email.split('@')[0], code);
-
+        await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
         user = await prisma.user.create({
           data: {
             email,

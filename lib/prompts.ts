@@ -98,5 +98,43 @@ ANALYSIS: ${JSON.stringify(analysis || {})}
 OUTPUT:`;
 }
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt };
+const extractJobDetailsPrompt = (rawText: string) => {
+  return `SYSTEM: You are an expert job description parser. Extract structured job details from raw text.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO EXPLANATION.
+
+---
+TASK: Parse the raw job description text and extract:
+1. Job Title (the primary role being hired for)
+2. Company Name (if present)
+3. Location (city, state/country, or "Remote")
+4. Domain/Industry (e.g., "Technology", "Healthcare", "Finance")
+5. Description (clean, formatted job description text)
+
+---
+SCHEMA:
+{
+  "title": "string (e.g., 'Senior Software Engineer')",
+  "company": "string (e.g., 'Google' or 'Unknown' if not found)",
+  "location": "string (e.g., 'San Francisco, CA' or 'Remote' or 'Not specified')",
+  "domain": "string (e.g., 'Technology', 'Healthcare', 'Finance', 'Marketing', 'Other')",
+  "description": "string (the full cleaned job description)"
+}
+
+---
+EXTRACTION RULES:
+- Title: Look for phrases like "Job Title:", "Position:", "Role:", or the first prominent heading
+- Company: Look for "Company:", "About Us:", or company name at the top
+- Location: Look for "Location:", "Where:", city names, or "Remote"
+- Domain: Infer from job title, company type, or description content
+- Description: Include all relevant text (responsibilities, requirements, benefits) but remove boilerplate like "Apply Now" buttons or footer text
+- If a field is not found, use sensible defaults: "Unknown" for company, "Not specified" for location, "Other" for domain
+
+---
+RAW_JOB_TEXT:
+${rawText}
+
+OUTPUT:`;
+}
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt };
 
