@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const { file } = req.body || {};
         if (!file) return res.status(400).json({ error: 'Missing file data' });
-
+        console.log('Received file data for extraction');
         // 2. Convert Base64 to Uint8Array (required for unpdf)
         const base64Data = file.includes('base64,') ? file.split('base64,')[1] : file;
         const buffer = Buffer.from(base64Data, 'base64');
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 3. Load and Extract
         const pdf = await getDocumentProxy(uint8Array);
         const { text, totalPages } = await extractText(pdf, { mergePages: true });
-
+        console.log(`Extracted text from ${text} pages.`);
         // 4. Return the data
         return res.status(200).json({
             text: text,

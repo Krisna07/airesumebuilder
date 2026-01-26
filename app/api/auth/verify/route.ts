@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { EmailService } from '@/utils/sendEmail'
+import { buildWelcomeEmail } from '../newuser/welcomeEmail'
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +23,8 @@ export async function POST(req: NextRequest) {
     }
 
     await prisma.user.update({ where: { email }, data: { isVerified: true } })
+    const emailContent = buildWelcomeEmail(user.name || email.split('@')[0]);
+    await EmailService.sendEmail(email, emailContent.subject, emailContent.text, emailContent.html);
     // delete verification record
     await prisma.verification.delete({ where: { id: verification.id } })
 

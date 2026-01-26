@@ -3,6 +3,7 @@ import { AIService } from '@/services/aiServices';
 import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma'
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
 interface JobDetails extends JobDescription {
   id: string;
@@ -37,6 +38,20 @@ const fetchResume = async (resumeId: string) => {
 
 export async function POST(req: NextRequest) {
   try {
+
+    let userId: string
+    try {
+      ({ userId } = await requireUserSession())
+    } catch (err) {
+      const mapped = mapSubscriptionError(err)
+      return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+    }
+    try {
+      await assertQuota(userId, 'analysis')
+    } catch (err) {
+      const mapped = mapSubscriptionError(err)
+      return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+    }
 
     const body = await req.json();
     const analyzeResumeParams = body.analyzeResumeParams;
@@ -102,6 +117,8 @@ export async function POST(req: NextRequest) {
         },
       });
     }
+
+    await consumeUsage(userId, 'analysis')
 
     return NextResponse.json({
       data: updated

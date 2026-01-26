@@ -17,6 +17,7 @@ model User {
   isVerified Boolean?
   verifications Verification[]
   subscription Subscription?
+    usageHistory UsageHistory?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   resumes   Resume[]
@@ -99,5 +100,19 @@ model Subscription {
 
   lastResetDate DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UsageHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  regenTotal    Int      @default(0)
+  downloadTotal Int      @default(0)
+  clTotal       Int      @default(0)
+  analysisTotal Int      @default(0)
+  uploadTotal   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId])
 }

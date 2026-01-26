@@ -56,7 +56,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
 
 };
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -158,10 +158,13 @@ const handler = NextAuth({
         ; session.user.id = token.id as string | undefined
           ; session.user.provider = token.provider as string | undefined
           ; session.user.providerId = token.providerId as string | undefined
-        // Ensure session reflects latest isVerified state from DB when possible
+        // Ensure session reflects latest user profile and verification/plan state
         try {
           if (token.id) {
             const dbUser = await prisma.user.findUnique({ where: { id: token.id as string } })
+            session.user.name = dbUser?.name ?? session.user.name
+            session.user.email = dbUser?.email ?? session.user.email
+            session.user.image = dbUser?.image ?? session.user.image
             session.user.isVerified = dbUser?.isVerified ?? false
 
             const dbSub = await prisma.subscription.findUnique({
@@ -195,13 +198,15 @@ const handler = NextAuth({
     signIn: '/auth/createuser', // Custom sign-in page
   },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
     // One week expiry for sessions (in seconds)
     maxAge: 60 * 60 * 24 * 7, // 7 days
     // How often to update the session age (in seconds)
     updateAge: 60 * 60 * 24 // 24 hours
   },
   // debug: process.env.NODE_ENV === 'development',
-})
+}
+
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

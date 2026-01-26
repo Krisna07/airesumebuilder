@@ -3,10 +3,10 @@ import { baseStyles } from './baseStyles';
 import { escapeHtml, safeJoin, renderExperiences, renderEducations, renderContactInfo, renderCustomSections } from './helpers';
 
 const classicStyles = `
-  .header {  border-radius: 6px; }
-  .header h1 { font-size: 24px; font-weight: 700;  letter-spacing: -0.5px; }
+  .header {  border-radius: 2px; }
+  .header h1 { font-size: 22px; font-weight: 700;  letter-spacing: -0.5px; }
   .section-title { color: #8b5cf6; border-color: #8b5cf6; font-weight: 700; }
-  .skill-tag { color: #6d28d9; border-color: #c4b5fd; font-weight: 500; font-size:10px: line-height: 1.4; }
+  .skill-tag { color: #6d28d9; border-color: #c4b5fd; font-weight: 500; font-size:10px: line-height: 1.2; }
   .experiences-item { border-left: 3px solid #8b5cf6; padding-left: 15px; margin-left: 5px; }
   .educations-item { border-left: 3px solid #3b82f6; padding-left: 15px; margin-left: 5px; }
 `;
@@ -54,7 +54,8 @@ export function generateClassicHTML(data: ResumeData): string {
         
         ${data.customSections?.length ? `
           <div class="section">
-            ${safeJoin(data.customSections.slice(0, 3).map(renderCustomSections))}
+                    ${safeJoin(data.customSections.map(section => renderCustomSections(section, false)))}
+
           </div>
         ` : ''}
       </div>

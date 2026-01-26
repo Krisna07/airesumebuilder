@@ -19,29 +19,43 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
 
   const addSkill = (e: React.FormEvent) => {
     e.preventDefault();
-    if (skill) {
-      const existingType = skillsList.find((s) => s.type === type);
-      if (existingType) {
-        // If the type exists, add the skill to that type
-        if (!existingType.skills?.includes(skill)) {
-          const updatedSkills = skillsList.map((item) => (item.type === type ? { ...item, skills: [...(item.skills || []), skill] } : item));
-          setSkills(updatedSkills);
-          updateSkills(updatedSkills);
-        } else {
-          toast.showToast('Duplicate skill', 'warning', 3000)
-        }
-      } else {
-        // If the type does not exist, create a new entry
-        const newSkill = { type: type || 'General', skills: [skill] };
-        setSkills((prevState) => [...prevState, newSkill]);
-        updateSkills([...skillsList, newSkill]);
-      }
-      setSkill(''); // Clear the skill input
-      // Clear the type input
-    } else {
-                toast.showToast('Skills cannot be empty', 'warning', 3000)
 
+    if (!skill) {
+      toast.showToast('Skills cannot be empty', 'warning', 3000);
+      return;
     }
+
+    // Split by comma and trim whitespace
+    const skillsToAdd = skill.split(',').map(s => s.trim()).filter(s => s);
+
+    let updatedSkills = [...skillsList];
+    const skillType = type || 'General';
+
+    for (const skillToAdd of skillsToAdd) {
+      const existingType = updatedSkills.find((s) => s.type === skillType);
+
+      if (existingType) {
+        // If the type exists, check for duplicates
+        if (existingType.skills?.includes(skillToAdd)) {
+          toast.showToast(`Duplicate skill: ${skillToAdd}`, 'warning', 3000);
+          continue;
+        }
+        // Add skill to existing type
+        updatedSkills = updatedSkills.map((item) =>
+          item.type === skillType
+            ? { ...item, skills: [...(item.skills || []), skillToAdd] }
+            : item
+        );
+      } else {
+        // Create new type entry
+        updatedSkills.push({ type: skillType, skills: [skillToAdd] });
+      }
+    }
+
+    setSkills(updatedSkills);
+    updateSkills(updatedSkills);
+    setSkill('');
+    setType('');
   };
 
   const removeSkill = (skillToRemove: string) => {

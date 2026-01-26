@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { getQuotaForPlan, resetCountsData, shouldResetDaily, UsageKey, USAGE_FIELD_MAP } from '@/lib/subscription'
+import { getQuotaForPlan, resetCountsData, shouldResetDaily, UsageKey } from '@/lib/subscription'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 type Payload = { key: UsageKey; amount?: number }
 
@@ -22,7 +23,7 @@ function checkRateLimit(userId: string) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession()
+  const session = await getServerSession(authOptions)
   if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body: Payload = await req.json()
   if (!body?.key) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
@@ -49,9 +50,15 @@ export async function POST(req: Request) {
 
   const quota = getQuotaForPlan(sub.plan, body.key)
   if (typeof quota === 'number') {
-    const field = USAGE_FIELD_MAP[body.key]
-    // @ts-ignore
-    const current = sub[field] as number
+    const usageCurrent: Record<UsageKey, number> = {
+      regen: sub.regenCount,
+      download: sub.downloadCount,
+      cl: sub.clCount,
+      analysis: sub.analysisCount,
+      upload: sub.uploadCount,
+    }
+
+    const current = usageCurrent[body.key]
     if (current + amount > quota) {
       return NextResponse.json({ error: 'Quota exceeded' }, { status: 403 })
     }

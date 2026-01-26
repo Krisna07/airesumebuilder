@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
 import chromium from '@sparticuz/chromium';
 import fs from 'fs'; // added import
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
@@ -29,6 +30,21 @@ async function launchWithRetries(puppeteerPkg: any, launchOptions: Record<string
 
 export async function POST(req: NextRequest) {
     try {
+        let userId: string
+        try {
+            ({ userId } = await requireUserSession())
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
+
+        try {
+            await assertQuota(userId, 'download')
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
+
         const body = await req.json();
         let content = body.content;
 
@@ -104,9 +120,6 @@ export async function POST(req: NextRequest) {
             if (proc) console.log('chromium pid:', proc.pid);
         } catch { }
 
-        const page = await browser.newPage();
-        await page.setContent(content, { waitUntil: 'load' });
-
         // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
         const pageGap = body.pageGap || {
             top: '4mm',
@@ -114,12 +127,25 @@ export async function POST(req: NextRequest) {
             left: '10mm',
             right: '10mm',
         };
+        const pageMargin = {
+            top: pageGap.top ?? '4mm',
+            bottom: pageGap.bottom ?? '4mm',
+            left: pageGap.left ?? '10mm',
+            right: pageGap.right ?? '10mm',
+        };
+
+        const page = await browser.newPage();
+        await page.setContent(content, { waitUntil: 'load' });
+        await page.emulateMediaType('print');
+        await page.addStyleTag({
+            content: `@page { size: A4; margin: ${pageMargin.top} ${pageMargin.right} ${pageMargin.bottom} ${pageMargin.left}; }`,
+        });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
-            margin: pageGap,
-            preferCSSPageSize: false,
+            margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
+            preferCSSPageSize: true,
             displayHeaderFooter: false,
         });
 
@@ -130,7 +156,8 @@ export async function POST(req: NextRequest) {
             ? `${body.resumeData.profile.fullname.replace(/\s+/g, '_')}_Resume.pdf`
             : 'Resume.pdf';
 
-        // Return PDF as response
+        await consumeUsage(userId, 'download')
+
         return new Response(Buffer.from(pdfBuffer), {
             headers: {
                 'Content-Type': 'application/pdf',
@@ -143,15 +170,10 @@ export async function POST(req: NextRequest) {
         console.log(error)
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
-        return new Response(JSON.stringify({
+        return NextResponse.json({
             error: 'PDF generation failed',
             details: errorMessage,
             timestamp: new Date().toISOString()
-        }), {
-            status: 500,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        }, { status: 500 })
     }
 }

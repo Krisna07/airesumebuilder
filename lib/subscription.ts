@@ -1,9 +1,11 @@
 export type UsageKey = 'regen' | 'download' | 'cl' | 'analysis' | 'upload'
 export type Plan = 'FREE' | 'SUPPORTER' | 'ULTIMATE'
 
-export const PLAN_QUOTAS: Record<Plan, Partial<Record<UsageKey, number>> | null> = {
-  FREE: { regen: 0, download: 0, cl: 0, analysis: 0 },
-  SUPPORTER: { regen: 15, download: 15, cl: 50, analysis: 15 },
+export const PLAN_QUOTAS: Record<Plan, Partial<Record<UsageKey, number | null>> | null> = {
+  FREE: { regen: 20, download: null, cl: 20, analysis: 20, upload: null },
+  // Supporter: unlimited usage
+  SUPPORTER: null,
+  // Ultimate: unlimited usage
   ULTIMATE: null,
 }
 
@@ -21,6 +23,12 @@ export function isSameUtcDay(a: Date, b: Date) {
 
 export function shouldResetDaily(lastResetDate: Date, now = new Date()) {
   return !isSameUtcDay(lastResetDate, now)
+}
+
+// Helper to determine if we should reset counters based on plan
+export function shouldResetForPlan(plan: Plan, lastResetDate: Date, now = new Date()) {
+  if (plan === 'FREE') return shouldResetDaily(lastResetDate, now)
+  return false
 }
 
 export function getQuotaForPlan(plan: Plan, key: UsageKey): number | null {

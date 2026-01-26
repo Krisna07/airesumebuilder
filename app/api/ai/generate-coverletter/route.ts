@@ -3,9 +3,23 @@ import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
 import { NextResponse } from "next/server";
 
 import { prisma } from '@/lib/prisma'
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
 export async function POST(req: Request) {
     try{
+        let userId: string
+        try {
+            ({ userId } = await requireUserSession())
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
+        try {
+            await assertQuota(userId, 'cl')
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
         const body = await req.json();
         const { resumeId, jobDescriptionId, analysis } = { ...body };
         console.log(resumeId, jobDescriptionId);
@@ -27,6 +41,8 @@ export async function POST(req: Request) {
             customSections: resume?.customSections ? JSON.parse(resume.customSections as string) : []
         } as ResumeData, jobDescriptionDetails as JobDescription, analysis as AnalysisResult);
         
+        await consumeUsage(userId, 'cl')
+
         return NextResponse.json({
             data: reponse
         }, { status: 200 }

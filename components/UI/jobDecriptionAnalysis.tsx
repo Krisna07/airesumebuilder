@@ -140,48 +140,67 @@ const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnal
                 </div></>
             }
             {/* Analysis report */}
-            {job.hasAnalysed && analysis && (
+            {job.hasAnalysed && (
                 <>
-                    <JobAnalysisReport analysis={{ ...analysis, company: job.company }} />
-                    {showDescription && (
-                        <div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Description</p>
-                            <div className="w-full max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 rounded-md p-3 bg-slate-50 dark:bg-slate-900">
-                                {job.description ?? "—"}
-                            </div>
-                        </div>
-                    )}
-                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
-                        <Button
-                            size="small"
-                            variant="ghost"
-                            className="text-xs text-slate-500 dark:text-slate-400 w-full sm:w-fit"
-                            onClick={toggleDescription}
-                        >
-                            <ChevronDown size={12} className={`transition-transform ${showDescription ? "rotate-180" : "rotate-0"}`} />
-                            {showDescription ? "Hide description" : "View description"}
-                        </Button>
-
-                        <div className="flex gap-2 flex-col sm:flex-row">
-                            {resumeData && handleRegenerate && (
-                                <Button variant="primary" className="w-full sm:w-fit" size="small" onClick={handleOptimize}>
-                                    <BotIcon size={14} />
-                                    Optimise Resume
-                                </Button>
+                    {analysis ? (
+                        <>
+                            <JobAnalysisReport analysis={{ ...analysis, company: job.company }} />
+                            {showDescription && (
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Description</p>
+                                    <div className="w-full max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 rounded-md p-3 bg-slate-50 dark:bg-slate-900">
+                                        {job.description ?? "—"}
+                                    </div>
+                                </div>
                             )}
+                            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+                                <Button
+                                    size="small"
+                                    variant="ghost"
+                                    className="text-xs text-slate-500 dark:text-slate-400 w-full sm:w-fit"
+                                    onClick={toggleDescription}
+                                >
+                                    <ChevronDown size={12} className={`transition-transform ${showDescription ? "rotate-180" : "rotate-0"}`} />
+                                    {showDescription ? "Hide description" : "View description"}
+                                </Button>
 
+                                <div className="flex gap-2 flex-col sm:flex-row">
+                                    {resumeData && handleRegenerate && (
+                                        <Button variant="primary" className="w-full sm:w-fit" size="small" onClick={handleOptimize}>
+                                            <BotIcon size={14} />
+                                            Optimise Resume
+                                        </Button>
+                                    )}
+
+                                    <Button
+                                        variant="secondary"
+                                        size="small"
+                                        onClick={() => startAnalysis(job)}
+                                        disabled={analyzing}
+                                        className={`w-full sm:w-fit ${analyzing ? "animate-pulse" : ""}`}
+                                    >
+                                        {analyzing ? "Analyzing…" : job?.hasAnalysed ? "Re-analyse" : "Analyse"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+                            <div className="animate-spin">
+                                <BotIcon size={24} className="text-slate-400" />
+                            </div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">Loading analysis report...</p>
                             <Button
                                 variant="secondary"
                                 size="small"
                                 onClick={() => startAnalysis(job)}
                                 disabled={analyzing}
-                                className={`w-full sm:w-fit ${analyzing ? "animate-pulse" : ""}`}
+                                className="mt-2"
                             >
-                                {analyzing ? "Analyzing…" : job?.hasAnalysed ? "Re-analyse" : "Analyse"}
+                                Retry Analysis
                             </Button>
                         </div>
-                    </div>
-
+                    )}
                 </>
             )}
         </div>

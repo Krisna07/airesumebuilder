@@ -1,6 +1,6 @@
 "use client"
 import type React from "react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import UserInfoStep from "./UserInfoStep"
 import SkillsStep from "./SkillsStep"
@@ -12,11 +12,12 @@ import Button from "../Ui/Button"
 import FormLayout from "./FomLayout"
 import { ChevronLeft, ChevronRight, Check } from "lucide-react"
 import { useToast } from "@/context/PopupContext"
-import { LocalResumeService } from "@/services/localResumeService"
 import Templates from "../Templates/templates"
 import ResumePreview from "../Templates/ResumePreview"
 import JobDescription from "./JobDescription"
-import { useSaveResume } from "@/hooks/useResume"
+import { useResumeSync } from "@/hooks/useResumeSync"
+import { ResumeCache } from "@/lib/resumeCache"
+import { SyncIndicator } from "../Ui/SyncIndicator"
 
 interface MultiStepFormProps {
   resumeContent: ResumeData
@@ -38,56 +39,70 @@ const FINAL_STEP_INDEX = STEPS_LABELS.length + 1
 
 const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
   const router = useRouter()
-  const [formData, setFormData] = useState<ResumeData>(resumeContent)
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(resumeContent?.template ?? "")
+  const [formData, setFormData] = useState<ResumeData>(() => {
+    // Load from cache first for instant UI
+    const cached = ResumeCache.get(resumeId);
+    return cached?.data ?? resumeContent;
+  })
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(() => {
+    const cached = ResumeCache.get(resumeId);
+    return cached?.data.template ?? resumeContent?.template ?? "";
+  })
   const [currentStep, setCurrentStep] = useState(1)
-  const [isSaving, setIsSaving] = useState(false)
   const { showToast } = useToast()
 
   const displayTemplates = useMemo(() => (userId ? Templates : Templates.slice(0, 3)), [userId])
 
-  const saveResume = useSaveResume(userId, resumeId, selectedTemplate, formData)
+  // Background sync hook
+  const { syncStatus, lastSyncTime, queueSync, syncNow } = useResumeSync({
+    resumeId,
+    userId,
+    template: selectedTemplate,
+    debounceMs: 3000,
+    onSyncError: (error) => {
+      showToast(error.message || "Failed to save changes", "error", 3000);
+    },
+  });
 
-  const persist = useCallback(async (): Promise<boolean> => {
-    if (isSaving) return false
-    setIsSaving(true)
+  // Sync formData changes to cache and queue background sync
+  useEffect(() => {
+    const dataWithTemplate = { ...formData, template: selectedTemplate };
+    queueSync(dataWithTemplate);
+  }, [formData, selectedTemplate, queueSync]);
 
-    try {
-      if (userId) {
-        await saveResume.mutateAsync()
-      } else {
-        await LocalResumeService.update(resumeId, formData)
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (ResumeCache.isDirty(resumeId)) {
+        e.preventDefault();
+        e.returnValue = '';
       }
-      return true
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save"
-      showToast(message, "error", 3000)
-      return false
-    } finally {
-      setIsSaving(false)
-    }
-  }, [userId, resumeId, formData, showToast, saveResume, isSaving])
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [resumeId]);
 
   const handleNext = useCallback(async () => {
-    const ok = await persist()
-    if (!ok) return
-
     if (currentStep === STEPS_LABELS.length) {
+      // Force sync before navigating to preview
+      const dataWithTemplate = { ...formData, template: selectedTemplate };
+      await syncNow(dataWithTemplate);
       router.push(`/builder/${resumeId}/preview`)
       return
     }
     setCurrentStep((s) => Math.min(s + 1, FINAL_STEP_INDEX))
-  }, [persist, currentStep, resumeId, router])
+  }, [currentStep, resumeId, router, formData, selectedTemplate, syncNow])
 
   const handlePrevious = useCallback(async () => {
-    await persist()
     setCurrentStep((s) => Math.max(s - 1, 1))
-  }, [persist])
+  }, [])
 
   const handleSaveDraft = useCallback(async () => {
-    const ok = await persist()
-    if (ok) showToast("Draft saved successfully!", "success", 3000)
-  }, [persist, showToast])
+    const dataWithTemplate = { ...formData, template: selectedTemplate };
+    const ok = await syncNow(dataWithTemplate);
+    if (ok) showToast("Draft saved successfully!", "success", 3000);
+  }, [formData, selectedTemplate, syncNow, showToast])
 
   const updateProfile = useCallback((data: Profile) => {
     setFormData((prev) => ({ ...prev, profile: data }))
@@ -158,7 +173,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       case 7:
         return (
           <FormLayout heading="Choose your template" subheading="Select a design style for your resume.">
-            <div className="w-full">
+            <div className="w-full overflow-hidden">
               <div className="grid md:grid-cols-3 sm:grid-cols-2 gap-4">
                 {displayTemplates.map((template) => {
                   const active = selectedTemplate === template.id
@@ -167,14 +182,16 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                       key={template.id}
                       type="button"
                       onClick={() => handleTemplateSelect(template.id)}
-                      className={`w-full group p-3 rounded-lg border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 relative
+                      className={`overflow-hidden group p-2 rounded-lg border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 relative
                         ${active
                           ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 shadow-sm"
                           : "border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-600"
                         }`}
                       aria-pressed={active}
                     >
-                      <div className="rounded-md overflow-hidden mb-3 relative aspect-[3/4] bg-slate-100 dark:bg-slate-800">
+
+                      <div className={`w-full z-10 rounded-md overflow-hidden group-hover:bg-teal-400/25 ${active ? 'bg-teal-400/25' : ''} mb-3 relative`}>
+                        <div className="w-full h-full  z-20 absolute"></div>
                         <ResumePreview template={template.id} resumeData={resumeContent} />
                       </div>
                       <h3
@@ -224,11 +241,11 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   ])
 
   return (
-    <div className="w-full h-full flex flex-col items-start bg-slate-50 dark:bg-slate-900 overflow-hidden">
+    <div className="w-full h-full flex flex-col items-start bg-slate-50 dark:bg-slate-900 ">
       {/* Step indicators */}
       {currentStep !== FINAL_STEP_INDEX && (
         <div
-          className="shrink-0 w-full flex items-center justify-center max-[500px]:justify-start min-[760px]:max-[900px]:justify-start gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm sticky z-40 px-3 py-2 overflow-x-auto  border-b border-slate-200 dark:border-slate-700"
+          className="shrink-0 w-full hide-scrollbar sticky top-14 flex items-center justify-center max-[500px]:justify-start min-[760px]:max-[900px]:justify-start gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm z-40 px-3 py-2 overflow-x-auto  border-b border-slate-200 dark:border-slate-700"
           role="tablist"
           aria-label="Form steps"
         >
@@ -272,7 +289,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
       {/* Content area */}
       <div
-        className="flex-1 overflow-y-auto overscroll-contain px-2 sm:px-4 mb-20 scroll-smooth w-full"
+        className="flex-1  overscroll-contain px-2 sm:px-4 mb-20 scroll-smooth w-full"
         id={`step-panel-${currentStep}`}
         role="tabpanel"
         aria-labelledby={`step-${currentStep}`}
@@ -285,6 +302,9 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       {currentStep !== FINAL_STEP_INDEX && (
         <div className="shrink-0 w-full fixed bottom-0 z-50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {/* Sync Status */}
+            <SyncIndicator status={syncStatus} lastSyncTime={lastSyncTime} className="hidden sm:block" />
+
             <div className="flex-1">
               {currentStep > 1 && (
                 <Button
@@ -292,7 +312,6 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                   variant="secondary"
                   size="small"
                   onClick={handlePrevious}
-                  disabled={isSaving}
                   aria-label="Previous step"
                 >
                   <ChevronLeft size={16} />
@@ -307,10 +326,10 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                   variant="ghost"
                   size="small"
                   onClick={handleSaveDraft}
-                  disabled={isSaving}
+                  disabled={syncStatus === 'syncing'}
                   aria-label="Save draft"
                 >
-                  {isSaving ? "Saving..." : "Save Draft"}
+                  {syncStatus === 'syncing' ? "Saving..." : "Save Draft"}
                 </Button>
               )}
               <Button
@@ -318,7 +337,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
                 variant="primary"
                 size="small"
                 onClick={handleNext}
-                disabled={currentStep === FINAL_STEP_INDEX || isSaving}
+                disabled={currentStep === FINAL_STEP_INDEX}
                 aria-label="Next step"
               >
                 {currentStep === STEPS_LABELS.length ? "Preview Resume" : "Next"}

@@ -6,7 +6,7 @@ import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/type
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X, FileUser, FileSliders } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X, FileUser, FileSliders, Copy } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/Ui/Button';
 import ConfirmDialog from '@/components/Ui/ConfirmDialog';
@@ -20,6 +20,7 @@ import JobDescription from '@/components/Forms/JobDescription';
 import { useJobDescriptions } from '@/hooks/useJobDescriptions';
 import { useGetResume } from '@/hooks/useResume';
 import { JobDescriptionService } from '@/services/jdServices';
+import { ResumeCache } from '@/lib/resumeCache';
 
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
@@ -27,10 +28,17 @@ const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.
 const PreviewPage = () => {
   const params = useParams();
   const slug = (params?.slug ?? "") as string;
-  const { user } = useAuth();
+  const { user, getSubscription } = useAuth();
   const { showToast } = useToast();
-  const [resumeData, setResumeData] = useState<ResumeData>();
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
+  const [resumeData, setResumeData] = useState<ResumeData | undefined>(() => {
+    // Load from cache FIRST for instant preview
+    const cached = ResumeCache.get(slug);
+    return cached?.data;
+  });
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(() => {
+    const cached = ResumeCache.get(slug);
+    return cached?.data.template ?? 'modern';
+  });
   const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>('loading');; // delay gate for not-found
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -181,9 +189,15 @@ const PreviewPage = () => {
     if (!resumeData) return;
     setPendingUpdate(true);
     setSelectedTemplate(templateId);
+
+    // Update cache immediately (optimistic update)
+    const updatedData = { ...resumeData, template: templateId };
+    ResumeCache.set(slug, updatedData, true);
+
     if (typeof window !== 'undefined' && user) {
       try {
-        await ResumeService.save(user.id, slug, templateId, resumeData);
+        await ResumeService.save(user.id, slug, templateId, updatedData);
+        ResumeCache.markSynced(slug);
         showToast('Template updated', 'success', 1500);
       } catch {
         showToast('Failed to save template', 'error', 2000);
@@ -196,20 +210,29 @@ const PreviewPage = () => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!resumeData) return;
+    if (!resumeData) {
+      showToast('Resume data not available', 'error', 2000);
+      return;
+    }
     if (!user) {
       showToast('Please login to use this feature', 'warning', 3000);
       return;
     }
-    setDownloading(true)
+
+    // Use cached data if available (faster)
+    const cached = ResumeCache.get(slug);
+    const dataToUse = (cached?.data ?? resumeData)!;
+
+    setDownloading(true);
     setRegenerating(true);
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          resumeData,
-          template: selectedTemplate, // FIX: pass the actual template id/string
+          resumeData: dataToUse,
+          template: selectedTemplate,
         }),
       });
 
@@ -218,7 +241,7 @@ const PreviewPage = () => {
         console.error('❌ PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
         setDownloading(false);
-        setRegenerating(false)
+        setRegenerating(false);
         return;
       }
 
@@ -230,7 +253,7 @@ const PreviewPage = () => {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const name = sanitizeFile(resumeData.profile.fullname || 'Resume');
+      const name = sanitizeFile(dataToUse.profile.fullname || 'Resume');
       a.href = url;
       a.download = `${name}_${selectedTemplate}.pdf`;
       document.body.appendChild(a);
@@ -239,7 +262,9 @@ const PreviewPage = () => {
       document.body.removeChild(a);
       showToast('PDF downloaded', 'success', 1500);
       setDownloading(false);
-      setRegenerating(false)
+      setRegenerating(false);
+      // Avoid forced refresh; server updates usage
+      await getSubscription(false);
     } catch (error) {
       console.error('❌ PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
@@ -315,6 +340,8 @@ const PreviewPage = () => {
     showToast(`Resume has been regenerated Successfully`, 'success', 3000);
     setRegenerating(false);
     setPendingUpdate(false);
+    // Avoid forced refresh; server updates usage
+    await getSubscription(false);
     return;
   };
 
@@ -336,6 +363,8 @@ const PreviewPage = () => {
         const refreshed = typeof data.result === 'string' && data.result ? JSON.parse(data.result) : data.result || {};
         setAnalysisData((prev: any[] | undefined) => (prev || []).map((a: any) => ((a as any)._analysisId === data.id) ? ({ ...(refreshed as any), _analysisId: data.id, _jobDescriptionId: data.jobDescriptionId, _analysedDate: data.updatedAt }) : a));
         showToast('Analysis updated', 'success', 1500);
+        // Avoid forced refresh; server updates usage
+        await getSubscription(false);
       }
     } catch (err) {
       console.warn('Failed to merge refreshed analysis:', err, data);
@@ -345,40 +374,52 @@ const PreviewPage = () => {
   }
 
   const generateCoverLetter = async (analysis: any) => {
-    setRegeneratingCoverLetter(true)
-    if (!slug) {
-      showToast('No resume selected to generate coverletter', 'error', 3000)
-      setRegeneratingCoverLetter(false)
-    }
-    const jobDescriptionId = analysis._jobDescriptionId
-    const resumeId = slug
-    if (jobDescriptionId && slug) {
-      console.log('Generatig with', jobDescriptionId, resumeId)
+    setRegeneratingCoverLetter(true);
+    try {
+      if (!user || !resumeData) {
+        showToast('Please login to use this feature', 'warning', 3000);
+        setRegeneratingCoverLetter(false);
+        return;
+      }
+
+      const jobDescriptionId = analysis?._jobDescriptionId;
+      if (!jobDescriptionId) {
+        showToast('Select an analysis first', 'warning', 2000);
+        setRegeneratingCoverLetter(false);
+        return;
+      }
+
       const response = await fetch('/api/ai/generate-coverletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          resumeId: resumeId,
-          jobDescriptionId: jobDescriptionId,
-          analysis: analysis || undefined
+          resumeId: resumeData.id,
+          jobDescriptionId,
+          analysis: analysis || undefined,
         }),
-      })
+      });
 
       if (!response.ok) {
-        setRegeneratingCoverLetter(false)
-        showToast('Error generating coverletter', 'error', 3000)
-        setShowCoverLetter(false)
-        return
+        showToast('Error generating coverletter', 'error', 3000);
+        setShowCoverLetter(false);
+        setRegeneratingCoverLetter(false);
+        return;
       }
 
-      const data = await response.json()
-      console.log(data)
-      setCoverLetter(data.data)
-      setShowCoverLetter(true)
-      localStorage.setItem('coverLetter', JSON.stringify(data.data))
-      setRegeneratingCoverLetter(false)
+      const data = await response.json();
+      setCoverLetter(data.data);
+      setShowCoverLetter(true);
+      localStorage.setItem('coverLetter', JSON.stringify(data.data));
+      setRegeneratingCoverLetter(false);
+      // Avoid forced refresh; server updates usage
+      await getSubscription(false);
+    } catch (error) {
+      console.error('Cover letter generation error:', error);
+      showToast('Error generating coverletter', 'error', 3000);
+      setRegeneratingCoverLetter(false);
     }
-  }
+  };
 
   const deletAnalysisReport = async (id: string) => {
     if (!resumeData) {
@@ -398,21 +439,40 @@ const PreviewPage = () => {
     }
   }
 
+  const loadingResume = resumeResponse.isLoading || resumeResponse.isFetching;
+
   // Unified rendering logic to prevent 'No Resume Data' flash
-  if (resumeResponse.isLoading) {
+  if (loadingResume || (!resumeData && status === 'loading')) {
     return (
       <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl grid gap-8">
-          <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
+                className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
               />
             ))}
           </div>
           <div className="h-[70vh] w-full rounded-2xl border border-dashed border-gray-300 bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_12px,#eee_12px,#eee_24px)] animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (resumeResponse.isFetched && resumeResponse.isSuccess && !resumeData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
+          <p className="text-gray-600 mb-6">Please complete your resume before previewing or create a new one.</p>
+          <button
+            onClick={() => (window.location.href = '/builder')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go to Builder
+          </button>
         </div>
       </div>
     );
@@ -445,7 +505,7 @@ const PreviewPage = () => {
         className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
         <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
-          <div className='w-full flex items-start justify-between dark:bg-gray-800 shadow  p-4'>
+          <div className='w-full flex items-start justify-between  shadow  p-4'>
             <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
               e.stopPropagation();
               showMenu(false);
@@ -588,7 +648,7 @@ const PreviewPage = () => {
             </div>
           }
           <div
-            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm"
+            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200  shadow-sm"
             id="resumeViewport"
           >
             {/* Optional inner wrapper to constrain width / center */}
@@ -706,9 +766,9 @@ const PreviewPage = () => {
                     navigator.clipboard.writeText(text);
                     showToast('Copied to clipboard', 'success', 3000)
                     setShowCoverLetter(false)
-                  }} className="ml-2 px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200"
+                  }} className="ml-2 px-3 py-1  text-sm text-gray-700 rounded bg-gray-300 flex items-center justify-center gap-2 "
                 >
-                  Copy
+                  <Copy className='w-4 h-4' /> Copy
                 </button>
                 <button
                   onClick={() => {
@@ -724,14 +784,14 @@ const PreviewPage = () => {
                     a.remove();
                     URL.revokeObjectURL(url);
                   }}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  className="px-3 py-1 bg-blue-600  text-sm rounded hover:bg-blue-700"
                 >
                   Download
                 </button>
               </div>
 
               <div id="coverletter">
-                <header className="flex flex-col  items-start justify-between gap-4 p-6 ">
+                <header className="flex text-gray-700 flex-col  items-start justify-between gap-4 p-6 ">
                   <div>
                     <div className="text-sm ">{coverLetter.userDetails?.fullname ?? '[Your Name]'}</div>
                     <div className="text-xs ">{coverLetter.userDetails?.location}</div>
@@ -811,7 +871,7 @@ const PreviewPage = () => {
 
   if (resumeResponse.isError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-600 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Resume</h2>
           <p className="text-gray-600 mb-6">An unexpected error occurred. Redirecting…</p>
@@ -821,7 +881,7 @@ const PreviewPage = () => {
   }
   if (status === 'not-found') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-600 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
           <p className="text-gray-600 mb-6">Please complete your resume before previewing or create a new one.</p>
@@ -839,12 +899,12 @@ const PreviewPage = () => {
   return (
     <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-5xl grid gap-8">
-        <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
         <div className="grid grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
+              className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
             />
           ))}
         </div>
