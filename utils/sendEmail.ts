@@ -7,7 +7,7 @@ import { validate } from "deep-email-validator";
 
 
 export const createTransporter = (auth: { user: string, pass: string }) => nodemailer.createTransport({
-    host: "smtp.zoho.com.au",
+    host: "smtp.AUTH.com.au",
     port: 465,
     secure: true, // Use true for port 465, false for port 587
     auth: auth
@@ -56,11 +56,13 @@ The AireSumeCraft Team
     <p><strong>The AiResumeCraft Team</strong></p>
 </div>
         `;
-
+        if (!process.env.AUTH_EMAIL || !process.env.AUTH_PASSWORD) {
+            throw new Error("Email service not configured properly.");
+        }
         // Send the email
         const authTransporter = createTransporter({
-            user: process.env.ZOHO_EMAIL || "authentication@airesumecraft.xyz",
-            pass: process.env.ZOHO_PASSWORD || "Kr!shn@19981",
+            user: process.env.AUTH_EMAIL || '',
+            pass: process.env.AUTH_PASSWORD || '',
         })
         const info = await authTransporter.sendMail({
             from: `"AiResumeCraft Team" <${senderEmail}>`,
@@ -107,10 +109,13 @@ The AireSumeCraft Team
 </div>
         `;
 
+        if (!process.env.AUTH_EMAIL || !process.env.AUTH_PASSWORD) {
+            throw new Error("Email service not configured properly.");
+        }
         // Send the email
         const authTransporter = createTransporter({
-            user: process.env.ZOHO_EMAIL,
-            pass: process.env.ZOHO_PASSWORD,
+            user: process.env.AUTH_EMAIL,
+            pass: process.env.AUTH_PASSWORD,
         })
         const info = await authTransporter.sendMail({
             from: `"AiResumeCraft Support" <${senderEmail}>`,
@@ -135,10 +140,14 @@ The AireSumeCraft Team
         }
 
         const senderEmail = "noreply@airesumecraft.xyz";
+
+        if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+            throw new Error("Email service not configured properly.");
+        }
         // Send the email
         const emailTransporter = createTransporter({
-            user: "noreply@airesumecraft.xyz",
-            pass: "Password123!",
+            user: process.env.ADMIN_EMAIL,
+            pass: process.env.ADMIN_PASSWORD,
         })
         const info = await emailTransporter.sendMail({
             from: `"AiResumeCraft" <${senderEmail}>`,
