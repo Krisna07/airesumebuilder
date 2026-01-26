@@ -7,7 +7,7 @@ import { validate } from "deep-email-validator";
 
 
 export const createTransporter = (auth: { user: string, pass: string }) => nodemailer.createTransport({
-    host: "smtp.AUTH.com.au",
+    host: "smtp.zoho.com.au",
     port: 465,
     secure: true, // Use true for port 465, false for port 587
     auth: auth

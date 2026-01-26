@@ -30,8 +30,12 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       // Use the email specifically in the URL as per user request/api creation
-      const res = await fetch(`/api/auth/${encodeURIComponent(email)}/reset-password`, {
+        const res = await fetch(`/api/auth/resend`, {
         method: 'POST',
+            body: JSON.stringify({
+                email
+            }),
+
       });
       const data = await res.json();
 
@@ -65,13 +69,13 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
         // NOTE: The previous API analysis showed that the generic reset endpoint expects { email, code, newPassword }
-      const res = await fetch('/api/auth/reset-password', {
+        const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           code,
-          newPassword,
+            newPassword
         }),
       });
       const data = await res.json();
