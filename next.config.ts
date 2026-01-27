@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
     ],
     outputFileTracingIncludes: {
         "app/api/download/route": ["node_modules/@sparticuz/chromium/**"],
+        "app/api/generate/route": ["node_modules/@sparticuz/chromium/**"],
         "app/api/test-pdf/route": ["node_modules/@sparticuz/chromium/**"],
     },
 };

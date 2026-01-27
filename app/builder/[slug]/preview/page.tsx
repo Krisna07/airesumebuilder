@@ -229,7 +229,7 @@ const PreviewPage = () => {
     setDownloading(true);
     setRegenerating(true);
     try {
-      const response = await fetch('/api/download', {
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -579,7 +579,7 @@ const PreviewPage = () => {
             <button
               onClick={handleDownloadPDF}
               disabled={deleting || downlaoding || generating}
-              className={`max-[500px]:w-full px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+              className={`max-[500px]:w-full px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting || downlaoding ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
             >
               <Download size={16} /> Download
             </button>
