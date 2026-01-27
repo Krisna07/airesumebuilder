@@ -65,17 +65,32 @@ export async function POST(req: NextRequest) {
         }
         const useServerlessChromium = isServerless && !isWindows;
         const puppeteerPkg = useServerlessChromium ? await import('puppeteer-core') : await import('puppeteer');
-        const chromiumMod = useServerlessChromium ? await import('@sparticuz/chromium-min') : null;
-        const chromium = (chromiumMod as any)?.default ?? chromiumMod;
+        let chromium: any = null;
 
         let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
         if (!executablePath) {
             if (useServerlessChromium) {
-                if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
-                if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
-                const chromiumUrl = process.env.CHROMIUM_URL
-                    ?? 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar';
-                executablePath = await chromium?.executablePath?.(chromiumUrl);
+                try {
+                    const chromiumMinMod = await import('@sparticuz/chromium-min');
+                    chromium = (chromiumMinMod as any)?.default ?? chromiumMinMod;
+                    if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
+                    if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
+                    const chromiumUrl = process.env.CHROMIUM_URL
+                        ?? 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar';
+                    executablePath = await chromium?.executablePath?.(chromiumUrl);
+                    console.log('chromium-min executablePath resolved');
+                } catch (err) {
+                    console.warn('chromium-min resolution failed, falling back to chromium:', err);
+                }
+
+                if (!executablePath) {
+                    const chromiumFullMod = await import('@sparticuz/chromium');
+                    chromium = (chromiumFullMod as any)?.default ?? chromiumFullMod;
+                    if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
+                    if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
+                    executablePath = await chromium?.executablePath?.();
+                    console.log('chromium executablePath resolved');
+                }
             } else {
                 executablePath = typeof (puppeteerPkg as any).executablePath === 'function'
                     ? await (puppeteerPkg as any).executablePath()
