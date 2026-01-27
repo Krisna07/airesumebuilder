@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
         let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
         if (!executablePath) {
             if (useServerlessChromium) {
-                try {
+                const useMin = process.env.CHROMIUM_USE_MIN === '1';
+                if (useMin) {
                     const chromiumMinMod = await import('@sparticuz/chromium-min');
                     chromium = (chromiumMinMod as any)?.default ?? chromiumMinMod;
                     if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
@@ -79,11 +80,7 @@ export async function POST(req: NextRequest) {
                         ?? 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar';
                     executablePath = await chromium?.executablePath?.(chromiumUrl);
                     console.log('chromium-min executablePath resolved');
-                } catch (err) {
-                    console.warn('chromium-min resolution failed, falling back to chromium:', err);
-                }
-
-                if (!executablePath) {
+                } else {
                     const chromiumFullMod = await import('@sparticuz/chromium');
                     chromium = (chromiumFullMod as any)?.default ?? chromiumFullMod;
                     if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
@@ -100,6 +97,7 @@ export async function POST(req: NextRequest) {
 
         console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
         console.log('resolved executablePath:', executablePath ?? 'none');
+        console.log('serverless:', useServerlessChromium, 'chromium-min:', process.env.CHROMIUM_USE_MIN === '1');
 
         // Ensure executablePath exists (especially in local dev)
         if (!executablePath || (!useServerlessChromium && typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
