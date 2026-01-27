@@ -1,13 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import fs from 'fs';
-import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import chromium from '@sparticuz/chromium';
+import fs from 'fs'; // added import
 
-export const runtime = 'nodejs'
-
-const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_VERSION || !!process.env.VERCEL || !!process.env.AWS_REGION || !!process.env.LAMBDA_TASK_ROOT;
-const isWindows = process.platform === 'win32';
+const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
 async function sleep(ms: number) {
     return new Promise((r) => setTimeout(r, ms));
@@ -32,21 +29,6 @@ async function launchWithRetries(puppeteerPkg: any, launchOptions: Record<string
 
 export async function POST(req: NextRequest) {
     try {
-        let userId: string
-        try {
-            ({ userId } = await requireUserSession())
-        } catch (err) {
-            const mapped = mapSubscriptionError(err)
-            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
-        }
-
-        try {
-            await assertQuota(userId, 'download')
-        } catch (err) {
-            const mapped = mapSubscriptionError(err)
-            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
-        }
-
         const body = await req.json();
         let content = body.content;
 
@@ -63,79 +45,49 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
-        const useServerlessChromium = isServerless && !isWindows;
-        const puppeteerPkg = useServerlessChromium ? await import('puppeteer-core') : await import('puppeteer');
-        let chromium: any = null;
+        let executablePath;
+        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
 
-        const resolveServerlessChromium = async () => {
-            const chromiumUrl = process.env.CHROMIUM_URL
-                ?? 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar';
-            const chromiumMinMod = await import('@sparticuz/chromium-min');
-            chromium = (chromiumMinMod as any)?.default ?? chromiumMinMod;
-            if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
-            if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
-            const execPath = await chromium?.executablePath?.(chromiumUrl);
-            return { chromium, executablePath: execPath, label: 'chromium-min' };
-        };
-
-        let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-        let chromiumLabel = 'system';
-        if (!executablePath) {
-            if (useServerlessChromium) {
-                const resolved = await resolveServerlessChromium();
-                executablePath = resolved.executablePath;
-                chromiumLabel = resolved.label;
-            } else {
-                executablePath = typeof (puppeteerPkg as any).executablePath === 'function'
-                    ? await (puppeteerPkg as any).executablePath()
-                    : (puppeteerPkg as any).executablePath;
-            }
+        if (isProd) {
+            executablePath = await chromium.executablePath();
+        } else {
+            // handle both puppeteer versions where executablePath might be function or string
+            executablePath = typeof puppeteerPkg.executablePath === 'function'
+                ? await puppeteerPkg.executablePath()
+                : puppeteerPkg.executablePath;
         }
 
         console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
-        console.log('resolved executablePath:', executablePath ?? 'none');
-        console.log('serverless:', useServerlessChromium, 'chromium-label:', chromiumLabel);
+        console.log('resolved executablePath:', executablePath);
 
-        if (useServerlessChromium && executablePath && typeof executablePath === 'string') {
-            try {
-                await fs.promises.chmod(executablePath, 0o755);
-                console.log('chmod applied to chromium binary');
-            } catch (chmodErr) {
-                console.warn('chmod failed for chromium binary:', chmodErr);
-            }
-        }
+        // Choose args per environment - don't reuse sparticuz args in local dev
+        const args = isProd
+            ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            : [
+                // safer flags for local Windows dev
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                // DO NOT use '--single-process' on Windows/local — it breaks V8 proxy resolver and crashes Chromium.
+                '--no-sandbox',
+                '--disable-extensions',
+                '--disable-background-networking'
+            ];
 
-        // Ensure executablePath exists (especially in local dev)
-        if (!executablePath || (!useServerlessChromium && typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
+        // Ensure executablePath actually exists locally before launching
+        if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
             console.error('Chromium executable not found at resolved path:', executablePath);
-            throw new Error('Chromium binary not found. Install puppeteer locally or set PUPPETEER_EXECUTABLE_PATH.');
+            throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
         }
 
-        const buildLaunchOptions = (execPath: string | undefined) => useServerlessChromium
-            ? {
-                args: [...(chromium?.args ?? []), '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-                defaultViewport: chromium?.defaultViewport ?? null,
-                executablePath: execPath,
-                headless: chromium?.headless ?? true,
-                dumpio: true,
-                timeout: 120000,
-            }
-            : {
-                args: [
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--no-sandbox',
-                    '--disable-extensions',
-                    '--disable-background-networking',
-                ],
-                executablePath: execPath,
-                headless: true,
-                defaultViewport: null,
-                dumpio: true,
-                timeout: 120000,
-            };
-
-        let launchOptions = buildLaunchOptions(executablePath as string | undefined);
+        const launchOptions = {
+            args,
+            executablePath,
+            headless: true,
+            defaultViewport: null,
+            // dump io so Chromium stderr/logs appear in server logs (helps debug ECONNRESET)
+            dumpio: true,
+            timeout: 120000,
+        };
         // Try to log puppeteer version (best-effort)
         try {
             const pkg = await import('puppeteer/package.json');
@@ -152,6 +104,9 @@ export async function POST(req: NextRequest) {
             if (proc) console.log('chromium pid:', proc.pid);
         } catch { }
 
+        const page = await browser.newPage();
+        await page.setContent(content, { waitUntil: 'load' });
+
         // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
         const pageGap = body.pageGap || {
             top: '4mm',
@@ -159,25 +114,12 @@ export async function POST(req: NextRequest) {
             left: '10mm',
             right: '10mm',
         };
-        const pageMargin = {
-            top: pageGap.top ?? '4mm',
-            bottom: pageGap.bottom ?? '4mm',
-            left: pageGap.left ?? '10mm',
-            right: pageGap.right ?? '10mm',
-        };
-
-        const page = await browser.newPage();
-        await page.setContent(content, { waitUntil: 'load' });
-        await page.emulateMediaType('print');
-        await page.addStyleTag({
-            content: `@page { size: A4; margin: ${pageMargin.top} ${pageMargin.right} ${pageMargin.bottom} ${pageMargin.left}; }`,
-        });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
-            margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
-            preferCSSPageSize: true,
+            margin: pageGap,
+            preferCSSPageSize: false,
             displayHeaderFooter: false,
         });
 
@@ -188,8 +130,7 @@ export async function POST(req: NextRequest) {
             ? `${body.resumeData.profile.fullname.replace(/\s+/g, '_')}_Resume.pdf`
             : 'Resume.pdf';
 
-        await consumeUsage(userId, 'download')
-
+        // Return PDF as response
         return new Response(Buffer.from(pdfBuffer), {
             headers: {
                 'Content-Type': 'application/pdf',
@@ -202,10 +143,15 @@ export async function POST(req: NextRequest) {
         console.log(error)
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
-        return NextResponse.json({
+        return new Response(JSON.stringify({
             error: 'PDF generation failed',
             details: errorMessage,
             timestamp: new Date().toISOString()
-        }, { status: 500 })
+        }), {
+            status: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
     }
 }
