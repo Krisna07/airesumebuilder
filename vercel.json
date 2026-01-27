@@ -1,20 +1,20 @@
 {
-    "functions": {
-      "app/api/download/route.ts": {
+"functions": {
+    "app/api/download/route.ts": {
         "maxDuration": 30
-      },
-    "app/api/generate/route.ts": {
-        "maxDuration": 30,
-        "runtime": "nodejs20.x"
     },
-      "app/api/test-pdf/route.ts": {
+    "app/api/generate/route.ts": {
+    "maxDuration": 30,
+    "runtime": "nodejs20.x"
+    },
+    "app/api/test-pdf/route.ts": {
         "maxDuration": 30
-      },
-      "app/api/ai/extract-resume/route.ts": {
+    },
+    "app/api/ai/extract-resume/route.ts": {
         "maxDuration": 30
-      },
-      "app/api/ai/generate-resume/route.ts": {
+    },
+    "app/api/ai/generate-resume/route.ts": {
         "maxDuration": 30
-      }
     }
-  }
+}
+}
