@@ -45,7 +45,12 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
-        const browserlessWs = process.env.BROWSERLESS_WS;
+        const rawBrowserlessWs = process.env.BROWSERLESS_WS;
+        const browserlessWs = rawBrowserlessWs
+            ? (rawBrowserlessWs.startsWith('ws://') || rawBrowserlessWs.startsWith('wss://')
+                ? rawBrowserlessWs
+                : `wss://chrome.browserless.io?token=${rawBrowserlessWs}`)
+            : undefined;
         let executablePath;
         const puppeteerPkg = isProd || browserlessWs ? await import('puppeteer-core') : await import('puppeteer');
 
