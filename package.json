@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "subscription:reset": "ts-node scripts/reset-subscriptions.ts",
@@ -21,6 +21,7 @@
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@sparticuz/chromium": "^131.0.1",
+    "@sparticuz/chromium-min": "^131.0.1",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.6.4",
     "@tanstack/query-core": "^5.90.16",

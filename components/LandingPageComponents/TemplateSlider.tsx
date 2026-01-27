@@ -93,14 +93,14 @@ const TemplateSlider = () => {
         >
           {/* Template Preview */}
           <div
-            className={` rounded-xl p-2 bg-white shadow  relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl`}
+            className={`rounded-xl p-2 bg-white shadow relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl h-[320px] sm:h-[360px] md:h-[420px]`}
           >
 
 
             <ResumePreview
               resumeData={mockResume}
               template={template.name}
-              className='p-0! aspect-3/4! h-full pointer-events-none rounded'
+              className='p-0! w-full h-full aspect-3/4! pointer-events-none rounded'
             />
 
             <div

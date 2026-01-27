@@ -6,7 +6,8 @@ import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } f
 
 export const runtime = 'nodejs'
 
-const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
+const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_VERSION || !!process.env.VERCEL || !!process.env.AWS_REGION || !!process.env.LAMBDA_TASK_ROOT;
+const isWindows = process.platform === 'win32';
 
 async function sleep(ms: number) {
     return new Promise((r) => setTimeout(r, ms));
@@ -62,14 +63,19 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
-        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
-        const chromiumMod = isProd ? await import('@sparticuz/chromium') : null;
+        const useServerlessChromium = isServerless && !isWindows;
+        const puppeteerPkg = useServerlessChromium ? await import('puppeteer-core') : await import('puppeteer');
+        const chromiumMod = useServerlessChromium ? await import('@sparticuz/chromium-min') : null;
         const chromium = (chromiumMod as any)?.default ?? chromiumMod;
 
         let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
         if (!executablePath) {
-            if (isProd) {
-                executablePath = await chromium?.executablePath?.();
+            if (useServerlessChromium) {
+                if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
+                if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
+                const chromiumUrl = process.env.CHROMIUM_URL
+                    ?? 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar';
+                executablePath = await chromium?.executablePath?.(chromiumUrl);
             } else {
                 executablePath = typeof (puppeteerPkg as any).executablePath === 'function'
                     ? await (puppeteerPkg as any).executablePath()
@@ -81,14 +87,14 @@ export async function POST(req: NextRequest) {
         console.log('resolved executablePath:', executablePath ?? 'none');
 
         // Ensure executablePath exists (especially in local dev)
-        if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
+        if (!executablePath || (!useServerlessChromium && typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
             console.error('Chromium executable not found at resolved path:', executablePath);
             throw new Error('Chromium binary not found. Install puppeteer locally or set PUPPETEER_EXECUTABLE_PATH.');
         }
 
-        const launchOptions = isProd
+        const launchOptions = useServerlessChromium
             ? {
-                args: chromium?.args ?? [],
+                args: [...(chromium?.args ?? []), '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
                 defaultViewport: chromium?.defaultViewport ?? null,
                 executablePath,
                 headless: chromium?.headless ?? true,
