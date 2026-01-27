@@ -9,27 +9,6 @@ export const runtime = "nodejs";
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
-async function sleep(ms: number) {
-    return new Promise((r) => setTimeout(r, ms));
-}
-
-async function launchWithRetries(puppeteerPkg: any, launchOptions: Record<string, any>, retries = 2) {
-    let attempt = 0;
-    while (true) {
-        try {
-            const browser = await puppeteerPkg.launch(launchOptions);
-            console.log(`puppeteer.launch succeeded (attempt ${attempt + 1})`);
-            return browser;
-        } catch (err: any) {
-            attempt++;
-            console.warn(`puppeteer.launch failed (attempt ${attempt}):`, err?.message ?? err);
-            if (attempt > retries) throw err;
-            const backoff = Math.min(30000, 300 * 2 ** attempt);
-            await sleep(backoff + Math.floor(Math.random() * 300));
-        }
-    }
-}
-
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
@@ -99,37 +78,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
-        console.log('resolved executablePath:', executablePath);
-
-        // Choose args per environment - don't reuse sparticuz args in local dev
-        let args;
-        if (isProd && chromium) {
-            args = [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
-        } else {
-            args = [
-                // safer flags for local Windows dev
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                // DO NOT use '--single-process' on Windows/local — it breaks V8 proxy resolver and crashes Chromium.
-                '--no-sandbox',
-                '--disable-extensions',
-                '--disable-background-networking'
-            ];
-        }
-
-        // Ensure executablePath actually exists locally before launching (only check in dev)
-        if (!isProd) {
-            try {
-                if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
-                    console.error('Chromium executable not found at resolved path:', executablePath);
-                    throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
-                }
-            } catch (err) {
-                console.error('Error checking Chromium executable:', err);
-                throw err;
-            }
-        }
+        // ...existing code...
 
         // log child process PID if available (helps correlate OS-level crashes)
         try {
