@@ -49,19 +49,54 @@ export async function POST(req: NextRequest) {
             throw new Error('No content provided for PDF generation');
         }
 
-        let executablePath;
-        // Dynamic import for puppeteer/puppeteer-core
-        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
-        // Dynamic import for chromium only in prod
+        let browser;
+        let puppeteerPkg;
         let chromium;
+        const viewport = {
+            deviceScaleFactor: 1,
+            hasTouch: false,
+            height: 1080,
+            isLandscape: true,
+            isMobile: false,
+            width: 1920,
+        };
         if (isProd) {
+            puppeteerPkg = await import('puppeteer-core');
             chromium = (await import('@sparticuz/chromium')).default;
-            executablePath = await chromium.executablePath();
+            browser = await puppeteerPkg.launch({
+                args: puppeteerPkg.defaultArgs({ args: chromium.args, headless: "shell" }),
+                defaultViewport: viewport,
+                executablePath: await chromium.executablePath(),
+                headless: "shell",
+            });
         } else {
+            puppeteerPkg = await import('puppeteer');
             // handle both puppeteer versions where executablePath might be function or string
-            executablePath = typeof puppeteerPkg.executablePath === 'function'
+            const executablePath = typeof puppeteerPkg.executablePath === 'function'
                 ? await puppeteerPkg.executablePath()
                 : puppeteerPkg.executablePath;
+            // Ensure executablePath actually exists locally before launching (only check in dev)
+            try {
+                if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
+                    console.error('Chromium executable not found at resolved path:', executablePath);
+                    throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
+                }
+            } catch (err) {
+                console.error('Error checking Chromium executable:', err);
+                throw err;
+            }
+            browser = await puppeteerPkg.launch({
+                args: [
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    '--disable-extensions',
+                    '--disable-background-networking',
+                ],
+                executablePath,
+                headless: true,
+                defaultViewport: viewport,
+            });
         }
 
         console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
@@ -95,25 +130,6 @@ export async function POST(req: NextRequest) {
                 throw err;
             }
         }
-
-        const launchOptions = {
-            args,
-            executablePath,
-            headless: true,
-            defaultViewport: null,
-            // dump io so Chromium stderr/logs appear in server logs (helps debug ECONNRESET)
-            dumpio: true,
-            timeout: 120000,
-        };
-        // Try to log puppeteer version (best-effort)
-        try {
-            const pkg = await import('puppeteer/package.json');
-            console.log('local puppeteer version:', pkg?.version ?? 'unknown');
-        } catch {
-            console.log('puppeteer package.json not found (ok if using puppeteer-core in prod)');
-        }
-
-        const browser = await launchWithRetries(puppeteerPkg, launchOptions, 2);
 
         // log child process PID if available (helps correlate OS-level crashes)
         try {
