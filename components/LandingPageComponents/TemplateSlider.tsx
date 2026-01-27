@@ -93,7 +93,7 @@ const TemplateSlider = () => {
         >
           {/* Template Preview */}
           <div
-            className={`rounded-xl p-2 bg-white shadow relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl h-[320px] sm:h-[360px] md:h-[420px]`}
+            className={`rounded-xl p-2 bg-white shadow relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl h-80 sm:h-[360px] md:h-[420px] sm:w-[300px] w-60 md:w-[360]`}
           >
 
 
