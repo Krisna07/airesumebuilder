@@ -1,0 +1,13 @@
+name: Obsolete Workflow (Disabled)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    if: false
+    steps:
+      - name: Disabled
+        run: echo "This workflow is disabled. Use .github/workflows/vercel-preview.yml instead."
+
