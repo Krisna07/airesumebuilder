@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import chromium from '@sparticuz/chromium';
-import fs from 'fs'; // added import
+// Dynamic imports for puppeteer and chromium
+import fs from 'fs';
+
+// Force Node.js runtime for this route (not edge)
+export const runtime = "nodejs";
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
@@ -45,10 +48,14 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
-        let executablePath;
-        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
 
+        let executablePath;
+        // Dynamic import for puppeteer/puppeteer-core
+        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
+        // Dynamic import for chromium only in prod
+        let chromium;
         if (isProd) {
+            chromium = (await import('@sparticuz/chromium')).default;
             executablePath = await chromium.executablePath();
         } else {
             // handle both puppeteer versions where executablePath might be function or string
@@ -61,9 +68,11 @@ export async function POST(req: NextRequest) {
         console.log('resolved executablePath:', executablePath);
 
         // Choose args per environment - don't reuse sparticuz args in local dev
-        const args = isProd
-            ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-            : [
+        let args;
+        if (isProd && chromium) {
+            args = [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
+        } else {
+            args = [
                 // safer flags for local Windows dev
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
@@ -72,11 +81,19 @@ export async function POST(req: NextRequest) {
                 '--disable-extensions',
                 '--disable-background-networking'
             ];
+        }
 
-        // Ensure executablePath actually exists locally before launching
-        if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
-            console.error('Chromium executable not found at resolved path:', executablePath);
-            throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
+        // Ensure executablePath actually exists locally before launching (only check in dev)
+        if (!isProd) {
+            try {
+                if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
+                    console.error('Chromium executable not found at resolved path:', executablePath);
+                    throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
+                }
+            } catch (err) {
+                console.error('Error checking Chromium executable:', err);
+                throw err;
+            }
         }
 
         const launchOptions = {
