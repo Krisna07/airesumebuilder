@@ -4,8 +4,7 @@
         "maxDuration": 30
     },
         "app/api/generate/route.ts": {
-            "maxDuration": 30,
-            "runtime": "nodejs"
+            "maxDuration": 30
         },
     "app/api/test-pdf/route.ts": {
         "maxDuration": 30
