@@ -3,10 +3,10 @@
     "app/api/download/route.ts": {
         "maxDuration": 30
     },
-    "app/api/generate/route.ts": {
-    "maxDuration": 30,
-    "runtime": "nodejs20.x"
-    },
+        "app/api/generate/route.ts": {
+            "maxDuration": 30,
+            "runtime": "nodejs"
+        },
     "app/api/test-pdf/route.ts": {
         "maxDuration": 30
     },
