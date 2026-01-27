@@ -7,8 +7,6 @@ import SubscriptionStatus from '@/components/SubscriptionStatus'
 import Button from '@/components/Ui/Button'
 import Input from '@/components/Input'
 
-// import SubscriptionManager from '@/components/SubscriptionManager'
-
 const AccountPage = () => {
   const { user, refreshUser, logOut } = useAuth()
   const toast = useToast()
@@ -277,7 +275,6 @@ const AccountPage = () => {
         </div>
       </section>
 
-      {/* <SubscriptionManager /> */}
 
       <section className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-medium text-red-600 dark:text-red-400">Danger Zone</h2>

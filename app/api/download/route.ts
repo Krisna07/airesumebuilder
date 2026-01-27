@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import chromium from '@sparticuz/chromium';
-import fs from 'fs'; // added import
+import fs from 'fs';
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+
+export const runtime = 'nodejs'
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
@@ -61,49 +62,53 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
-        let executablePath;
         const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
+        const chromiumMod = isProd ? await import('@sparticuz/chromium') : null;
+        const chromium = (chromiumMod as any)?.default ?? chromiumMod;
 
-        if (isProd) {
-            executablePath = await chromium.executablePath();
-        } else {
-            // handle both puppeteer versions where executablePath might be function or string
-            executablePath = typeof puppeteerPkg.executablePath === 'function'
-                ? await puppeteerPkg.executablePath()
-                : puppeteerPkg.executablePath;
+        let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (!executablePath) {
+            if (isProd) {
+                executablePath = await chromium?.executablePath?.();
+            } else {
+                executablePath = typeof (puppeteerPkg as any).executablePath === 'function'
+                    ? await (puppeteerPkg as any).executablePath()
+                    : (puppeteerPkg as any).executablePath;
+            }
         }
 
         console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
-        console.log('resolved executablePath:', executablePath);
+        console.log('resolved executablePath:', executablePath ?? 'none');
 
-        // Choose args per environment - don't reuse sparticuz args in local dev
-        const args = isProd
-            ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-            : [
-                // safer flags for local Windows dev
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                // DO NOT use '--single-process' on Windows/local — it breaks V8 proxy resolver and crashes Chromium.
-                '--no-sandbox',
-                '--disable-extensions',
-                '--disable-background-networking'
-            ];
-
-        // Ensure executablePath actually exists locally before launching
+        // Ensure executablePath exists (especially in local dev)
         if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
             console.error('Chromium executable not found at resolved path:', executablePath);
-            throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
+            throw new Error('Chromium binary not found. Install puppeteer locally or set PUPPETEER_EXECUTABLE_PATH.');
         }
 
-        const launchOptions = {
-            args,
-            executablePath,
-            headless: true,
-            defaultViewport: null,
-            // dump io so Chromium stderr/logs appear in server logs (helps debug ECONNRESET)
-            dumpio: true,
-            timeout: 120000,
-        };
+        const launchOptions = isProd
+            ? {
+                args: chromium?.args ?? [],
+                defaultViewport: chromium?.defaultViewport ?? null,
+                executablePath,
+                headless: chromium?.headless ?? true,
+                dumpio: true,
+                timeout: 120000,
+            }
+            : {
+                args: [
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    '--disable-extensions',
+                    '--disable-background-networking',
+                ],
+                executablePath,
+                headless: true,
+                defaultViewport: null,
+                dumpio: true,
+                timeout: 120000,
+            };
         // Try to log puppeteer version (best-effort)
         try {
             const pkg = await import('puppeteer/package.json');
