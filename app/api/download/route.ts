@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
             chromium = (chromiumFullMod as any)?.default ?? chromiumFullMod;
             if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
             if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
-            const execPath = await chromium?.executablePath?.();
+            const execPath = await chromium?.executablePath?.(chromiumUrl);
             return { chromium, executablePath: execPath, label: 'chromium' };
         };
 
@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
         let chromiumLabel = 'system';
         if (!executablePath) {
             if (useServerlessChromium) {
-                const preferMin = process.env.CHROMIUM_USE_MIN === '1';
-                const resolved = await resolveServerlessChromium(preferMin);
+                const useFull = process.env.CHROMIUM_USE_FULL === '1';
+                const resolved = await resolveServerlessChromium(!useFull);
                 executablePath = resolved.executablePath;
                 chromiumLabel = resolved.label;
             } else {
