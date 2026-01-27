@@ -83,7 +83,7 @@ const Navbar = () => {
 
   return (
     <nav className="w-full grid place-items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 z-50 transition-colors duration-200">
-      <div className="min-[800px]:w-[800px] w-full p-3 px-4 flex items-center justify-between">
+      <div className="w-full max-w-[800px] mx-auto p-3 px-4 flex items-center justify-between">
         {/* Logo */}
         <Link
           href="/"

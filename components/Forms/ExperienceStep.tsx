@@ -142,7 +142,7 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
               >
                 <label className="w-full font-semibold px-1">Responsibilities</label>
                 <div className="grid gap-1">
-                  {experience.responsibilities?.length &&
+                  {experience.responsibilities && experience.responsibilities.length > 0 &&
                     experience.responsibilities.map((resp, idx) => (
                       <li key={idx} className="flex items-center justify-between gap-2">
                         <span className="flex items-start gap-1">

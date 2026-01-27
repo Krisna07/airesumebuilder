@@ -91,7 +91,7 @@ const Page = () => {
   return (
     <section className="w-full flex items-center justify-center dark:text-white">
       <div
-        className={`p-4 w-full min-[850px]:w-[850px] ${hasResumes ? "place-self-start" : "md:place-self-end"} transition-opacity duration-300 anim-fade-in-soft`}
+        className={`p-4 w-full max-w-[850px] ${hasResumes ? "place-self-start" : "md:place-self-end"} transition-opacity duration-300 anim-fade-in-soft`}
       >
 
         {hasResumes ? (
