@@ -67,32 +67,22 @@ export async function POST(req: NextRequest) {
         const puppeteerPkg = useServerlessChromium ? await import('puppeteer-core') : await import('puppeteer');
         let chromium: any = null;
 
-        const resolveServerlessChromium = async (useMin: boolean) => {
+        const resolveServerlessChromium = async () => {
             const chromiumUrl = process.env.CHROMIUM_URL
                 ?? 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar';
-            if (useMin) {
-                const chromiumMinMod = await import('@sparticuz/chromium-min');
-                chromium = (chromiumMinMod as any)?.default ?? chromiumMinMod;
-                if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
-                if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
-                const execPath = await chromium?.executablePath?.(chromiumUrl);
-                return { chromium, executablePath: execPath, label: 'chromium-min' };
-            }
-
-            const chromiumFullMod = await import('@sparticuz/chromium');
-            chromium = (chromiumFullMod as any)?.default ?? chromiumFullMod;
+            const chromiumMinMod = await import('@sparticuz/chromium-min');
+            chromium = (chromiumMinMod as any)?.default ?? chromiumMinMod;
             if (chromium?.setHeadlessMode) chromium.setHeadlessMode(true);
             if (chromium?.setGraphicsMode) chromium.setGraphicsMode(false);
             const execPath = await chromium?.executablePath?.(chromiumUrl);
-            return { chromium, executablePath: execPath, label: 'chromium' };
+            return { chromium, executablePath: execPath, label: 'chromium-min' };
         };
 
         let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
         let chromiumLabel = 'system';
         if (!executablePath) {
             if (useServerlessChromium) {
-                const useFull = process.env.CHROMIUM_USE_FULL === '1';
-                const resolved = await resolveServerlessChromium(!useFull);
+                const resolved = await resolveServerlessChromium();
                 executablePath = resolved.executablePath;
                 chromiumLabel = resolved.label;
             } else {
@@ -154,29 +144,7 @@ export async function POST(req: NextRequest) {
             console.log('puppeteer package.json not found (ok if using puppeteer-core in prod)');
         }
 
-        let browser;
-        try {
-            browser = await launchWithRetries(puppeteerPkg, launchOptions, 2);
-        } catch (primaryErr) {
-            if (useServerlessChromium) {
-                const preferMin = process.env.CHROMIUM_USE_MIN === '1';
-                console.warn('Primary launch failed, retrying with alternate chromium:', primaryErr);
-                const resolved = await resolveServerlessChromium(!preferMin);
-                chromiumLabel = resolved.label;
-                executablePath = resolved.executablePath;
-                launchOptions = buildLaunchOptions(executablePath as string | undefined);
-
-                if (executablePath && typeof executablePath === 'string') {
-                    try {
-                        await fs.promises.chmod(executablePath, 0o755);
-                    } catch { }
-                }
-
-                browser = await launchWithRetries(puppeteerPkg, launchOptions, 1);
-            } else {
-                throw primaryErr;
-            }
-        }
+        const browser = await launchWithRetries(puppeteerPkg, launchOptions, 2);
 
         // log child process PID if available (helps correlate OS-level crashes)
         try {
