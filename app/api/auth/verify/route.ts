@@ -22,11 +22,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Code expired' }, { status: 400 })
     }
 
-    await prisma.user.update({ where: { email }, data: { isVerified: true } })
+
     const emailContent = buildWelcomeEmail(user.name || email.split('@')[0]);
-    await EmailService.sendEmail(email, emailContent.subject, emailContent.text, emailContent.html);
+    await prisma.user.update({ where: { email }, data: { isVerified: true } })
+    const emailResponse = await EmailService.sendEmail(email, emailContent.subject, emailContent.text, emailContent.html);
+    if (emailResponse && 'error' in emailResponse) {
+      console.error('Failed to send welcome email:', emailResponse.error);
+    }
     // delete verification record
     await prisma.verification.delete({ where: { id: verification.id } })
+
+
 
     return NextResponse.json({ ok: true })
   } catch (err) {

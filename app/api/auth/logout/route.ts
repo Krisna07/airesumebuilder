@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { signOut } from 'next-auth/react'
 
 /**
  * POST /api/auth/logout
  * Signs out the user by clearing their session
  * Used after account deletion to ensure clean logout
  */
-export async function POST(req: Request) {
+export async function POST() {
   try {
     // The session is cleared by NextAuth when signOut is called on the client
     // This endpoint is mainly for explicit server-side logout tracking if needed

@@ -73,6 +73,12 @@ The AireSumeCraft Team
         });
 
         console.log("Message sent:", info.messageId);
+        if (info.rejected.length > 0) {
+            console.error("Failed to send email to:", info.rejected);
+            return {
+                error: "Failed to send email",
+            }
+        }
         return info;
     }
 
@@ -126,19 +132,18 @@ The AireSumeCraft Team
         });
 
         console.log("Message sent:", info.messageId);
+        if (info.rejected.length > 0) {
+            console.error("Failed to send email to:", info.rejected);
+            return {
+                error: "Failed to send email",
+            }
+        }
         return info;
 
     }
 
     static async sendEmail(email: string, subject: string, plainText: string, htmlContent: string) {
         const receiverEmail = email;
-        // Validate the email
-        const isEmailValid = await validate(receiverEmail);
-        if (!isEmailValid.valid) {
-            console.error("Invalid email address:", isEmailValid.reason);
-            return;
-        }
-
         const senderEmail = "noreply@airesumecraft.xyz";
 
         if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
@@ -158,6 +163,12 @@ The AireSumeCraft Team
         });
 
         console.log("Message sent:", info.messageId);
+        if (info.rejected.length > 0) {
+            console.error("Failed to send email to:", info.rejected);
+            return {
+                error: "Failed to send email",
+            }
+        }
         return info;
     }
 

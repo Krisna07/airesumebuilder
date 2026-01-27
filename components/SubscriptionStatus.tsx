@@ -53,13 +53,13 @@ export default function SubscriptionStatus({ className = '' }: { className?: str
   if (!sub) return null
 
   return (
-    <div className={`p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm ${className}`}>
+    <div className={`p-4 border select-none border-slate-200 dark:border-slate-700  bg-white dark:bg-slate-900 shadow-sm ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-white">
           {PLAN_ICON[sub.plan]}
-          <span>{sub.plan}</span>
+          <span>Usuage</span>
         </div>
-        <span className="text-xs text-slate-500 dark:text-slate-400">Daily quota</span>
+
       </div>
 
       <div className="space-y-2">

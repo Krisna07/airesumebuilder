@@ -39,7 +39,10 @@ const PreviewPage = () => {
     const cached = ResumeCache.get(slug);
     return cached?.data.template ?? 'modern';
   });
-  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>('loading');; // delay gate for not-found
+  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>(() => {
+    const cached = ResumeCache.get(slug);
+    return cached?.data ? 'ready' : 'loading';
+  });
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);

@@ -52,7 +52,7 @@ const BuilderPage: React.FC = () => {
   }
 
   // Loading state
-  if (!isGuestResume && isLoading) {
+  if (!isGuestResume && isLoading && !resumeData) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center">
         <div className="text-center">

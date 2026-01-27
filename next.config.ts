@@ -1,4 +1,6 @@
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
     images: {
         remotePatterns: [
             {
@@ -14,19 +16,12 @@ const nextConfig = {
         contentDispositionType: 'attachment',
         contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Turbopack: (config: { externals: any[]; }, { isServer }: any) => {
-        if (isServer) {
-            config.externals = [
-                ...config.externals,
-                // Mark these packages as external to prevent Webpack from bundling them
-                'pdf-parse',
-                'pdfjs-dist',
-            ];
-        }
-
-        return config;
-    },
+    serverExternalPackages: [
+        '@sparticuz/chromium',
+        'puppeteer-core',
+        'pdf-parse',
+        'pdfjs-dist',
+    ],
 };
 
-module.exports = nextConfig;
+export default nextConfig;

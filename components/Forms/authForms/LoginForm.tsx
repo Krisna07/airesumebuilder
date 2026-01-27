@@ -22,9 +22,8 @@ const LoginForm: React.FC = () => {
         const response = await signIn('credentials', { email: form.email, password: form.password, redirect: false });
 
         if (!response?.ok) {
-            console.log(response)
             setLoader(false)
-            return toast.showToast(`Error logging in. Please try again later.`, 'error', 3000)
+            return toast.showToast(response?.error ? response.error : "Error logging in please try again !!", 'error', 3000)
         }
         toast.showToast("Login successfull", 'success', 3000)
         setLoader(false)

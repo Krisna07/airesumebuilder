@@ -5,13 +5,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ResumeCache } from '@/lib/resumeCache';
 
 export const useGetResume = (resumeId: string) => {
-  const initial = typeof window !== 'undefined' ? ResumeCache.get(resumeId)?.data : undefined;
+  // Use cache in components directly for optimistic updates to avoid hydration mismatch
   return useQuery<ResumeData | undefined>({
     queryKey: ['resume', resumeId],
     enabled: !!resumeId,
     staleTime: 60_000,
     gcTime: 300_000,
-    initialData: initial,
     retry: 1,
     queryFn: async () => {
       const response = await ResumeService.getSingle(resumeId);
