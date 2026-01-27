@@ -45,12 +45,13 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
+        const browserlessWs = process.env.BROWSERLESS_WS;
         let executablePath;
-        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
+        const puppeteerPkg = isProd || browserlessWs ? await import('puppeteer-core') : await import('puppeteer');
 
-        if (isProd) {
+        if (isProd && !browserlessWs) {
             executablePath = await chromium.executablePath();
-        } else {
+        } else if (!browserlessWs) {
             // handle both puppeteer versions where executablePath might be function or string
             executablePath = typeof puppeteerPkg.executablePath === 'function'
                 ? await puppeteerPkg.executablePath()
@@ -58,7 +59,8 @@ export async function POST(req: NextRequest) {
         }
 
         console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
-        console.log('resolved executablePath:', executablePath);
+        console.log('resolved executablePath:', executablePath ?? 'none');
+        console.log('browserless:', !!browserlessWs);
 
         // Choose args per environment - don't reuse sparticuz args in local dev
         const args = isProd
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
             ];
 
         // Ensure executablePath actually exists locally before launching
-        if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
+        if (!browserlessWs && (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath)))) {
             console.error('Chromium executable not found at resolved path:', executablePath);
             throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
         }
@@ -96,7 +98,9 @@ export async function POST(req: NextRequest) {
             console.log('puppeteer package.json not found (ok if using puppeteer-core in prod)');
         }
 
-        const browser = await launchWithRetries(puppeteerPkg, launchOptions, 2);
+        const browser = browserlessWs
+            ? await (puppeteerPkg as any).connect({ browserWSEndpoint: browserlessWs })
+            : await launchWithRetries(puppeteerPkg, launchOptions, 2);
 
         // log child process PID if available (helps correlate OS-level crashes)
         try {

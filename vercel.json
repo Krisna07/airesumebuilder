@@ -1,0 +1,16 @@
+{
+    "functions": {
+      "app/api/download/route.ts": {
+        "maxDuration": 30
+      },
+      "app/api/test-pdf/route.ts": {
+        "maxDuration": 30
+      },
+      "app/api/ai/extract-resume/route.ts": {
+        "maxDuration": 30
+      },
+      "app/api/ai/generate-resume/route.ts": {
+        "maxDuration": 30
+      }
+    }
+  }
