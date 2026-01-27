@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       await EmailService.sendVerificationCode(user.email!, user.name || '', code)
     } catch (e) {
       console.error('Failed to send verification email', e)
+      return NextResponse.json({ error: 'Failed to send verification email' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true, expiresAt })

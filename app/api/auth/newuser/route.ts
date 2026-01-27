@@ -25,6 +25,7 @@ export async function PUT(req: NextRequest) {
             image: image || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
             provider: provider || 'credentials',
             providerId: providerId || null,
+            isVerified: true,
           },
         });
       } else {
@@ -35,6 +36,7 @@ export async function PUT(req: NextRequest) {
             image: image || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
             provider: provider || 'credentials',
             providerId: providerId || null,
+            isVerified: true,
           },
         });
       }
@@ -69,14 +71,17 @@ export async function PUT(req: NextRequest) {
         // if (!validateEmail.valid) {
         //   return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
         // }
-
         // Generate verification details and store in DB
         const generateVerificationCode = () => Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
         const code = generateVerificationCode()
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
 
         // Send welcome email with the code
-        await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
+        const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
+        if (emailResponse && 'error' in emailResponse) {
+          console.error('Failed to send verification email:', emailResponse.error);
+          return NextResponse.json({ error: 'Failed to send verification email.' }, { status: 500 });
+        }
         user = await prisma.user.create({
           data: {
             email,

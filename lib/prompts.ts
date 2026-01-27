@@ -1,61 +1,71 @@
 import { AnalysisResult, JobDescription, ResumeData } from "@/types/types"
 
 const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string, analysis?: AnalysisResult) => {
-  return `SYSTEM: You are an expert ATS-optimization specialist and Senior Resume Writer.
-TASK: Transform the SOURCE_RESUME into a tailored, professional JSON format.
-STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+  return `
+      SYSTEM: You are an expert ATS-optimization specialist. 
+      TASK: Optimize the SOURCE_RESUME for the JOB_DESCRIPTION (if provided) while maintaining strict factual accuracy.
+      GOAL: A concise, impactful resume that passes ATS scans without bloating, hallucinating, or inventing details.
+      STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
 
----
-SCHEMA:
-{
-  "profile": { "fullname": "string", "email": "string", "phone": "string", "location": "string", "links": [{"type": "string", "url": "string"}], "summary": "string" },
-  "experiences": [{ "title": "string", "company": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean, "responsibilities": ["string"] }],
-  "educations": [{ "degree": "string", "university": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean }],
-  "skills": [{ "type": "string", "skills": ["string"] }],
-  "customSections": [{ "title": "string", "subsections": [{ "title": "string", "content": "string", "date": "string" }] }]
-}
+      ---
+      SCHEMA:
+      {
+        "profile": { "fullname": "string", "email": "string", "phone": "string", "location": "string", "links": [{"type": "string", "url": "string"}], "summary": "string" },
+        "experiences": [{ "title": "string", "company": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean, "responsibilities": ["string"] }],
+        "educations": [{ "degree": "string", "university": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean }],
+        "skills": [{ "type": "string", "skills": ["string"] }],
+        "customSections": [{ "title": "string", "subsections": [{ "title": "string", "content": "string", "date": "string" }] }]
+      }
 
----
-CRITICAL GUIDELINES:
-1. SUMMARY: Max 80 words. Focus on years of experience + top 2 technical skills + 1 major achievement.
-2. EXPERIENCE: 3-6 bullets per role. Start with strong action verbs (e.g., "Architected," "Spearheaded"). Quantify results (e.g., "increased efficiency by 20%") where implied.
-3. SKILLS: Group by category (e.g., "Languages", "Cloud"). Minimum 10 unique skills.
-4. CUSTOM SECTIONS: Focus on high-impact Projects or Awards. Max 3 sections. Content must be 1-2 plain-text sentences (no bullets).
-5. FORMATTING: All dates MUST be "Jan-2024" format. Use "Present" for current roles.
+      ---
+      CRITICAL GUIDELINES:
+      1. INTEGRITY: Do NOT invent experiences, companies, or degrees. Only refine what is in SOURCE_RESUME.
+      2. SUMMARY: Create a professional 3-4 line summary. Align it with the JOB_DESCRIPTION only if supported by SOURCE_RESUME facts.
+      3. EXPERIENCE:
+         - Keep bullet points concise (max 2 lines each).
+         - Focus on "Action + Context + Result".
+         - Do not exceed the original number of bullets per role unless necessary for ATS keywords.
+         - Avoid generic fluff like "Responsible for...". Use strong verbs.
+      4. SKILLS: Only list skills present in SOURCE_RESUME or strongly implied by the experience. Do not stuff keywords that the candidate doesn't have.
+      5. CUSTOM SECTIONS: Only include if SOURCE_RESUME has Projects, Awards, or relevant Certifications. Otherwise, return an empty array.
+      6. FORMATTING: Dates must be "Jan-2024".
 
-ANALYSIS_FEEDBACK:
-${analysis ? `Focus on these missing keywords: ${analysis.missingKeywords?.join(", ")}. 
-   Highlight these strengths: ${analysis.strengths?.join(", ")}.` : ""}
+      ANALYSIS_FEEDBACK (Integrate ONLY if factually supported):
+      ${analysis ? `Keywords to target: ${analysis.missingKeywords?.join(", ")}. Strengths to emphasize: ${analysis.strengths?.join(", ")}.` : ""}
 
-SOURCE_RESUME:
-${JSON.stringify(sourceResume)}
+      SOURCE_RESUME:
+      ${JSON.stringify(sourceResume)}
 
-JOB_DESCRIPTION:
-${jobDescription || 'N/A'}
+      JOB_DESCRIPTION:
+      ${jobDescription || 'N/A'}
 
-OUTPUT:`;
+      OUTPUT:`;
 }
 
 const analyzeResumeToJobFitPrompt = (sourceResume: ResumeData, jobDescription: string) => {
-  return `SYSTEM: You are a Technical Recruiting Lead. Analyze the candidate's fit for the provided Job Description.
-STRICT RULE: RETURN ONLY VALID JSON.
+  return `SYSTEM: You are an expert ATS (Applicant Tracking System) Analyst and Technical Recruiter. 
+TASK: Perform a logic-based gap analysis between the RESUME_DATA and JOB_DESCRIPTION.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
 
 ---
-EVALUATION STEPS:
-1. Identify "Must-Have" vs "Nice-to-Have" keywords in the JD.
-2. Calculate Matching Percentage based on Keyword Match (40%), Experience Level (40%), and Industry Fit (20%).
-3. Identify 3-5 "Missing Keywords" that are vital for ATS passing.
+ANALYSIS LOGIC:
+1. KEYWORDS: specific hard skills and tools mentioned in the JOB_DESCRIPTION.
+2. SYNONYM CHECK: Before marking a keyword as "missing", check the resume for valid synonyms or abbreviations (e.g., "React" matches "React.js", "Node" matches "Node.js", "AWS" matches "Amazon Web Services").
+3. SCORING HEURISTIC:
+   - < 50: Missing critical hard skills required for the role.
+   - 50-75: Skills match, but experience level or quantified impact is vague.
+   - 75+: Strong skill match + documented experience.
 
 ---
 SCHEMA:
 {
-  "jobDescription": "trimmed_jd",
-  "role": "Specific Job Title",
-  "matchingPercentage": 0-100,
-  "description": "1-3 sentence objective assessment.",
-  "suggestions": ["Actionable steps to improve resume for this specific role"],
-  "missingKeywords": ["Missing technical or soft skills found in JD"],
-  "strengths": ["Differentiators found in candidate's profile"]
+  "jobDescription": "string",
+  "role": "string",
+  "matchingPercentage": number,
+  "description": "2 sentence explanation of the score based on facts.",
+  "suggestions": ["3 specific line-item edits to improve the resume (e.g., 'Add [Skill] to Profile', 'Quantify [Role] experience')"],
+  "missingKeywords": ["List ONLY hard skills found in JD that are completely ABSENT from Resume"],
+  "strengths": ["List matching hard skills and relevant experience durations"]
 }
 
 RESUME_DATA:
