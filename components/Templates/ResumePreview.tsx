@@ -103,7 +103,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`overflow-hidden min-h-fit aspect-3/4 flex justify-center relative p-4 ${className}`}
+      className={`overflow-hidden max-w-full min-h-fit aspect-3/4 flex justify-center relative p-4 ${className}`}
       aria-busy={!!regenerating}
     >
       <div

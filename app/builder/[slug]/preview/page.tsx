@@ -624,7 +624,7 @@ const PreviewPage = () => {
               <div className='w-full h-full'>
                 <h3 className='font-semibold px-2'>Analysis</h3>
                 <div className='w-full h-full flex flex-wrap items-start justify-between '>
-                  {analysisData && analysisData.length && analysisData.map((analysis: any, count: number) => {
+                  {analysisData && analysisData.length > 0 && analysisData.map((analysis: any, count: number) => {
                     const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
                     return <div
                       onClick={() => setSelectedAnalysis(analysis)} key={count}

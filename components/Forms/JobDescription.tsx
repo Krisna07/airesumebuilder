@@ -318,7 +318,7 @@ const JobDescription: React.FC<JDProps> = ({ resumeId, disabled, hideAnalysis, h
             </div>
         }
 
-        {jobDetails?.length && (
+        {jobDetails && jobDetails.length > 0 && (
           <div className="w-full mt-2 grid gap-4  ">
             {!hideAnalysis && <div>
               <h3 className="text-lg font-semibold mb-3  flex items-center gap-2"><BugIcon size={16} /> Reports </h3>

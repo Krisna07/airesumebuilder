@@ -78,7 +78,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
-        {skillsList.length &&
+        {skillsList.length > 0 &&
           skillsList.map(({ type, skills }, index) => (
             <div key={index} className=' grid  px-2 text-sm gap-2 w-full p-4 dark:shadow-[0_0_2px_0_white] shadow-[0_0_2px_0_gray] rounded-2xl'>
               <h3 className='w-full flex items-center justify-between '>
@@ -87,7 +87,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
               </h3>
               {/* Remove type button */}
               <div className='flex flex-wrap items-center gap-2'>
-                {skills?.length &&
+                {skills && skills.length > 0 &&
                   skills?.map((skill, i) => (
                     <span key={i} className=' whitespace-nowrap flex items-center gap-2 px-2 rounded-full leading-4 py-1'>
                       {skill} <FaTimes onClick={() => removeSkill(skill)} />

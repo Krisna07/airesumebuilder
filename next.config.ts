@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
         'pdf-parse',
         'pdfjs-dist',
     ],
+    outputFileTracingIncludes: {
+        "app/api/download/route": ["node_modules/@sparticuz/chromium/**"],
+        "app/api/test-pdf/route": ["node_modules/@sparticuz/chromium/**"],
+    },
 };
 
 export default nextConfig;

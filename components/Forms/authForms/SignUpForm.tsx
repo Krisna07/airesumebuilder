@@ -56,7 +56,7 @@ const SignUpForm: React.FC = () => {
         return (window.location.href = '/builder');
     }
     return (
-        <div className='min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
+        <div className='w-full max-w-[600px] p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
             {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl  flex items-center justify-center'>
                 <UserAuthLoading />
             </div>}
