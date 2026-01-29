@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the builder list/dashboard page
+globs: app/builder/page.tsx
+alwaysApply: false
+---
+
+# Builder Dashboard (All Resumes)
+
+- **Empty state**: When the user has no resumes, show a friendly empty state with one clear CTA (`Add New`) and a short explanation; keep copy to 2–3 lines max.
+- **List state**: Display resumes in a responsive grid of cards with a consistent preview, title, and key actions (open, delete); make the card itself clickable where possible.
+- **Action bar**: Keep the fixed bottom action bar with primary CTA (`Add New`) and secondary CTA (`Upload Existing PDF`); avoid adding more than 2 main actions to prevent clutter.
+- **Feedback**: Use `LoadingResumeState` while fetching and a concise toast on create/delete errors; don’t show raw error messages from the server, just user-friendly text.
+

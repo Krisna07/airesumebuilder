@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the sign-up / new user page
+globs: app/auth/newuser/page.tsx
+alwaysApply: false
+---
+
+# Auth – Sign Up
+
+- **Form simplicity**: Ask for only the fields needed to create an account (email, password, confirmation, maybe name); defer optional profile details to the builder.
+- **Password UX**: Provide clear password requirements and inline error messages; consider a show/hide toggle instead of extra explanation text.
+- **CTA clarity**: Use a single primary CTA (“Create account”) and a secondary text link for “Already have an account? Sign in” to reduce decision fatigue.
+- **Success state**: After a successful sign-up, either inline-confirm and redirect automatically, or show a clear next step (e.g. email verification, go to builder) without leaving the user wondering.
+

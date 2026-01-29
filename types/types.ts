@@ -19,6 +19,7 @@ export interface ResumeData {
   analyzedAt?: string | Date;
   description?: string;
   createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface skills {

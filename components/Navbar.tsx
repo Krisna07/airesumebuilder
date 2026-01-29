@@ -87,14 +87,15 @@ const Navbar = () => {
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex-shrink-0"
         >
-          <div className="shadow-md shadow-teal-500/20">
+          <div className="shadow-md shadow-teal-500/20 flex-shrink-0">
             <Image
               src='/icon.svg'
               alt="AI Resume Builder"
-              width={24}
-              height={24}
+              width={32}
+              height={32}
+              className="min-w-[32px] min-h-[32px]"
             />
           </div>
           <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span>

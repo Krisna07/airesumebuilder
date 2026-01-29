@@ -1,0 +1,14 @@
+---
+description: Global UI and UX guidelines for Airesumecraft
+alwaysApply: true
+---
+
+# Global UI Guidelines
+
+- **Design language**: Use the existing teal palette from `global.css` and Tailwind-style utility classes; prefer soft shadows, rounded corners, and subtle `anim-fade-in-soft` / `anim-fade-scale` transitions for entrances.
+- **Buttons**: Always use the `Button` component with `variant` (`primary`, `secondary`, `ghost`, `success`, `danger`) and `size` (`small`, `medium`, `large`) instead of raw `<button>`; `primary` is for main CTAs, `secondary` for neutral actions, `ghost` for low-emphasis inline actions.
+- **Forms**: Use consistent vertical spacing, left-aligned labels, helper text in muted slate, and `fullWidth` inputs; group related fields in sections with clear headings and subtle borders or background.
+- **Page layout**: Aim for a centered max-width container (`max-w-4xl`–`max-w-6xl`) with generous vertical padding and clear section headings; keep primary actions visually anchored (bottom sticky bar or top-right in cards).
+- **Toasts**: Use the `ToastProvider` + `useToast` with short, specific messages; prefer one toast per user action, avoid duplicates, and map types to semantic colors (`success` = green, `error` = red, `info` = blue).
+- **Loading & skeletons**: For full-page waits, center a loader and a short status line; for in-place loading (cards, lists), use `skeleton-shimmer` blocks instead of spinners.
+

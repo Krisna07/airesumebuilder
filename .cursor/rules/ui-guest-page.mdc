@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the guest/unauthenticated builder landing
+globs: app/guest/page.tsx
+alwaysApply: false
+---
+
+# Guest Page
+
+- **Message**: Clearly explain that saving, analysis, and optimization require an account; keep the copy short and focused on benefits rather than limitations.
+- **CTA**: Provide a primary CTA to sign in or sign up and an optional secondary action to try a limited guest experience; keep them visually distinct.
+- **Consistency**: Match the visual style of the main landing page (hero, typography, teal accents) so the guest page feels integrated rather than a separate product.
+- **Upgrade moments**: Within any guest-only UI, gently nudge users to create an account with short, contextual prompts instead of intrusive banners.
+

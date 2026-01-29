@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the landing page
+globs: app/page.tsx
+alwaysApply: false
+---
+
+# Landing Page (Home)
+
+- **Hero section**: Keep a bold, two-line headline with a teal accent (like `HeroSection`), a clear subheading, and a single primary CTA (`Start building`) plus one secondary CTA (`See templates`).
+- **Sections**: Use 2–3 focused sections (`HeroSection`, `FeaturesSection`, templates) with strong headings and concise copy; avoid adding low-value content that pushes CTAs below the fold.
+- **Layout**: Use a centered column (`max-w-4xl`–`max-w-6xl`) with strong vertical rhythm (`py-16`/`py-24`) and maintain visual separation between sections via background color (`bg-slate-50` vs white) and borders.
+- **Responsiveness**: Ensure the hero, stats, and feature grid collapse gracefully on small screens (stacked layout, readable font sizes, sufficient padding on `px-4`/`px-6`).
+

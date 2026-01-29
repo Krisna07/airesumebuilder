@@ -6,7 +6,7 @@ import { useAuth } from '@/context/authContext';
 import { uploadResume } from '@/services/resumeServices';
 import React from 'react'
 
-const Page = () => {
+const FileUploadPage = () => {
   const { user, getSubscription } = useAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -88,7 +88,6 @@ const Page = () => {
   };
 
   return (
-    <div className='w-full h-[80vh] grid place-items-center'>
       <div className="w-fit">
       <input
         type="file"
@@ -142,9 +141,9 @@ const Page = () => {
           </div>
         )}
       </div>
-      </div></div>
+      </div>
   );
 }
 
 
-export default Page
+export default FileUploadPage

@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the resume builder editor (multi-step form)
+globs: app/builder/[slug]/page.tsx
+alwaysApply: false
+---
+
+# Builder Editor (Multi-Step)
+
+- **Step navigation**: Keep the sticky top stepper with clear labels and use the URL `?step=` query for persistence; step changes should not spam browser history (use `router.replace`).
+- **Form sections**: Each step should have a focused heading + subheading and only the fields relevant to that step; avoid overloading a single step with unrelated inputs.
+- **Footer bar**: Maintain the fixed bottom footer with `Previous`, `Next`/`Preview Resume`, `Save Draft`, and sync status; primary action on the right, secondary/back on the left.
+- **Preview transition**: On the final step, ensure we sync the latest data before routing to preview, and show a short confirmation card (“Ready to preview”) instead of more form fields.
+

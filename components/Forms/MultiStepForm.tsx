@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import { useCallback, useMemo, useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import UserInfoStep from "./UserInfoStep"
 import SkillsStep from "./SkillsStep"
 import ExperienceStep from "./ExperienceStep"
@@ -39,6 +39,7 @@ const FINAL_STEP_INDEX = STEPS_LABELS.length + 1
 
 const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState<ResumeData>(() => {
     // Load from cache first for instant UI
     const cached = ResumeCache.get(resumeId);
@@ -83,6 +84,30 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [resumeId]);
 
+  // Keep current step in URL so refresh/back/forward work.
+  useEffect(() => {
+    const raw = searchParams?.get("step")
+    if (!raw) return
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return
+    const clamped = Math.min(Math.max(1, n), FINAL_STEP_INDEX)
+    setCurrentStep(clamped)
+  }, [searchParams, FINAL_STEP_INDEX])
+
+  const navigateToStep = useCallback(
+    (step: number) => {
+      const clamped = Math.min(Math.max(1, step), FINAL_STEP_INDEX)
+      setCurrentStep(clamped)
+      // preserve other query params (if any)
+      const params = new URLSearchParams(searchParams?.toString() ?? "")
+      params.set("step", String(clamped))
+      // Use replace so Next/Prev don't spam browser history,
+      // but refresh still restores the current step.
+      router.replace(`/builder/${resumeId}?${params.toString()}`)
+    },
+    [router, resumeId, searchParams]
+  )
+
   const handleNext = useCallback(async () => {
     if (currentStep === STEPS_LABELS.length) {
       // Force sync before navigating to preview
@@ -91,12 +116,12 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       router.push(`/builder/${resumeId}/preview`)
       return
     }
-    setCurrentStep((s) => Math.min(s + 1, FINAL_STEP_INDEX))
+    navigateToStep(currentStep + 1)
   }, [currentStep, resumeId, router, formData, selectedTemplate, syncNow])
 
   const handlePrevious = useCallback(async () => {
-    setCurrentStep((s) => Math.max(s - 1, 1))
-  }, [])
+    navigateToStep(currentStep - 1)
+  }, [currentStep, navigateToStep])
 
   const handleSaveDraft = useCallback(async () => {
     const dataWithTemplate = { ...formData, template: selectedTemplate };
@@ -129,8 +154,8 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   }, [])
 
   const goToStep = useCallback((step: number) => {
-    setCurrentStep(step)
-  }, [])
+    navigateToStep(step)
+  }, [navigateToStep])
 
   const renderStep = useMemo(() => {
     switch (currentStep) {

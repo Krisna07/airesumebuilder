@@ -3,16 +3,38 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from '@/lib/prisma'
+import { requireUserSession } from '@/lib/subscription-server'
+import { safeJsonParse, validateResumeData } from '@/utils/dataValidation'
+
+const MAX_JSON_BYTES = 2_000_000 // ~2MB
+
+function getContentLength(req: NextRequest) {
+  const raw = req.headers.get('content-length')
+  if (!raw) return null
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : null
+}
+
+async function getAuthedUserId() {
+  const { userId } = await requireUserSession()
+  return userId
+}
+
+function forbiddenOrNotFound() {
+  // Avoid leaking existence of other users' resumes.
+  return NextResponse.json({ error: "Resume not found" }, { status: 404 });
+}
 
 
 
 export async function GET(req: NextRequest) {
     try {
+        const userId = await getAuthedUserId()
         // For GET, use query params, not req.json()
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id') ?? undefined;
         console.log(`Fetching resume with id: ${id}`);
-        const resume = await prisma.resume.findFirst({ where: { id } })
+        const resume = await prisma.resume.findFirst({ where: { id, userId } })
         if (!resume || resume.deleted) {
             return NextResponse.json({ error: "Resume not found" }, { status: 404 });
         }
@@ -20,10 +42,10 @@ export async function GET(req: NextRequest) {
             id: resume?.id, 
                title:resume?.title, 
                template:resume?.template, 
-               profile: resume?.profile ? JSON.parse(resume.profile as string) : {},
-               skills: resume?.skills ? JSON.parse(resume.skills as string) : [],
-               experiences:resume?.experiences ? JSON.parse(resume.experiences as string) : [],
-               educations:resume?.educations ? JSON.parse(resume.educations as string) : [],
+               profile: safeJsonParse(resume?.profile as string, {}),
+               skills: safeJsonParse(resume?.skills as string, []),
+               experiences: safeJsonParse(resume?.experiences as string, []),
+               educations: safeJsonParse(resume?.educations as string, []),
                 customSections: resume?.customSections ?
                     (() => {
                         try {
@@ -42,6 +64,9 @@ export async function GET(req: NextRequest) {
         }
         return NextResponse.json({ data: responseData }, { status: 200 });
     } catch (err) {
+        if (err instanceof Error && err.name === 'AuthError') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
         return NextResponse.json({
 
             error: (err instanceof Error ? err.message : 'Unknown error')
@@ -52,13 +77,24 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     try {
-        const resumeData = await req.json();
+        const userId = await getAuthedUserId()
+
+        const len = getContentLength(req)
+        if (len !== null && len > MAX_JSON_BYTES) {
+            return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+        }
+
+        const raw = await req.json();
+        if (!raw || typeof raw !== 'object') {
+            return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
+        }
+        const resumeData = validateResumeData((raw ?? {}) as Record<string, unknown>)
         const resumeId  = resumeData.id || randomUUID();
-        const existing = await prisma.resume.findFirst({ where: { id: resumeId } })
+        const existing = await prisma.resume.findFirst({ where: { id: resumeId, deleted: false } })
         if (!existing) {
           const newResume = {
             id: resumeId,
-            userId: resumeData.userId,
+            userId,
             title: resumeData.title || '',
               template: resumeData.template ?? 'Classic',
               profile: JSON.stringify(resumeData.profile || {}),
@@ -73,11 +109,11 @@ export async function PUT(req: NextRequest) {
                     id: createdResume.id,
                     title: createdResume.title,
                     template: createdResume.template,
-                    profile: typeof createdResume.profile === "string"  ? JSON.parse(createdResume.profile) : {},
-                    experiences: typeof createdResume.experiences === "string"  ? JSON.parse(createdResume.experiences) : [],
-                    educations: typeof createdResume.educations === "string"  ? JSON.parse(createdResume.educations) : [],
-                    skills: typeof createdResume.skills === "string"  ? JSON.parse(createdResume.skills) : [],
-                    customSections: typeof createdResume.customSections === "string" ? JSON.parse(createdResume.customSections) : [],
+                    profile: typeof createdResume.profile === "string"  ? safeJsonParse(createdResume.profile, {}) : {},
+                    experiences: typeof createdResume.experiences === "string"  ? safeJsonParse(createdResume.experiences, []) : [],
+                    educations: typeof createdResume.educations === "string"  ? safeJsonParse(createdResume.educations, []) : [],
+                    skills: typeof createdResume.skills === "string"  ? safeJsonParse(createdResume.skills, []) : [],
+                    customSections: typeof createdResume.customSections === "string" ? safeJsonParse(createdResume.customSections, []) : [],
                  updated: createdResume.updatedAt,
                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                  matchingScore: (createdResume as any)?.matchingScore ?? null,
@@ -86,10 +122,12 @@ export async function PUT(req: NextRequest) {
              },
          }, { status: 200 });
         }
+        if (existing.userId !== userId) {
+            return forbiddenOrNotFound()
+        }
         const updatedResume = await prisma.resume.update({
             where: { id: resumeData.id },
             data: {
-                userId: resumeData.userId,
                 title: resumeData.title,
                 template: resumeData.template,
                 profile: JSON.stringify(resumeData.profile),
@@ -107,11 +145,11 @@ export async function PUT(req: NextRequest) {
                     id: updatedResume.id,
                     title: updatedResume.title,
                     template: updatedResume.template,
-                    profile: typeof updatedResume.profile === "string" ? JSON.parse(updatedResume.profile) : {},
-                    experiences: typeof updatedResume.experiences === "string"  ? JSON.parse(updatedResume.experiences) : [],
-                    educations: typeof updatedResume.educations === "string"  ? JSON.parse(updatedResume.educations) : [],
-                    skills: typeof updatedResume.skills === "string"  ? JSON.parse(updatedResume.skills) : [],
-                    customSections: typeof updatedResume.customSections === "string" ? JSON.parse(updatedResume.customSections) : [],
+                    profile: typeof updatedResume.profile === "string" ? safeJsonParse(updatedResume.profile, {}) : {},
+                    experiences: typeof updatedResume.experiences === "string"  ? safeJsonParse(updatedResume.experiences, []) : [],
+                    educations: typeof updatedResume.educations === "string"  ? safeJsonParse(updatedResume.educations, []) : [],
+                    skills: typeof updatedResume.skills === "string"  ? safeJsonParse(updatedResume.skills, []) : [],
+                    customSections: typeof updatedResume.customSections === "string" ? safeJsonParse(updatedResume.customSections, []) : [],
                     updated: updatedResume.updatedAt,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                     matchingScore: (updatedResume as any)?.matchingScore ?? null,
@@ -122,20 +160,27 @@ export async function PUT(req: NextRequest) {
         }, { status: 201 });
     } catch (err) {
         console.log(err)
+        if (err instanceof Error && err.name === 'AuthError') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
         return NextResponse.json({ error: (err instanceof Error ? err.message : 'Unknown error') }, { status: 500 });
     }
 }
 
 export async function DELETE(req: NextRequest) {
     try {
+        const userId = await getAuthedUserId()
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id') ?? undefined;
         if (!id) {
             return NextResponse.json({ error: "Resume ID is required" }, { status: 400 });
         }
-        const existing = await prisma.resume.findFirst({ where: { id } })
+        const existing = await prisma.resume.findFirst({ where: { id, deleted: false } })
         if (!existing) {
             return NextResponse.json({ error: "Resume not found" }, { status: 404 });
+        }
+        if (existing.userId !== userId) {
+            return forbiddenOrNotFound()
         }
         await prisma.resume.update({
             where: { id: existing.id },
@@ -143,6 +188,9 @@ export async function DELETE(req: NextRequest) {
         });
         return NextResponse.json({ data: "Resume deleted successfully" }, { status: 200 });
     } catch (err) {
+        if (err instanceof Error && err.name === 'AuthError') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
         return NextResponse.json({ error: (err instanceof Error ? err.message : 'Unknown error') }, { status: 500 });
     }
 }

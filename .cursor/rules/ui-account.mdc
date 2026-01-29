@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the account page
+globs: app/account/page.tsx
+alwaysApply: false
+---
+
+# Account Page
+
+- **Information layout**: Group content into clear sections such as “Profile”, “Subscription”, and “Security”; each section should have a heading, short description, and consistent spacing.
+- **Edit patterns**: Prefer inline “Edit” actions that turn read-only fields into inputs within the same card, rather than routing to separate edit pages, to keep the flow simple.
+- **Subscription UI**: Clearly show current plan, renewal/cycle info, and remaining quota (if displayed); use consistent badges and colors to indicate status (active, trial, expired).
+- **Destructive actions**: Style destructive actions (e.g. cancel subscription, delete account) with the `danger` button variant, and confirm via a modal or secondary confirmation step before executing.
+

@@ -4,7 +4,9 @@ import { generateTemplateHTML } from "@/lib/template-utils";
 import chromium from '@sparticuz/chromium';
 import fs from 'fs'; // added import
 
-const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
+const isVercelProduction = process.env.VERCEL === '1' && process.env.NODE_ENV === 'production';
+const isProd = isLambda || isVercelProduction;
 
 async function sleep(ms: number) {
     return new Promise((r) => setTimeout(r, ms));

@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the PDF upload builder entry page
+globs: app/builder/build/page.tsx
+alwaysApply: false
+---
+
+# Builder Upload (PDF to Resume)
+
+- **Single focus**: Keep this page focused on a single action—dropping or selecting a PDF—and avoid extra controls or navigation that distract from upload.
+- **Dropzone**: Use a large, centered dropzone with clear iconography and copy; error and success states should visually override the neutral state but keep layout stable.
+- **State feedback**: Show a spinner + “Analyzing your resume…” while uploading, a red error card for failures, and a green confirmation for success; keep all messages short and scannable.
+- **Post-upload**: After a successful upload, show success for a brief period, then redirect to the builder editor for the new resume; don’t require the user to click again to proceed.
+

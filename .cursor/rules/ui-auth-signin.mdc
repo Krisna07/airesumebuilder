@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the sign-in page
+globs: app/auth/signin/page.tsx
+alwaysApply: false
+---
+
+# Auth – Sign In
+
+- **Layout**: Center the auth card with a constrained width and strong vertical spacing; keep the page clean with minimal distractions around the form.
+- **Form**: Use consistent input styling, clear labels, and a single primary submit button; include a subtle link to “Forgot password?” and navigation to sign up.
+- **Feedback**: Show inline validation messages near fields and use a toast for higher-level errors (e.g. network/auth failures); disable the button and show a spinner while submitting.
+- **Trust**: Optionally include a short line about security (e.g. “We never share your email”) near the bottom to increase confidence without clutter.
+

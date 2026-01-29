@@ -4,6 +4,7 @@ import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma'
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 interface JobDetails extends JobDescription {
   id: string;
@@ -46,6 +47,12 @@ export async function POST(req: NextRequest) {
       const mapped = mapSubscriptionError(err)
       return NextResponse.json({ error: mapped.message }, { status: mapped.status })
     }
+
+    const rl = checkRateLimit({ key: `user:${userId}:ai:analyze`, windowMs: 60_000, max: 15 })
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    }
+
     try {
       await assertQuota(userId, 'analysis')
     } catch (err) {
@@ -54,8 +61,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const analyzeResumeParams = body.analyzeResumeParams;
-    const { resumeId, jobDetails, jobDescriptionId }: { resumeId: string; jobDetails?: JobDetails; jobDescriptionId?: string } = analyzeResumeParams;
+    const analyzeResumeParams = body?.analyzeResumeParams;
+    const { resumeId, jobDetails, jobDescriptionId }: { resumeId: string; jobDetails?: JobDetails; jobDescriptionId?: string } = analyzeResumeParams ?? ({} as any);
     console.log(resumeId, jobDetails, jobDescriptionId);
     if (!resumeId || (!jobDetails && !jobDescriptionId)) {
       return NextResponse.json({ error: 'ResumeId and jobDescription are required' }, { status: 400 });

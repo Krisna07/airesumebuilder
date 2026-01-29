@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from '@/lib/prisma'
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: Request) {
     try{
@@ -13,6 +14,11 @@ export async function POST(req: Request) {
         } catch (err) {
             const mapped = mapSubscriptionError(err)
             return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
+
+        const rl = checkRateLimit({ key: `user:${userId}:ai:generate-coverletter`, windowMs: 60_000, max: 10 })
+        if (!rl.ok) {
+            return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
         }
         try {
             await assertQuota(userId, 'cl')

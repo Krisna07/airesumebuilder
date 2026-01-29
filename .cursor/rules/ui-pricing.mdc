@@ -1,0 +1,13 @@
+---
+description: UI guidelines for the pricing page
+globs: app/pricing/page.tsx
+alwaysApply: false
+---
+
+# Pricing Page
+
+- **Plan cards**: Present plans as distinct cards with a clear hierarchy—plan name, price, key benefits (3–5 bullets), and a single primary CTA per card.
+- **Highlight plan**: Use teal accents (border/background) to highlight the recommended plan and ensure its CTA is visually strongest but not overwhelming.
+- **Comparison clarity**: Use simple, scannable comparison points (e.g. “AI analysis per month”, “downloads”, “support”) rather than long paragraphs; keep typography consistent.
+- **Trust & FAQs**: Optionally include a small FAQ or trust section below the plans; keep answers short and avoid repeating marketing copy from the landing page.
+

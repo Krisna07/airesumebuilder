@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractJobDetailsPrompt } from '@/lib/prompts';
 import { requireUserSession, consumeUsage, mapSubscriptionError } from '@/lib/subscription-server';
 import { parseResponse } from '@/lib/jsonParse';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 // Import the private AI function - should be moved to AIService class ideally
 import { GoogleGenAI, Content, GenerateContentResponse } from '@google/genai';
@@ -26,6 +27,11 @@ export async function POST(req: NextRequest) {
   try {
     const { userId } = await requireUserSession();
 
+    const rl = checkRateLimit({ key: `user:${userId}:ai:extract-job`, windowMs: 60_000, max: 15 })
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    }
+
     const { rawText } = await req.json();
 
     if (!rawText || typeof rawText !== 'string' || rawText.trim().length === 0) {
@@ -33,6 +39,9 @@ export async function POST(req: NextRequest) {
         { error: 'Job description text is required' },
         { status: 400 }
       );
+    }
+    if (rawText.length > 120_000) {
+      return NextResponse.json({ error: 'Job description too large' }, { status: 413 })
     }
 
     // Check and consume subscription quota (using 'analysis' quota for AI extraction)

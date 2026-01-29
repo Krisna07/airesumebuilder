@@ -67,65 +67,57 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
   return (
     <>
       <div
-        tabIndex={0}
-        className={`group relative min-h-[300px] w-full overflow-hidden rounded-2xl border border-transparent p-2 shadow-[0_0_4px_0_gray] dark:shadow-slate-700 select-none transition-all duration-300 
-          focus-within:shadow-[0_4px_12px_-1px_rgba(20,184,166,0.4)] hover:shadow-[0_4px_12px_-1px_rgba(20,184,166,0.4)] 
-          dark:bg-slate-800 ${isGone ? "opacity-0 scale-90 pointer-events-none" : "anim-fade-scale"}`}
+        className={`group relative flex flex-col h-[380px] w-full rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-xl hover:border-teal-500/30 dark:hover:border-teal-500/30
+          ${isGone ? "opacity-0 scale-90 pointer-events-none" : "anim-fade-scale"}`}
       >
-        {/* Resume Preview Background */}
-        <div
-          className={`absolute inset-0 z-10 transition-all duration-500 
-            group-hover:blur-[1.5px] group-hover:scale-[1.05] 
-            group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] 
-            ${isDeleting ? "grayscale blur-sm opacity-70" : ""}`}
-        />
+        {/* Preview Area */}
+        <div 
+          onClick={handleEdit}
+          className="relative flex-1 w-full overflow-hidden rounded-t-xl bg-gray-100 dark:bg-slate-950 cursor-pointer"
+        >
+          <div className="absolute inset-x-4 inset-y-4 shadow-sm transition-transform duration-500 group-hover:scale-105 origin-top">
+            <ResumePreview template={resume.template} resumeData={resume} />
+          </div>
 
-        <div className="-z-10 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] transition-all">
-          <ResumePreview template={resume.template} resumeData={resume} />
+          {/* Overlay on hover */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
         </div>
 
-        {/* Delete Icon */}
-        <Trash2
-          onClick={handleShowConfirm}
-          className="absolute z-40 right-0 top-0 bg-red-50 dark:bg-red-900/50 p-1.5 rounded-bl-lg translate-x-8 m-0 opacity-0 -translate-y-4 
-            group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 
-            group-focus-within:opacity-100 group-focus-within:translate-x-0 group-focus-within:translate-y-0 
-            transition-all ease-in-out cursor-pointer hover:bg-red-100 dark:hover:bg-red-800"
-          color="red"
-          size={28}
-        />
+        {/* Card Footer */}
+        <div className="p-4 border-t border-gray-100 dark:border-slate-800">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-gray-900 dark:text-white truncate" title={resume.title || "Untitled Resume"}>
+                {resume.title || "Untitled Resume"}
+              </h4>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                Updated {new Date(resume.updatedAt || resume.createdAt || new Date()).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
 
-        {/* Action Buttons */}
-        <div
-          className={`absolute inset-x-0 bottom-0 z-20 flex translate-y-full gap-2 p-3 bg-gradient-to-t from-white/90 dark:from-slate-900/90 to-transparent pt-8
-            transition-all duration-500 ease-out group-hover:translate-y-0 group-focus-within:translate-y-0 
-            ${isDeleting ? "opacity-50 pointer-events-none" : ""}`}
-        >
-          {hasMinimumData(resume) && (
-            <Button onClick={handlePreview} variant="primary" size="small" className="flex-1">
-              Preview
+          <div className="flex items-center gap-2">
+            <Button onClick={handleEdit} variant="primary" size="small" className="flex-1 h-9">
+              Edit
             </Button>
-          )}
-          <Button onClick={handleEdit} variant="secondary" size="small" className="flex-1">
-            Edit
-          </Button>
-          {!hasMinimumData(resume) && (
-            <Button
+            {hasMinimumData(resume) && (
+              <Button onClick={handlePreview} variant="secondary" size="small" className="px-3 h-9 text-gray-500 dark:text-slate-400">
+                View
+              </Button>
+            )}
+            <button
               onClick={handleShowConfirm}
-              variant="danger"
-              size="small"
-              className="flex items-center gap-1"
               disabled={isDeleting}
+              className="h-9 w-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Del
-            </Button>
-          )}
+            </button>
+          </div>
         </div>
 
-        {/* Loading Overlay */}
+        {/* Loading Overlay (Delete) */}
         {isDeleting && (
-          <div className="absolute inset-0 z-30 grid place-items-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-30 grid place-items-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm rounded-xl">
             <Loader2 className="h-7 w-7 animate-spin text-teal-500" />
           </div>
         )}
@@ -137,13 +129,8 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
         onConfirm={performDelete}
         loading={isDeleting}
         title="Delete Resume?"
-        message={
-          <span>
-            Delete this incomplete resume? <br />
-            This action cannot be undone.
-          </span>
-        }
-        confirmText="Delete"
+        message="Are you sure you want to delete this resume? This action cannot be undone."
+        confirmText="Delete Resume"
       />
     </>
   )

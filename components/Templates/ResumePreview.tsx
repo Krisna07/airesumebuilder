@@ -139,14 +139,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         </div>
       </div>
 
-      {regenerating && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
-          <div className="flex items-center space-x-2 bg-white/80 rounded-md px-3 py-2 shadow">
-            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            <div className="text-sm text-gray-700">Regenerating…</div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

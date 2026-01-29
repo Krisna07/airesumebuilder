@@ -6,14 +6,14 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
     id: string;
-    message: string;
+    message: string | React.ReactNode;
     type: ToastType;
     duration?: number;
 }
 
 interface ToastContextType {
     toasts: Toast[];
-    showToast: (message: string, type?: ToastType, duration?: number) => void;
+    showToast: (message: string | React.ReactNode, type?: ToastType, duration?: number) => void;
     hideToast: (id: string) => void;
     clearAllToasts: () => void;
 }
@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
-    const showToast = useCallback((message: string = '', type: ToastType = 'info', duration: number = 4000) => {
+    const showToast = useCallback((message: string | React.ReactNode = '', type: ToastType = 'info', duration: number = 4000) => {
         if (!message) return;
         setToasts(prev => {
             const isDuplicate = prev.some(t => t.message === message && t.type === type);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResumeData } from '@/types/types';
 import { AIService } from '@/services/aiServices';
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,6 +13,11 @@ export async function POST(req: NextRequest) {
         } catch (err) {
             const mapped = mapSubscriptionError(err)
             return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
+
+        const rl = checkRateLimit({ key: `user:${userId}:ai:generate-resume`, windowMs: 60_000, max: 10 })
+        if (!rl.ok) {
+            return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
         }
         try {
             await assertQuota(userId, 'regen')
@@ -24,6 +30,9 @@ export async function POST(req: NextRequest) {
 
         if (!resume) {
             return NextResponse.json({ error: 'Missing resume data or job description' }, { status: 400 });
+        }
+        if (jobDescription && typeof jobDescription === 'string' && jobDescription.length > 120_000) {
+            return NextResponse.json({ error: 'Job description too large' }, { status: 413 });
         }
 
         const generatedResume = await AIService.generateResume(resume, undefined, jobDescription);

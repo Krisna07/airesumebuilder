@@ -233,6 +233,43 @@ transform: scale(-1);
     animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* Float animation for hero resume preview */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Flowing line animation for How It Works section */
+@keyframes flow-line {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
 /* Prevent iOS Safari zoom on focus */
 html,
 body {

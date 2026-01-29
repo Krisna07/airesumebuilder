@@ -1,6 +1,9 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { checkRateLimit } from '@/lib/rateLimit'
+
+const MAX_TEXT_CHARS = 120_000
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,6 +14,11 @@ export async function POST(req: NextRequest) {
             const mapped = mapSubscriptionError(err)
             return NextResponse.json({ error: mapped.message }, { status: mapped.status })
         }
+
+        const rl = checkRateLimit({ key: `user:${userId}:ai:extract-resume`, windowMs: 60_000, max: 10 })
+        if (!rl.ok) {
+            return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+        }
         try {
             await assertQuota(userId, 'upload')
         } catch (err) {
@@ -19,8 +27,11 @@ export async function POST(req: NextRequest) {
         }
         const body = await req.json();
         const { text } = body;
-        if (!text) {
+        if (!text || typeof text !== 'string') {
             return NextResponse.json({ error: 'No text provided' }, { status: 400 });
+        }
+        if (text.length > MAX_TEXT_CHARS) {
+            return NextResponse.json({ error: 'Resume text too large' }, { status: 413 });
         }
         const structuredData = await AIService.generateResume(undefined, text);
 

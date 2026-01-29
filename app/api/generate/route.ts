@@ -7,7 +7,9 @@ import fs from 'fs';
 // Force Node.js runtime for this route (not edge)
 export const runtime = "nodejs";
 
-const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
+const isVercelProduction = process.env.VERCEL === '1' && process.env.NODE_ENV === 'production';
+const isProd = isLambda || isVercelProduction;
 
 export async function POST(req: NextRequest) {
     try {
