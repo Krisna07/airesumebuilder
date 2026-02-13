@@ -1,135 +1,150 @@
 import { AnalysisResult, JobDescription, ResumeData } from "@/types/types"
 
-const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string) => {
-  // Updated for customSections replacing legacy certificates.
-  // customSections: array of section objects each with a title and array of subsections.
-  // subsection: { title, content (rich summary), optional date }
-  return `SYSTEM: You are a senior resume writer. RETURN ONLY VALID JSON. Do not include any prose, explanation, or markdown.
-Be careful: start the response with '{' and end with '}' and nothing else.
+const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string, analysis?: AnalysisResult) => {
+  return `
+      SYSTEM: You are an expert ATS-optimization specialist. 
+      TASK: Optimize the SOURCE_RESUME for the JOB_DESCRIPTION (if provided) while maintaining strict factual accuracy.
+      GOAL: A concise, impactful resume that passes ATS scans without bloating, hallucinating, or inventing details.
+      STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
 
-SCHEMA (keys and basic constraints):
-{
-    "profile": {"fullname": string, "email": string, "phone": string, "location": string, "links": [{"type": string, "url": string}], "summary": string},
-    "experiences": [{"title": string, "company": string, "location": string, "startDate": string, "endDate": string, "current": boolean, "responsibilities": string[]}],
-    "educations": [{"degree": string, "university": string, "location": string, "startDate": string, "endDate": string, "current": boolean}],
-    "skills": [{"type": string, "skills": string[]}],
-    "customSections": [{
-            "title": string, // e.g. "Projects", "Awards", "Publications", "Volunteer"
-            "subsections": [{"title": string, "content": string, "date": string}]
-    }]
-}
+      ---
+      SCHEMA:
+      {
+        "profile": { "fullname": "string", "email": "string", "phone": "string", "location": "string", "links": [{"type": "string", "url": "string"}], "summary": "string" },
+        "experiences": [{ "title": "string", "company": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean, "responsibilities": ["string"] }],
+        "educations": [{ "degree": "string", "university": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean }],
+        "skills": [{ "type": "string", "skills": ["string"] }],
+        "customSections": [{ "title": "string", "subsections": [{ "title": "string", "content": "string", "date": "string" }] }]
+      }
 
-CUSTOM SECTIONS RULES:
-- Use at most 3 customSections unless source resume already has more.
-- Pick only high-impact categories relevant to the job description if Job description is provided (e.g. Publications for research roles, Projects for engineering roles).
-- Each subsection content should be 1–2 concise sentences; no bullet symbols, just plain text.
-- Omit date if not provided or irrelevant.
+      ---
+      CRITICAL GUIDELINES:
+      1. INTEGRITY: Do NOT invent experiences, companies, or degrees. Only refine what is in SOURCE_RESUME.
+      2. SUMMARY: Create a professional 3-4 line summary. Align it with the JOB_DESCRIPTION only if supported by SOURCE_RESUME facts.
+      3. EXPERIENCE:
+         - Keep bullet points concise (max 2 lines each).
+         - Focus on "Action + Context + Result".
+         - Do not exceed the original number of bullets per role unless necessary for ATS keywords.
+         - Avoid generic fluff like "Responsible for...". Use strong verbs.
+      4. SKILLS: Only list skills present in SOURCE_RESUME or strongly implied by the experience. Do not stuff keywords that the candidate doesn't have.
+      5. CUSTOM SECTIONS: Only include if SOURCE_RESUME has Projects, Awards, or relevant Certifications. Otherwise, return an empty array.
+      6. FORMATTING: Dates must be "Jan-2024".
 
-GENERAL RULES:
-- Dates: use Mon-YYYY (e.g. Jan-2024).
-- Summary: maximum ~80 words; tailor to job description.
-- Experiences: each must include 3–6 strong responsibility bullets; start each with a verb; include measurable outcomes when possible.
-- Skills: group meaningfully; aim for >=10 distinct skills across groups; avoid duplicates.
-- Links: derive link "type" from host (e.g. github.com => "GitHub").
-- Empty lists must be [] (never null or omitted).
-- Output must be STRICT JSON: double-quoted keys/strings, no trailing commas, no comments.
+      ANALYSIS_FEEDBACK (Integrate ONLY if factually supported):
+      ${analysis ? `Keywords to target: ${analysis.missingKeywords?.join(", ")}. Strengths to emphasize: ${analysis.strengths?.join(", ")}.` : ""}
 
-SOURCE_RESUME_JSON:
-${JSON.stringify(sourceResume)}
+      SOURCE_RESUME:
+      ${JSON.stringify(sourceResume)}
 
-JOB_DESCRIPTION_TEXT:\n${jobDescription || ''}
+      JOB_DESCRIPTION:
+      ${jobDescription || 'N/A'}
 
-EXPECTED_MINIMAL_OUTPUT_EXAMPLE:
-{"profile":{"fullname":"Name","email":"","phone":"","location":"","links":[],"summary":""},"experiences":[],"educations":[],"skills":[],"customSections":[]}
-
-OUTPUT:`
+      OUTPUT:`;
 }
 
 const analyzeResumeToJobFitPrompt = (sourceResume: ResumeData, jobDescription: string) => {
-    const compactResume = sourceResume
-        ? {
-            ...sourceResume,
-            experiences: sourceResume.experiences?.slice(0, 8), // cap to avoid runaway tokens
-            educations: sourceResume.educations?.slice(0, 5),
-        customSections: sourceResume.customSections?.slice(0, 10),
-            skills: sourceResume.skills?.slice(0, 20),
-        }
-        : {};
-  return `SYSTEM: You are an expert technical recruiter. Return only strict JSON.
-SCHEMA (keys & constraints):
+  return `SYSTEM: You are an expert ATS (Applicant Tracking System) Analyst and Technical Recruiter. 
+TASK: Perform a logic-based gap analysis between the RESUME_DATA and JOB_DESCRIPTION.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+
+---
+ANALYSIS LOGIC:
+1. KEYWORDS: specific hard skills and tools mentioned in the JOB_DESCRIPTION.
+2. SYNONYM CHECK: Before marking a keyword as "missing", check the resume for valid synonyms or abbreviations (e.g., "React" matches "React.js", "Node" matches "Node.js", "AWS" matches "Amazon Web Services").
+3. SCORING HEURISTIC:
+   - < 50: Missing critical hard skills required for the role.
+   - 50-75: Skills match, but experience level or quantified impact is vague.
+   - 75+: Strong skill match + documented experience.
+
+---
+SCHEMA:
 {
-  "jobDescription": string, // normalized copy of input JD (trimmed)
-  "role": string, // inferred concise primary target role (<=60 chars)
-  "matchingPercentage": number, // integer 0-100 (no % sign)
-  "description": string, // 1-3 sentence summary of candidate vs role
-  "suggestions": string[], // actionable verbs, unique, max 8
-  "missingKeywords": string[], // high-signal terms absent or weak, max 12
-  "strengths": string[] // notable differentiators, max 8
+  "jobDescription": "string",
+  "role": "string",
+  "matchingPercentage": number,
+  "description": "2 sentence explanation of the score based on facts.",
+  "suggestions": ["3 specific line-item edits to improve the resume (e.g., 'Add [Skill] to Profile', 'Quantify [Role] experience')"],
+  "missingKeywords": ["List ONLY hard skills found in JD that are completely ABSENT from Resume"],
+  "strengths": ["List matching hard skills and relevant experience durations"]
 }
-RULES:
-- Output ONLY JSON. No prose. No explanations.
-- If a list would be empty, return [].
-- Do not fabricate technologies not implied by resume.
-- matchingPercentage must correlate with coverage of core responsibilities & keywords.
-- Avoid generic role names (e.g. "Professional"). Prefer "Senior Frontend Engineer", etc.
 
-RESUME_JSON (truncated view):
-${JSON.stringify(compactResume)}
+RESUME_DATA:
+${JSON.stringify(sourceResume)}
 
-NOTE:
-- customSections present in resume may reflect projects, awards, publications, volunteer work. When deriving suggestions or strengths, treat subsection content as rich achievements.
-- Do NOT hallucinate categories not in resume; if customSections is empty, ignore it.
-
-JOB_DESCRIPTION_TEXT:\n${jobDescription}
+JOB_DESCRIPTION:
+${jobDescription}
 
 OUTPUT:`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const coverLetterPrompt = (sourceResume: ResumeData, jobDescription: JobDescription, analysis?: AnalysisResult | undefined) => {
-  const resumeJson = sourceResume ? JSON.stringify(sourceResume) : '{}';
-  const jobDescriptionJson = jobDescription ? JSON.stringify(jobDescription) : '';
-  const analysisJson = analysis ? JSON.stringify(analysis) : '';
-  return `SYSTEM: You are a professional cover letter writer. RETURN ONLY VALID JSON. Do not include any prose, explanation, or markdown.
-Be careful: start the response with '{' and end with '}' and nothing else.
+const coverLetterPrompt = (sourceResume: ResumeData, jobDescription: JobDescription, analysis?: AnalysisResult) => {
+  return `SYSTEM: You are a Career Consultant writing a bespoke cover letter.
+TONE: Professional, confident, and human. Avoid clichés like "I am writing to express my interest."
+STRICT RULE: RETURN ONLY VALID JSON.
 
-SCHEMA (keys and constraints):
+---
+STRATEGY:
+- Opening: Hook the reader with a specific accomplishment or shared value.
+- Body: Connect the candidate's "Strengths" from the ANALYSIS to the core challenges of the JD.
+- Closing: Focused on a "Call to Action" (interview request).
+
+SCHEMA:
 {
-  "salutation": string, // e.g. "Dear Hiring Manager," — use specific name only if provided
-  "coverLetter": string, // full cover letter in first-person, 3-5 short paragraphs, tailored to the job and resume
-  "closing": string, // e.g. "Sincerely,\nFull Name"
-  "keyParagraphs": [{"purpose": string, "text": string}], // ordered breakdown: opening, fit, impact, closing
-  "highlights": [{"title": string, "text": string}], // up to 3 short highlight bullets the candidate can paste elsewhere
-  "tone": string, // single word describing tone (e.g. "professional", "enthusiastic")
-  "wordCount": number // integer count of words in coverLetter
+  "salutation": "string",
+  "coverLetter": "string",
+  "closing": "string",
+  "keyParagraphs": [{ "purpose": "opening|fit|impact|closing", "text": "string" }],
+  "highlights": [{ "title": "string", "text": "string" }],
+  "tone": "string",
+  "wordCount": number
 }
 
-RULES:
-- Output ONLY JSON. No prose outside JSON, no commentary.
-- coverLetter must read like the candidate wrote it (first-person, natural human voice).
-- Use specifics from the resume JSON and the job description or analysis when available (company, role, technologies, measurable results).
-- Do NOT fabricate facts: if a metric or date is not present in the resume/analysis, do not invent numbers — instead use qualitative phrasing (e.g. "driving user growth" rather than "grew users by 35%").
-- Keep the letter between ~200 and 500 words unless the job description requests otherwise.
-- Use a concise opening that references the role and company, a middle paragraph that connects 2-3 core qualifications to the role, an impact paragraph with an example or two (drawn from resume/analysis), and a closing paragraph with a call to action.
-- If ${jobDescription} is provided, incorporate the top strengths and suggestions into the letter (explicitly mention 1–2 strengths).
-- If ${analysis} is missing, still craft a tailored-sounding letter focusing on the candidate's strongest fit and motivation.
-- If a field would be empty, return an empty string or empty array, but keep the key present.
-
-SOURCE_RESUME_JSON:
-${resumeJson}
-
-JOB_DESCRIPTION_TEXT:
-${jobDescriptionJson || ''}
-
-ANALYSIS_JSON:
-${analysisJson}
-
-EXPECTED_MINIMAL_OUTPUT_EXAMPLE:
-{"salutation":"Dear Hiring Manager,","coverLetter":"","closing":"Sincerely, Full Name","keyParagraphs":[],"highlights":[],"tone":"professional","wordCount":0}
+---
+CONTEXT:
+RESUME: ${JSON.stringify(sourceResume)}
+JD: ${JSON.stringify(jobDescription)}
+ANALYSIS: ${JSON.stringify(analysis || {})}
 
 OUTPUT:`;
 }
 
+const extractJobDetailsPrompt = (rawText: string) => {
+  return `SYSTEM: You are an expert job description parser. Extract structured job details from raw text.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO EXPLANATION.
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt };
+---
+TASK: Parse the raw job description text and extract:
+1. Job Title (the primary role being hired for)
+2. Company Name (if present)
+3. Location (city, state/country, or "Remote")
+4. Domain/Industry (e.g., "Technology", "Healthcare", "Finance")
+5. Description (clean, formatted job description text)
+
+---
+SCHEMA:
+{
+  "title": "string (e.g., 'Senior Software Engineer')",
+  "company": "string (e.g., 'Google' or 'Unknown' if not found)",
+  "location": "string (e.g., 'San Francisco, CA' or 'Remote' or 'Not specified')",
+  "domain": "string (e.g., 'Technology', 'Healthcare', 'Finance', 'Marketing', 'Other')",
+  "description": "string (the full cleaned job description)"
+}
+
+---
+EXTRACTION RULES:
+- Title: Look for phrases like "Job Title:", "Position:", "Role:", or the first prominent heading
+- Company: Look for "Company:", "About Us:", or company name at the top
+- Location: Look for "Location:", "Where:", city names, or "Remote"
+- Domain: Infer from job title, company type, or description content
+- Description: Include all relevant text (responsibilities, requirements, benefits) but remove boilerplate like "Apply Now" buttons or footer text
+- If a field is not found, use sensible defaults: "Unknown" for company, "Not specified" for location, "Other" for domain
+
+---
+RAW_JOB_TEXT:
+${rawText}
+
+OUTPUT:`;
+}
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt };
 

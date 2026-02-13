@@ -16,18 +16,17 @@ const FormLayout: React.FC<FormLayoutProps> = ({
   return (
     <section
       id={id}
-      className="w-full max-w-4xl mx-auto flex flex-col bg-white rounded-lg shadow-sm border border-gray-200 "
+      className="w-full max-w-4xl mx-auto flex flex-col  rounded-lg shadow-sm border border-gray-200 "
       role="group"
       aria-label={heading}
     >
-      <div className="px-4 sm:px-6 pt-4 pb-3 border-b bg-white sticky top-0 z-20 mx-2">
+      <div className="px-4 sm:px-6 pt-4 pb-3 border-b  sticky top-0 z-20 mx-2">
         <h2 className="text-lg sm:text-xl font-semibold tracking-tight">{heading}</h2>
         {subheading && (
           <p className="text-sm text-gray-600 mt-1 leading-relaxed">{subheading}</p>
         )}
       </div>
-      {/* Let parent (MultiStepForm) control scrolling */}
-      <div className="px-4 sm:px-6 py-4 space-y-4 relative z-10 overflow-hidden">
+      <div className="px-4 sm:px-6 py-4 space-y-4 relative z-10 ">
         {children}
       </div>
     </section>

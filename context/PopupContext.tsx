@@ -31,24 +31,24 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
-    const showToast = useCallback((message: string='', type: ToastType = 'info', duration: number = 4000) => {
+    const showToast = useCallback((message: string = '', type: ToastType = 'info', duration: number = 4000) => {
+        if (!message) return;
+        setToasts(prev => {
+            const isDuplicate = prev.some(t => t.message === message && t.type === type);
+            if (isDuplicate) return prev; // Return existing state, NO re-render triggered
+
         const id = Math.random().toString(36).substring(2, 9);
-        const newToast: Toast = {
-            id,
-            message,
-            type,
-            duration
-        };
+            const newToast = { id, message, type, duration };
 
-        setToasts(prev => [...prev, newToast]);
-
-        // Auto-hide toast after duration
         if (duration > 0) {
             setTimeout(() => {
                 hideToast(id);
             }, duration);
         }
-    }, [hideToast]);
+
+            return [...prev, newToast];
+        });
+    }, [hideToast])
 
     const clearAllToasts = useCallback(() => {
         setToasts([]);

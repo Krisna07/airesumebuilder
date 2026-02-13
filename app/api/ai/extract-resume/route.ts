@@ -1,20 +1,33 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
 export async function POST(req: NextRequest) {
     try {
+        let userId: string
+        try {
+            ({ userId } = await requireUserSession())
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
+        try {
+            await assertQuota(userId, 'upload')
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
         const body = await req.json();
         const { text } = body;
         if (!text) {
             return NextResponse.json({ error: 'No text provided' }, { status: 400 });
         }
-
-        // Call the AI function to process the text
         const structuredData = await AIService.generateResume(undefined, text);
 
         if (!structuredData) {
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
         }
+        await consumeUsage(userId, 'upload')
         return NextResponse.json({
             status: 200,
             message: 'Resume data extracted successfully',

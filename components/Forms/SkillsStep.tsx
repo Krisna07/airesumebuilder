@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import Input from "../Input";
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 import { FaTimes } from "react-icons/fa";
 import { skills } from "@/types/types";
 import { useToast } from "@/context/PopupContext";
@@ -19,29 +19,43 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
 
   const addSkill = (e: React.FormEvent) => {
     e.preventDefault();
-    if (skill) {
-      const existingType = skillsList.find((s) => s.type === type);
-      if (existingType) {
-        // If the type exists, add the skill to that type
-        if (!existingType.skills?.includes(skill)) {
-          const updatedSkills = skillsList.map((item) => (item.type === type ? { ...item, skills: [...(item.skills || []), skill] } : item));
-          setSkills(updatedSkills);
-          updateSkills(updatedSkills);
-        } else {
-          toast.showToast('Duplicate skill', 'warning', 3000)
-        }
-      } else {
-        // If the type does not exist, create a new entry
-        const newSkill = { type: type || 'General', skills: [skill] };
-        setSkills((prevState) => [...prevState, newSkill]);
-        updateSkills([...skillsList, newSkill]);
-      }
-      setSkill(''); // Clear the skill input
-      // Clear the type input
-    } else {
-                toast.showToast('Skills cannot be empty', 'warning', 3000)
 
+    if (!skill) {
+      toast.showToast('Skills cannot be empty', 'warning', 3000);
+      return;
     }
+
+    // Split by comma and trim whitespace
+    const skillsToAdd = skill.split(',').map(s => s.trim()).filter(s => s);
+
+    let updatedSkills = [...skillsList];
+    const skillType = type || 'General';
+
+    for (const skillToAdd of skillsToAdd) {
+      const existingType = updatedSkills.find((s) => s.type === skillType);
+
+      if (existingType) {
+        // If the type exists, check for duplicates
+        if (existingType.skills?.includes(skillToAdd)) {
+          toast.showToast(`Duplicate skill: ${skillToAdd}`, 'warning', 3000);
+          continue;
+        }
+        // Add skill to existing type
+        updatedSkills = updatedSkills.map((item) =>
+          item.type === skillType
+            ? { ...item, skills: [...(item.skills || []), skillToAdd] }
+            : item
+        );
+      } else {
+        // Create new type entry
+        updatedSkills.push({ type: skillType, skills: [skillToAdd] });
+      }
+    }
+
+    setSkills(updatedSkills);
+    updateSkills(updatedSkills);
+    setSkill('');
+    setType('');
   };
 
   const removeSkill = (skillToRemove: string) => {
@@ -64,18 +78,18 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
-        {skillsList.length &&
+        {skillsList.length > 0 &&
           skillsList.map(({ type, skills }, index) => (
-            <div key={index} className=' grid bg-gray-100 px-2 text-sm gap-2 w-full p-4'>
+            <div key={index} className=' grid  px-2 text-sm gap-2 w-full p-4 dark:shadow-[0_0_2px_0_white] shadow-[0_0_2px_0_gray] rounded-2xl'>
               <h3 className='w-full flex items-center justify-between '>
                 <span className='font-semibold'>{type || 'General'}</span>
                 <FaTimes color='red' onClick={() => removeType(type || 'General')} />
               </h3>
               {/* Remove type button */}
               <div className='flex flex-wrap items-center gap-2'>
-                {skills?.length &&
+                {skills && skills.length > 0 &&
                   skills?.map((skill, i) => (
-                    <span key={i} className='bg-gray-300 whitespace-nowrap flex items-center gap-2 px-2 rounded-full leading-4 py-1'>
+                    <span key={i} className=' whitespace-nowrap flex items-center gap-2 px-2 rounded-full leading-4 py-1'>
                       {skill} <FaTimes onClick={() => removeSkill(skill)} />
                     </span>
                   ))}
@@ -83,7 +97,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
             </div>
           ))}
       </div>
-      <form onSubmit={addSkill} className='w-full grid gap-4'>
+      <form onSubmit={addSkill} className='w-full grid gap-4 shadow'>
         <Input type='text' name='type' value={type} onChange={(e) => setType(e.target.value)} placeholder='Enter skill type (optional)' />
         <Input type='text' name='skill' value={skill} onChange={(e) => setSkill(e.target.value)} placeholder='Add a skill' />
         <Button type='submit' variant='secondary' size='small' fullWidth={false}>

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ResumeData } from '@/types/types';
-import { ResumeService } from '@/services/resumeServices';
 import { generateTemplateHTML } from '@/lib/template-utils';
 
 type ResumePreviewProps = {
@@ -12,6 +11,7 @@ type ResumePreviewProps = {
   /** Optional: target height for the preview container (default: 80vh) */
   height?: string | number;
   regenerating?:boolean;
+  className?: string; // Add className prop
 };
 
 const PAGE_WIDTH_PX = 794; // ~210mm at 96dpi
@@ -19,42 +19,23 @@ const PAGE_HEIGHT_PX = 1123; // ~297mm at 96dpi
 
 const ResumePreview: React.FC<ResumePreviewProps> = ({
   resumeData,
-  resumeId,
   template,
   height = '60vh',
-  regenerating
+  regenerating,
+  className,
 }) => {
   const [data, setData] = useState<ResumeData | undefined>(resumeData);
-  const [loading, setLoading] = useState(!resumeData && !!resumeId);
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [docHeight, setDocHeight] = useState<number>(PAGE_HEIGHT_PX);
 
-  // Fetch when only id is provided
+  // Sync local state when resumeData prop is provided
   useEffect(() => {
-    let active = true;
-    if(resumeData){
-      return setData(resumeData)
+    if (resumeData) {
+      setData(resumeData);
     }
-    // console.log(data)
-    const fetchResume = async (id: string) => {
-      setLoading(true);
-      try {
-        const response = await ResumeService.getSingle(id);
-        const json = await response.json();
-        if (!active) return;
-        if (response.ok) {
-          setData(json.data);
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    if (!resumeData && resumeId) fetchResume(resumeId);
-    return () => {
-      active = false;
-    };
-  }, [resumeData, resumeId]);
+  }, [resumeData]);
 
   // Responsive scaling: fit A4 into container width (cap at 1)
   useEffect(() => {
@@ -89,13 +70,27 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     return generateTemplateHTML(template, data);
   }, [data, template]);
 
-  if (loading) {
-    return (
-      <div className="w-full flex items-center justify-center" style={{ height }}>
-        <div className="text-gray-600">Loading preview…</div>
-      </div>
-    );
-  }
+  // Measure iframe content to show full length (multi-page preview)
+  useEffect(() => {
+    const measure = () => {
+      const iframe = iframeRef.current;
+      const body = iframe?.contentDocument?.body;
+      if (!body) return;
+      const scrollHeight = Math.max(body.scrollHeight, PAGE_HEIGHT_PX);
+      setDocHeight(scrollHeight);
+    };
+
+    // Re-measure shortly after content changes
+    const handle = setTimeout(measure, 80);
+    return () => clearTimeout(handle);
+  }, [srcDoc]);
+
+  const handleIframeLoad = () => {
+    const body = iframeRef.current?.contentDocument?.body;
+    if (!body) return;
+    const scrollHeight = Math.max(body.scrollHeight, PAGE_HEIGHT_PX);
+    setDocHeight(scrollHeight);
+  };
 
   if (!data) {
     return (
@@ -108,20 +103,20 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   return (
     <div
       ref={containerRef}
-      className="overflow-hidden min-h-fit flex justify-center relative p-4"
+      className={`overflow-hidden max-w-full min-h-fit aspect-3/4 flex justify-center relative p-4 ${className}`}
       aria-busy={!!regenerating}
     >
       <div
         className="relative z-0"
         style={{
           width: PAGE_WIDTH_PX * scale,
-          height: PAGE_HEIGHT_PX * scale,
+          height: docHeight * scale,
         }}
       >
         <div
           style={{
             width: PAGE_WIDTH_PX,
-            height: PAGE_HEIGHT_PX,
+            height: docHeight,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
           }}
@@ -129,9 +124,11 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           <iframe
             title="Resume Preview"
             loading="lazy"
+            ref={iframeRef}
+            onLoad={handleIframeLoad}
             style={{
               width: PAGE_WIDTH_PX,
-              height: PAGE_HEIGHT_PX,
+              height: docHeight,
               border: '1px solid #e5e7eb',
               borderRadius: 12,
               background: '#fff',

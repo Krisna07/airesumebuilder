@@ -1,197 +1,148 @@
-'use client';
-import Button from '@/components/UI/Button';
-import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
-import { File, Plus, Rocket, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/authContext';
-import { ResumeService } from '@/services/resumeServices';
-import { useToast } from '@/context/PopupContext';
-import { useRouter } from 'next/navigation';
-import { ResumeData } from '@/types/types';
-import GuestUser from '@/components/BuilderComponents/GuestUser';
-import { PreviewContainer } from '@/components/BuilderComponents/PreviewContainer';
-import LoadingResumeState from '@/components/BuilderComponents/LoadingResumeState';
+"use client"
+import Button from "@/components/Ui/Button"
+import Link from "next/link"
+import { useState, useCallback, useMemo } from "react"
+import { File, Plus, Rocket, Loader2 } from "lucide-react"
+import { useAuth } from "@/context/authContext"
+import { ResumeService } from "@/services/resumeServices"
+import { useRouter } from "next/navigation"
+import GuestUser from "@/components/BuilderComponents/GuestUser"
+import { PreviewContainer } from "@/components/BuilderComponents/PreviewContainer"
+import LoadingResumeState from "@/components/BuilderComponents/LoadingResumeState"
+import { useQuery } from "@tanstack/react-query"
+import { toast } from "react-toastify"
 
 const Page = () => {
-  const { user, loading } = useAuth();
-  const toast = useToast();
-  const { showToast } = toast;
-  const [resumes, setResumes] = useState<ResumeData[] | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [initialFetched, setInitialFetched] = useState(false);
-  const router = useRouter(); // Fixed: was 'route', should be 'router'
+  const { user, loading: authLoading } = useAuth()
+  const [creating, setCreating] = useState(false)
+  const router = useRouter()
 
-  useEffect(() => {
-    if (!(loading || (user && !initialFetched))) return;
-    const interval = setInterval(() => { }, 55);
-    return () => clearInterval(interval);
-  }, [loading, initialFetched, user]);
+  const {
+    data: resumes,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["resumeData", user?.id],
+    queryFn: () => ResumeService.getAll(user!.id),
+    enabled: !!user, // Only run query when user exists
+    staleTime: 30000, // Cache for 30 seconds
+  })
 
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-
-    const fetchResumes = async () => {
-      try {
-        const response = await ResumeService.getAll(user.id);
-        const data = await response.json();
-        if (!response.ok) {
-          if (active) {
-            showToast(response.statusText || 'Failed to load resumes', 'error', 3500);
-            setResumes([]);
-          }
-          return;
-        }
-        if (active) setResumes(data.data || []);
-      } catch (error) {
-        console.error('Error fetching resumes:', error);
-        if (active) {
-          showToast('Network error loading resumes', 'error', 3500);
-          setResumes([]);
-        }
-      } finally {
-        if (active) setInitialFetched(true);
-      }
-    };
-
-    fetchResumes();
-
-    return () => {
-      active = false;
-    };
-  }, [user, showToast]);
-
-  // Only show loading when we are still resolving auth or fetching resumes for a logged-in user.
-  const isInitialLoading = (loading && user !== null) || (user && !initialFetched);
-
-  // If auth finished and there's no user, consider loading done to avoid blank page
-  useEffect(() => {
-    if (!loading && !user && !initialFetched) {
-      setInitialFetched(true);
+  useMemo(() => {
+    if (isError && error) {
+      toast.error(error.message || "Failed to load resumes")
     }
-  }, [loading, user, initialFetched]);
+  }, [isError, error])
 
-  if (isInitialLoading) {
-    return (
-      <LoadingResumeState />
-    );
-  }
+  const handleCreateResume = useCallback(async () => {
+    if (creating || !user) return
 
-  if (user) {
-    const handleCreateResume = async () => {
-      setCreating(true);
-      try {
-        const response = await ResumeService.create(user.id);
-        const data = await response.json();
-        if (!response.ok) {
-          showToast(response.statusText, 'error', 3000);
-          return;
-        }
-        router.push(`/builder/${data.data.id}`); // Fixed: using router instead of route
-        toast.showToast('Resume created successfully', 'success', 3000);
-      } catch (error) {
-        console.error('Error creating resume:', error);
-        toast.showToast('Error creating resume', 'error', 3000);
-      } finally {
-        setCreating(false);
+    setCreating(true)
+    try {
+      const response = await ResumeService.create(user.id)
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.message || response.statusText)
+        return
       }
-    };
 
-    const handleResumeDeleted = (id: string) => {
-      setResumes((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
-    };
+      toast.success("Resume created successfully")
+      router.push(`/builder/${data.data.id}`)
+    } catch (err) {
+      console.error("Error creating resume:", err)
+      toast.error("Error creating resume")
+    } finally {
+      setCreating(false)
+    }
+  }, [creating, user, router])
 
-    return (
-      <section className='w-full flex items-center justify-center '>
-        <div className={`p-4 w-full min-[850px]:w-[850px]   ${resumes && resumes.length ? 'place-self-start' : 'md:place-self-end'}   transition-opacity duration-300 anim-fade-in-soft`}>
-          {resumes && resumes.length ? (
-            <>
-              <div className='w-full flex items-center justify-between  '>
-                <h3 className='w-full text-left font-medium text-2xl border-b border-gray-400 mb-4'>
-                  All Resumes <span className='font-bold text-[12px]'>{resumes.length} in total</span>
-                </h3>
-              </div>
-              <div className='w-full h-fit grid grid-cols-3 max-[500px]:grid-cols-2 gap-4 items-start justify-center mb-16'>
-                {resumes.map((resume, index) => (
-                  <PreviewContainer
-                    resume={resume}
-                    toast={toast}
-                    index={index}
-                    key={resume.id}
-                    onDeleted={handleResumeDeleted}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              {!initialFetched ? (
-                <div className='grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4'>
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className='h-[300px] max-w-[250px] w-full rounded-2xl shadow-inner bg-gray-100 skeleton-shimmer' />
-                  ))}
-                </div>
-              ) : (
-                <div className='text-center mb-6 px-4'>
-                  <h1 className='text-2xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-2'>
-                        Let&apos;s get started <Rocket className='animate-pulse' />
-                  </h1>
-                      <p className='text-gray-600 max-w-md mx-auto'>
-                        Create your first resume to begin. You can always add, edit, preview or delete drafts later.
-                      </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+  const handleResumeDeleted = useCallback(async () => {
+    await refetch()
+  }, [refetch])
 
-        <div className='w-full grid place-items-center place-self-end md:place-self-start  p-4 gap-2 fixed bottom-0 bg-white'>
-          <div className='flex gap-2 items-center'>
-            <Button
-              variant='primary'
-              size='medium'
-              onClick={handleCreateResume}
-              disabled={creating}
-              className={`${creating ? 'animate-pulse' : ''}`}
-            >
-              {creating ? (
-                <span className='flex items-center gap-2'>
-                  <Loader2 className='h-4 w-4 animate-spin' /> Creating...
-                </span>
-              ) : (
-                <span className='flex items-center gap-2'>
-                  <Plus className='h-4 w-4' /> Add New
-                </span>
-              )}
-            </Button>
-            <Link href={'/builder/build'} className='flex-1'>
-              <Button variant='secondary' size='medium'>
-                <File /> Upload Existing PDF
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-    );
+  // Loading state
+  if (authLoading || (user && isPending)) {
+    return <LoadingResumeState />
   }
 
-  if (!user && !loading) {
+  // Guest user state
+  if (!user) {
     return (
-      <section className='w-full min-h-[70vh] flex flex-col items-center justify-center gap-6 px-4 text-center anim-fade-in-soft'>
-        <div className='space-y-2 max-w-md'>
-          <h1 className='text-2xl md:text-3xl font-bold tracking-tight text-gray-900'>
-            Create Your First AI‑Ready Resume
+      <section className="w-full min-h-[70vh] flex flex-col items-center justify-center gap-6 px-4 text-center anim-fade-in-soft">
+        <div className="space-y-2 max-w-md">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Create Your First AI-Ready Resume
           </h1>
-          <p className='text-gray-600 text-sm md:text-base leading-relaxed'>
-            Sign in to build, analyze and optimize resumes with automated job description matching.
+          <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed">
+            <Link href={'/auth/signin'} className="text-blue-500 underline">Sign in</Link> to save, analyze and optimize your resumes with automated job description matching.
           </p>
         </div>
         <GuestUser />
       </section>
-    );
+    )
   }
 
-  return null; // Fallback return
-};
+  // Logged in user state
+  const hasResumes = resumes && resumes.length > 0
 
-export default Page;
+  return (
+    <section className="w-full flex items-center justify-center dark:text-white">
+      <div
+        className={`p-4 w-full max-w-[850px] ${hasResumes ? "place-self-start" : "md:place-self-end"} transition-opacity duration-300 anim-fade-in-soft`}
+      >
+
+        {hasResumes ? (
+          <>
+            <div className="w-full flex items-center justify-between">
+              <h3 className="w-full text-left font-medium text-2xl border-b border-gray-300 dark:border-slate-600 mb-4 pb-2">
+                All Resumes{" "}
+                <span className="font-bold text-xs text-gray-500 dark:text-gray-400">{resumes.length} in total</span>
+              </h3>
+            </div>
+            <div className="w-full h-fit grid grid-cols-3 max-[500px]:grid-cols-2 gap-4 items-start justify-center mb-20">
+              {resumes.map((resume) => (
+                <PreviewContainer key={resume.id} resume={resume} onDeleted={handleResumeDeleted} />
+              ))}
+            </div>
+          </>
+        ) : (
+            <div className="text-center mb-6 px-4">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-center gap-2">
+                Let&apos;s get started <Rocket className="animate-pulse text-teal-500" />
+              </h1>
+            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+              Create your first resume to begin. You can always add, edit, preview or delete drafts later.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed bottom action bar */}
+      <div className="w-full grid place-items-center place-self-end md:place-self-start p-4 gap-2 fixed bottom-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-slate-700">
+        <div className="flex gap-2 items-center">
+          <Button variant="primary" size="medium" onClick={handleCreateResume} disabled={creating}>
+            {creating ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Creating...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Add New
+              </span>
+            )}
+          </Button>
+          <Link href="/builder/build">
+            <Button variant="secondary" size="medium">
+              <File className="h-4 w-4" /> Upload Existing PDF
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export default Page

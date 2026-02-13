@@ -4,8 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-   directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -16,12 +14,14 @@ model User {
   image     String?
   provider  String?  // 'credentials', 'google', 'github'
   providerId String? // Provider's user ID
+  isVerified Boolean?
+  verifications Verification[]
+  subscription Subscription?
+    usageHistory UsageHistory?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   resumes   Resume[]
   jobDescriptions JobDescription[]
-
-
 }
 
 model Resume {
@@ -68,4 +68,51 @@ model AnalysisResult {
   resume           Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
   jobDescription   JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
   @@unique([resumeId, jobDescriptionId])
+}
+
+model Verification {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+enum Plan {
+  FREE
+  SUPPORTER
+  ULTIMATE
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  plan          Plan     @default(FREE)
+
+  // Usage Tracking
+  regenCount    Int      @default(0)
+  downloadCount Int      @default(0)
+  clCount       Int      @default(0)
+  analysisCount Int      @default(0)
+  uploadCount   Int      @default(0)
+
+  lastResetDate DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UsageHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  regenTotal    Int      @default(0)
+  downloadTotal Int      @default(0)
+  clTotal       Int      @default(0)
+  analysisTotal Int      @default(0)
+  uploadTotal   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId])
 }

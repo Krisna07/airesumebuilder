@@ -1,6 +1,5 @@
 import { ResumeData } from "@/types/types";
 
-
 export class LocalResumeService {
     static async save(userId: string, resumeId: string, emptyData: ResumeData) {
         // console.log('saving local resume', emptyData);
@@ -25,12 +24,8 @@ export class LocalResumeService {
         }
     }
 
-    static async create(data?: Partial<ResumeData>, userId?: string, template?: string) {
-        // console.log('creating local resume');
-        // const prevResume = await localStorage.getItem('guest-resume');
-        // if (prevResume) {
-        //     return 'guest-resume'
-        // }
+    static async create(template?: string, data?: Partial<ResumeData>, userId?: string) {
+
         const resumeId = 'guest-resume';
         const selectedTemplate = template || 'Classic';
         const emptyData: ResumeData = {

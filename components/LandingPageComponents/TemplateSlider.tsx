@@ -1,47 +1,142 @@
-import React from 'react'
-import dummyResume from '@/app/data/dummyResume.json';
+
+import dummyResume from './../../app/data/dummyResume.json'
 import ResumePreview from '../Templates/ResumePreview';
-import Button from '../UI/Button';
-import Link from 'next/link';           
+import Button from '../Ui/Button';
+
+import { ArrowRight, Check } from 'lucide-react';
+;
+import { useAuth } from '@/context/authContext';
+import { LocalResumeService } from '@/services/localResumeService';
+import { ResumeService } from '@/services/resumeServices';
+import { useState } from 'react';
+import { useToast } from '@/context/PopupContext';
+
 
 const TemplateSlider = () => {
-  const getDummyData = () => JSON.parse(JSON.stringify(dummyResume));
-  const dummyData = getDummyData();
+  const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mockResume: any = {
+    ...dummyResume
+  }
   const templates = [
-    { name: 'default' },
-    { name: 'modern' },
-    { name: 'classic' },
-    { name: 'minimal' },
-    { name: 'template01' },
-    { name: 'template02' }
-  ];
+    {
+      id: "professional",
+      name: "Professional",
+      description: "Clean and corporate, perfect for traditional industries.",
+      tags: ["ATS-Friendly", "Corporate"],
+      color: "bg-slate-800",
+    },
+    {
+      id: "modern",
+      name: "Modern",
+      description: "Contemporary design with a creative edge.",
+      tags: ["Creative", "Stylish"],
+      color: "bg-teal-600",
+    },
+    {
+      id: "minimal",
+      name: "Minimal",
+      description: "Simple and elegant, lets your content shine.",
+      tags: ["Clean", "Simple"],
+      color: "bg-slate-600",
+    },
+    {
+      id: "executive",
+      name: "Executive",
+      description: "Sophisticated layout for senior positions.",
+      tags: ["Leadership", "Premium"],
+      color: "bg-slate-900",
+    }
+  ]
+  const { user } = useAuth()
+  const { showToast } = useToast()
+  const [creating, setCreating] = useState<boolean>(false)
+  const handleCreateResume = async (template: string) => {
+    setCreating(true)
+    const loggedInUser = user
+    if (!loggedInUser) {
+      LocalResumeService.create(undefined, undefined, template)
+      window.location.href = ('/builder/guest-resume')
+      setCreating(false)
+      return
+    }
+
+    try {
+      const response = await ResumeService.create(loggedInUser.id, template)
+      const data = await response.json()
+
+      if (!response.ok) {
+        showToast(data.message || response.statusText, 'error')
+        return
+      }
+
+      showToast("Resume created successfully", 'success')
+      window.location.href = (`/builder/${data.data.id}`)
+    } catch (err) {
+      console.error("Error creating resume:", err)
+      showToast("Error creating resume", 'error')
+    } finally {
+      setCreating(false)
+    }
+  }
+
 
   return (
-    <div className='w-full grid gap-4 my-4 place-items-center text-center'>
-      <h2 className='w-full min-[500px]:w-[500px] text-2xl font-semibold'>Select From Design and Start Building your Resume</h2>
-      <div className='w-full md:grid flex md:grid-cols-3 p-2 gap-2  md:overflow-hidden overflow-x-scroll rounded-xl'>
-        {templates.map((t) => (
-          <div key={t.name} className='group relative min-w-[300px] md:min-w-full py-4 h-[400px] bg-white rounded-xl overflow-hidden shadow-[0_0_2px_0_gray] hover:shadow-[0_0_4px_0_green]'>
-            {/* Preview */}
-            <div className='h-full w-full transition-all duration-300 group-hover:blur-[2px]'>
-              <ResumePreview template={t.name} resumeData={dummyData} />
-            </div>
+    <div className='w-full md:grid flex md:grid-cols-3 p-2 gap-2 space-y-2 md:overflow-hidden overflow-x-scroll hide-scrollbar rounded-xl'>
+      {templates.map((template) => (
+        <div
+          key={template.id}
+          className="group relative"
+          onMouseEnter={() => setHoveredTemplate(template.id)}
+          onMouseLeave={() => setHoveredTemplate(null)}
+        >
+          {/* Template Preview */}
+          <div
+            className={`rounded-xl p-2 bg-white shadow relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl h-80 sm:h-[360px] md:h-[420px] sm:w-[300px] w-60 md:w-[360]`}
+          >
 
-            {/* Hover overlay */}
-            <div className='pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:translate-y-2 transition-all duration-300'>
-              <Link href={`/builder`} className='pointer-events-auto'>
-                <Button variant='primary' size='medium'>
-                  Start Building
+
+            <ResumePreview
+              resumeData={mockResume}
+              template={template.name}
+              className='p-0! w-full h-full aspect-3/4! pointer-events-none rounded'
+            />
+
+            <div
+              className={`absolute inset-0 bg-teal-600/20 flex items-center justify-center transition-opacity duration-300 ${hoveredTemplate === template.id || creating ? "opacity-100" : "opacity-0"}`}
+            >
+              <div onClick={() => handleCreateResume(template.name)}>
+                <Button variant="primary" size="small" >
+                  {creating ? "Creating" : ' Use Template'}
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
-              </Link>
+              </div>
             </div>
-
-            {/* Template label */}
-            <div className='absolute top-2 left-2 text-xs font-medium bg-white/80 backdrop-blur px-2 py-1 rounded shadow'>{t.name}</div>
           </div>
-        ))}
-      </div>
+
+          {/* Template Info */}
+          < div className="mt-4" >
+            <h3 className="font-semibold text-slate-900 dark:text-white">{template.name}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{template.description}</p>
+
+            {/* Tags */}
+            < div className="flex flex-wrap items-center justify-center gap-2 mt-3" >
+              {
+                template.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
+                  >
+                    <Check className="w-3 h-3" />
+                    {tag}
+                  </span>
+                ))
+              }
+            </div>
+          </div >
+        </div >))
+      }
     </div>
   );
 };

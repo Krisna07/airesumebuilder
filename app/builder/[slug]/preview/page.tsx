@@ -6,35 +6,43 @@ import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/type
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X, FileUser, FileSliders } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X, FileUser, FileSliders, Copy } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
-import Button from '@/components/UI/Button';
-import ConfirmDialog from '@/components/UI/ConfirmDialog';
+import Button from '@/components/Ui/Button';
+import ConfirmDialog from '@/components/Ui/ConfirmDialog';
 import Templates from '@/components/Templates/templates';
-import JobAnalysisReport from '@/components/UI/JobAnalysisReport';
+import JobAnalysisReport from '@/components/Ui/JobAnalysisReport';
 import { FaMagnifyingGlass } from 'react-icons/fa6';
 import ReportsPanel from './ReportsPanel';
 import TemplatesPanel from './TemplatesPanel';
 import MenuPanel from './MenuPanel';
-import { JobDescriptionService } from '@/services/jdServices';
 import JobDescription from '@/components/Forms/JobDescription';
+import { useJobDescriptions } from '@/hooks/useJobDescriptions';
+import { useGetResume } from '@/hooks/useResume';
+import { JobDescriptionService } from '@/services/jdServices';
+import { ResumeCache } from '@/lib/resumeCache';
 
 
-const sanitizeFile = (s: string) =>
-  s
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^\w.\-]+/g, '');
+const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
 
 const PreviewPage = () => {
   const params = useParams();
   const slug = (params?.slug ?? "") as string;
-  const { user, loading: authLoading } = useAuth();
+  const { user, getSubscription } = useAuth();
   const { showToast } = useToast();
-  const [resumeData, setResumeData] = useState<ResumeData>();
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
-  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>('loading');
-  const [showFallback, setShowFallback] = useState(false); // delay gate for not-found
+  const [resumeData, setResumeData] = useState<ResumeData | undefined>(() => {
+    // Load from cache FIRST for instant preview
+    const cached = ResumeCache.get(slug);
+    return cached?.data;
+  });
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(() => {
+    const cached = ResumeCache.get(slug);
+    return cached?.data.template ?? 'modern';
+  });
+  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>(() => {
+    const cached = ResumeCache.get(slug);
+    return cached?.data ? 'ready' : 'loading';
+  });
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -50,58 +58,14 @@ const PreviewPage = () => {
   const [generatingCoverLetter, setRegeneratingCoverLetter] = useState(false)
   const [coverLetter, setCoverLetter] = useState<any>()
   const [showCoverLetter, setShowCoverLetter] = useState(false)
+  const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const menuRef = useRef<HTMLDivElement | null>(null);
   const reportsRef = useRef<HTMLDivElement | null>(null);
   const templatesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
-  const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
 
-  const fetchDescription = React.useCallback(async (slug: string) => {
-    if (user) {
-      const analysisItem = []
-      const response = await JobDescriptionService.getAll(user.id, slug)
-      if (response.status !== 200) {
-        showToast('Unable to fetch all previous Job desctiptions', 'error', 3000)
-      }
-      const data: JobDetailsWithAnalysis[] = response.data
-
-      for (const details of data) {
-        if (details.hasAnalysed) {
-          const analysis = details.analysis
-          if (analysis) {
-            const parsed = JSON.parse(analysis.result as string)
-            analysisItem.push({
-              ...parsed,
-              _analysisId: analysis.id,
-              _jobDescriptionId: details.id,
-              _analysedDate: analysis.updatedAt
-            } as AnalysisResult & { _analysisId?: string; _jobDescriptionId?: string; analysedDate: string })
-          }
-        }
-      }
-
-      if (analysisItem.length > 0) {
-        setAnalysisData(analysisItem)
-      }
-      setJobDetails(response.data)
-    }
-  }, [showToast, user]);
-
-  const extractResumeData = React.useCallback(async (active: boolean, slug: string) => {
-    const response = await ResumeService.getSingle(slug)
-    const data = await response.json()
-    if (!response.ok || !data?.data) {
-      // Important: Only mark not-found AFTER auth loading false AND we have confirmed user exists
-      setStatus('not-found');
-      showToast('No resume data found', 'warning', 2500);
-      return;
-    }
-
-    setResumeData(data.data);
-    setSelectedTemplate(data.data.template);
-    const hasMinimum = !!(data.data.profile?.fullname && data.data.profile?.email);
-    setStatus(hasMinimum ? 'ready' : 'incomplete');
-  }, [showToast]);
+  const response = useJobDescriptions(user ? user.id : '', slug)
+  const resumeResponse = useGetResume(slug)
 
   const loadLocalResume = React.useCallback(() => {
     const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;
@@ -121,6 +85,46 @@ const PreviewPage = () => {
   }, [slug]);
 
   useEffect(() => {
+    if (!user) {
+      return loadLocalResume()
+    }
+
+    if (resumeResponse.isFetched && resumeResponse.isError) {
+      // avoid re-setting identical status/toast repeatedly
+      setStatus(prev => (prev === 'not-found' ? prev : 'not-found'));
+      showToast(resumeResponse.error?.message || 'No resume data found', 'warning', 2500);
+      return;
+    }
+
+    if (resumeResponse.isSuccess && resumeResponse.data) {
+      const resume = resumeResponse.data
+      // only update local state if data changed
+      setResumeData(prev => {
+        if (prev && prev.id === resume.id) return prev;
+        setSelectedTemplate(resume.template);
+        const hasMinimum = !!(resume.profile?.fullname && resume.profile?.email);
+        setStatus(hasMinimum ? 'ready' : 'incomplete');
+        return resume;
+      })
+    }
+    // watch only primitive flags and stable callbacks to avoid effect instability
+  }, [resumeResponse.isFetched, resumeResponse.isError, resumeResponse.isSuccess, user, loadLocalResume, showToast, resumeResponse.data, resumeResponse.error?.message])
+
+  // Load local coverletter once on mount
+  useEffect(() => {
+    const localCoverletter = typeof window !== 'undefined' ? localStorage.getItem('coverLetter') : null;
+    if (typeof localCoverletter === 'string') {
+      try {
+        const localData = JSON.parse(localCoverletter);
+        setCoverLetter(localData);
+      } catch (err) {
+        console.warn('Failed to parse local cover letter', err);
+      }
+    }
+  }, []);
+
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node | null;
       // ignore clicks from top bar icons
@@ -138,7 +142,6 @@ const PreviewPage = () => {
 
     const handleScroll = () => {
       showMenu(false);
-      // showReports(false);
       setShowTemplates(false);
 
     };
@@ -152,67 +155,52 @@ const PreviewPage = () => {
   }, [menu, reports, showTemplates, showToast]);
 
 
-
+  // Process job descriptions when the query completes successfully
   useEffect(() => {
-    let active = true;
-    if (!slug) return;
-    setStatus('loading');
-    const fetchResume = async () => {
-      if (!active) return;
-      // If auth still resolving, keep loading skeleton regardless of slug
-      if (authLoading) {
-        setStatus('loading');
-        return;
-      }
-      // Guest path (user null after auth resolved -> guest or signed out)
-      if (!user) {
-        loadLocalResume()
-      }
-      // Authenticated path
-      try {
-        await Promise.all([extractResumeData(active, slug), fetchDescription(slug)])
-        active = false
-      } catch (err) {
-        if (active) {
-          console.error('Error loading resume data:', err);
-          showToast('Error loading resume. Redirecting…', 'error', 2500);
-          setStatus('error');
-          // setTimeout(() => (window.location.href = '/builder'), 600);
+    if (!response || !response.isSuccess || !response.data) return;
+    const data: JobDetailsWithAnalysis[] = response.data.data || [];
+    setJobDetails(data)
+    const analysisItem: any[] = [];
+    for (const details of data) {
+      if (details.hasAnalysed) {
+        const analysis = details.analysis;
+        if (analysis) {
+          try {
+            const parsed = typeof analysis.result === 'string' ? JSON.parse(analysis.result as string) : analysis.result;
+            analysisItem.push({
+              ...parsed,
+              _analysisId: analysis.id,
+              _jobDescriptionId: details.id,
+              _analysedDate: analysis.updatedAt,
+              _company: details.company,
+              _title: details.title,
+              _url: details.url,
+              _jobCreatedDate: details.cretedAt
+            });
+          } catch (err) {
+            console.warn('Failed to parse analysis result for', details.id, err);
+          }
         }
       }
-    };
-
-    fetchResume();
-    const localCoverletter = typeof window !== 'undefined' ? localStorage.getItem('coverLetter') : null;
-    if (typeof localCoverletter === 'string') {
-      try {
-        const localData = JSON.parse(localCoverletter);
-        setCoverLetter(localData);
-      } catch (err) {
-        console.warn('Failed to parse local cover letter', err);
-      }
     }
-    return () => {
-      active = false;
-    };
-  }, [slug, user, authLoading, showToast]);
-
-  useEffect(() => {
-    if (status === 'not-found') {
-      const timer = setTimeout(() => setShowFallback(true), 250); // slight delay to suppress flash
-      return () => clearTimeout(timer);
-    } else if (showFallback) {
-      setShowFallback(false);
+    if (analysisItem.length > 0) {
+      setAnalysisData(analysisItem);
     }
-  }, [status, showFallback]);
+  }, [response.isSuccess, response.data]);
 
   const handleTemplateChange = async (templateId: string) => {
     if (!resumeData) return;
     setPendingUpdate(true);
     setSelectedTemplate(templateId);
+
+    // Update cache immediately (optimistic update)
+    const updatedData = { ...resumeData, template: templateId };
+    ResumeCache.set(slug, updatedData, true);
+
     if (typeof window !== 'undefined' && user) {
       try {
-        await ResumeService.save(user.id, slug, templateId, resumeData);
+        await ResumeService.save(user.id, slug, templateId, updatedData);
+        ResumeCache.markSynced(slug);
         showToast('Template updated', 'success', 1500);
       } catch {
         showToast('Failed to save template', 'error', 2000);
@@ -225,20 +213,29 @@ const PreviewPage = () => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!resumeData) return;
+    if (!resumeData) {
+      showToast('Resume data not available', 'error', 2000);
+      return;
+    }
     if (!user) {
       showToast('Please login to use this feature', 'warning', 3000);
       return;
     }
-    setDownloading(true)
+
+    // Use cached data if available (faster)
+    const cached = ResumeCache.get(slug);
+    const dataToUse = (cached?.data ?? resumeData)!;
+
+    setDownloading(true);
     setRegenerating(true);
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          resumeData,
-          template: selectedTemplate, // FIX: pass the actual template id/string
+          resumeData: dataToUse,
+          template: selectedTemplate,
         }),
       });
 
@@ -247,7 +244,7 @@ const PreviewPage = () => {
         console.error('❌ PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
         setDownloading(false);
-        setRegenerating(false)
+        setRegenerating(false);
         return;
       }
 
@@ -259,7 +256,7 @@ const PreviewPage = () => {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const name = sanitizeFile(resumeData.profile.fullname || 'Resume');
+      const name = sanitizeFile(dataToUse.profile.fullname || 'Resume');
       a.href = url;
       a.download = `${name}_${selectedTemplate}.pdf`;
       document.body.appendChild(a);
@@ -268,7 +265,9 @@ const PreviewPage = () => {
       document.body.removeChild(a);
       showToast('PDF downloaded', 'success', 1500);
       setDownloading(false);
-      setRegenerating(false)
+      setRegenerating(false);
+      // Avoid forced refresh; server updates usage
+      await getSubscription(false);
     } catch (error) {
       console.error('❌ PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
@@ -280,7 +279,7 @@ const PreviewPage = () => {
     if (!resumeData) return;
     setDeleting(true);
     if (!user) {
-      await localStorage.removeItem(slug);
+      localStorage.removeItem(slug);
       setDeleting(false);
       return showToast('Resume deleted', 'success', 2200);
     }
@@ -298,14 +297,14 @@ const PreviewPage = () => {
     }, 320);
   };
 
-  const handleRegerate = async (resumeData: ResumeData, analysis?: any, jobDescription?: any) => {
+  const handleRegerate = async (resumeData: ResumeData, analysis?: AnalysisResult, jobDescription?: any) => {
     if (!user) {
       return showToast('This feature is not availbale on guest version', 'info', 3000);
     }
     setRegenerating(true);
     setPendingUpdate(true);
     showToast('Generating resume')
-    const response = await ResumeService.regenerate(resumeData, analysis || jobDescription);
+    const response = await ResumeService.regenerate(resumeData, jobDescription, analysis);
     const data = await response.json();
     if (!response.ok) {
       showToast('Error regenerating resume', 'error', 3000);
@@ -344,6 +343,8 @@ const PreviewPage = () => {
     showToast(`Resume has been regenerated Successfully`, 'success', 3000);
     setRegenerating(false);
     setPendingUpdate(false);
+    // Avoid forced refresh; server updates usage
+    await getSubscription(false);
     return;
   };
 
@@ -356,7 +357,6 @@ const PreviewPage = () => {
       jobDescriptionId
     })
     if (!response.ok) {
-      console.log(response)
       setAnalyzing(false)
     }
     const data = response.data
@@ -366,6 +366,8 @@ const PreviewPage = () => {
         const refreshed = typeof data.result === 'string' && data.result ? JSON.parse(data.result) : data.result || {};
         setAnalysisData((prev: any[] | undefined) => (prev || []).map((a: any) => ((a as any)._analysisId === data.id) ? ({ ...(refreshed as any), _analysisId: data.id, _jobDescriptionId: data.jobDescriptionId, _analysedDate: data.updatedAt }) : a));
         showToast('Analysis updated', 'success', 1500);
+        // Avoid forced refresh; server updates usage
+        await getSubscription(false);
       }
     } catch (err) {
       console.warn('Failed to merge refreshed analysis:', err, data);
@@ -375,52 +377,84 @@ const PreviewPage = () => {
   }
 
   const generateCoverLetter = async (analysis: any) => {
-    setRegeneratingCoverLetter(true)
-    if (!slug) {
-      showToast('No resume selected to generate coverletter', 'error', 3000)
-      setRegeneratingCoverLetter(false)
-    }
-    const jobDescriptionId = analysis._jobDescriptionId
-    const resumeId = slug
-    if (jobDescriptionId && slug) {
-      console.log('Generatig with', jobDescriptionId, resumeId)
+    setRegeneratingCoverLetter(true);
+    try {
+      if (!user || !resumeData) {
+        showToast('Please login to use this feature', 'warning', 3000);
+        setRegeneratingCoverLetter(false);
+        return;
+      }
+
+      const jobDescriptionId = analysis?._jobDescriptionId;
+      if (!jobDescriptionId) {
+        showToast('Select an analysis first', 'warning', 2000);
+        setRegeneratingCoverLetter(false);
+        return;
+      }
+
       const response = await fetch('/api/ai/generate-coverletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          resumeId: resumeId,
-          jobDescriptionId: jobDescriptionId,
-          analysis: analysis || undefined
+          resumeId: resumeData.id,
+          jobDescriptionId,
+          analysis: analysis || undefined,
         }),
-      })
+      });
 
       if (!response.ok) {
-        setRegeneratingCoverLetter(false)
-        showToast('Error generating coverletter', 'error', 3000)
-        setShowCoverLetter(false)
-        return
+        showToast('Error generating coverletter', 'error', 3000);
+        setShowCoverLetter(false);
+        setRegeneratingCoverLetter(false);
+        return;
       }
 
-      const data = await response.json()
-      console.log(data)
-      setCoverLetter(data.data)
-      setShowCoverLetter(true)
-      localStorage.setItem('coverLetter', JSON.stringify(data.data))
-      setRegeneratingCoverLetter(false)
+      const data = await response.json();
+      setCoverLetter(data.data);
+      setShowCoverLetter(true);
+      localStorage.setItem('coverLetter', JSON.stringify(data.data));
+      setRegeneratingCoverLetter(false);
+      // Avoid forced refresh; server updates usage
+      await getSubscription(false);
+    } catch (error) {
+      console.error('Cover letter generation error:', error);
+      showToast('Error generating coverletter', 'error', 3000);
+      setRegeneratingCoverLetter(false);
+    }
+  };
+
+  const deletAnalysisReport = async (id: string) => {
+    if (!resumeData) {
+      showToast("Cannot delete this report", 'error', 3000)
+      return
+    }
+    try {
+      const deleteResponse = await JobDescriptionService.removeAnalysisReport(id, resumeData.id)
+      if (!deleteResponse.ok) {
+        showToast('Sorry, we cannot delete this report at the moment, Please try again.', 'error', 3000)
+      }
+      const remainingAnalysis = analysisData.filter((analysis: any) => analysis._analysisId !== id)
+      setAnalysisData(remainingAnalysis)
+      response.refetch()
+    } catch (error) {
+      throw error
     }
   }
 
+  const loadingResume = resumeResponse.isLoading || resumeResponse.isFetching;
+
   // Unified rendering logic to prevent 'No Resume Data' flash
-  if (status === 'loading') {
+  if (loadingResume || (!resumeData && status === 'loading')) {
     return (
       <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl grid gap-8">
-          <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
+                className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
               />
             ))}
           </div>
@@ -430,7 +464,24 @@ const PreviewPage = () => {
     );
   }
 
-  if (status === 'incomplete' && resumeData) {
+  if (resumeResponse.isFetched && resumeResponse.isSuccess && !resumeData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
+          <p className="text-gray-600 mb-6">Please complete your resume before previewing or create a new one.</p>
+          <button
+            onClick={() => (window.location.href = '/builder')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go to Builder
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (resumeResponse.isSuccess && status === 'incomplete') {
     return (
       <div className="h-full bg-gray-50 flex items-center justify-center">
         <div className="text-center flex flex-col items-center justify-center p-2">
@@ -450,14 +501,14 @@ const PreviewPage = () => {
     );
   }
 
-  if (status === 'ready' && resumeData) {
+  if (resumeResponse.isFetched && resumeResponse.isSuccess && resumeData) {
     const displayTemplate = user ? Templates : Templates.slice(0, 3);
     return (
       <div
         className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
         <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
-          <div className='w-full flex items-start justify-between bg-white p-4'>
+          <div className='w-full flex items-start justify-between  shadow  p-4'>
             <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
               e.stopPropagation();
               showMenu(false);
@@ -484,7 +535,7 @@ const PreviewPage = () => {
           </div>
 
           {reports && (
-            <div className='w-full absolute bottom-12 grid place-items-start bg-white p-4 panel-from-left'>
+            <div className='w-full absolute bottom-12 grid place-items-start  p-4 panel-from-left'>
               <div className='w-full max-h-[60vh] md:max-h-[70vh] overflow-auto'>
                 <ReportsPanel
                   reports={reports}
@@ -492,22 +543,20 @@ const PreviewPage = () => {
                   selectedAnalysis={selectedAnalysis}
                   setSelectedAnalysis={setSelectedAnalysis}
                   handleReAnalysis={handleReAnalysis}
-                  handleRegerate={handleRegerate}
+                  handleRegenerate={handleRegerate}
                   generateCoverLetter={generateCoverLetter}
                   generatingCoverLetter={generatingCoverLetter}
                   resumeData={resumeData}
                   analyzing={analyzing}
                   generating={generating}
-                  jobDetails={jobDetails}
                   reportsRef={reportsRef}
                 />
               </div>
             </div>
           )}
 
-          {showTemplates && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-center'>
+          {showTemplates && <div className='w-full absolute bottom-12 p-4 panel-from-center'>
             <TemplatesPanel
-              showTemplates={showTemplates}
               displayTemplate={displayTemplate}
               selectedTemplate={selectedTemplate}
               handleTemplateChange={handleTemplateChange}
@@ -515,15 +564,12 @@ const PreviewPage = () => {
               templatesRef={templatesRef}
             />
           </div>}
-          {menu && <div className='w-full absolute bottom-12 bg-white p-4 panel-from-right'>
+          {menu && <div className='w-full absolute bottom-12 p-4 panel-from-right'>
             <MenuPanel
               menu={menu}
               setShowConfirm={setShowConfirm}
               slug={slug}
               menuRef={menuRef}
-              showMenu={showMenu}
-              showReports={showReports}
-              setShowTemplates={setShowTemplates}
             />
           </div>}
         </div>
@@ -533,7 +579,7 @@ const PreviewPage = () => {
             <button
               onClick={handleDownloadPDF}
               disabled={deleting || downlaoding || generating}
-              className={`max-[500px]:w-full px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+              className={`max-[500px]:w-full px-4 py-1 bg-blue-600 text-white rounded-lg transition-colors font-medium shadow-md flex items-center gap-2 ${deleting || downlaoding ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
             >
               <Download size={16} /> Download
             </button>
@@ -573,34 +619,39 @@ const PreviewPage = () => {
           {coverLetter &&
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
-          {analysisData && analysisData?.length > 0 &&
-            <div className='max-[500px]:hidden flex gap-4 w-full rounded shadow-[0_0_2px_0_gray] p-4'>
-              <div className='w-full'>
+          {jobDetails && jobDetails?.length > 0 &&
+            <div className='max-[500px]:hidden max-h-[450px] box-border hide-scrollbar flex gap-4 w-full overflow-auto scroll-smooth scroll-m-3 rounded shadow-[0_0_2px_0_gray]  py-4 px-4'>
+              <div className='w-full h-full'>
                 <h3 className='font-semibold px-2'>Analysis</h3>
-                <div className='w-full flex flex-wrap items-start justify-between'>
-                  {analysisData && analysisData.map((analysis: any, count: number) => {
+                <div className='w-full h-full flex flex-wrap items-start justify-between '>
+                  {analysisData && analysisData.length > 0 && analysisData.map((analysis: any, count: number) => {
                     const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-                    return <div onClick={() => setSelectedAnalysis(analysis)} key={count} className={` max-w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''} ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`}>
-                      <JobAnalysisReport {...analysis} />
-                      <div className='md:flex grid items-center gap-2'>
-                        <Button variant='secondary' size='small' className='md:w-fit w-full' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-                        <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
-                        <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
+                    return <div
+                      onClick={() => setSelectedAnalysis(analysis)} key={count}
+                      className={`w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''}
+                    ${isSelected && (generatingCoverLetter || generating || analyzing) ? 'animate-pulse' : ''}`}>
+                      <Trash className='absolute top-4 right-4 backdrop-blur-xs hover:scale-110' color={'orange'} size={16} onClick={() => deletAnalysisReport(analysis._analysisId)} />
+                      <JobAnalysisReport analysis={{ ...analysis, company: analysis._company }} />
+
+                      <div className='flex flex-wrap items-center gap-2'>
+                        <Button variant='secondary' size='small' className='md:w-fit w-full whitespace-nowrap' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
+                        <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full whitespace-nowrap ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
+                        <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full whitespace-nowrap ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
                       </div>
                     </div>
                   })
                   }
-                  <div className={analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]'}>
+                  <div className={`h-full ${analysisData ? analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]' : 'w-full'} overflow-y-scroll hide-scrollbar pb-4`}>
+                    <div className='h-fit'>
                     <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
+                    </div>
                   </div>
                 </div>
-              </div>  
-
-
+              </div>
             </div>
           }
           <div
-            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm"
+            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200  shadow-sm"
             id="resumeViewport"
           >
             {/* Optional inner wrapper to constrain width / center */}
@@ -701,104 +752,104 @@ const PreviewPage = () => {
         </div>
 
         {showCoverLetter && coverLetter && (
-            <div className="fixed inset-0 z-90 grid place-items-center bg-black/30 p-4 top-4">
-              <div className="relative w-full max-w-4xl h-[90vh] max-[500px]:h-[80vh] bg-white rounded-2xl shadow-lg overflow-auto py-4">
+          <div className="fixed inset-0 z-90 grid place-items-center bg-black/30 p-4 top-4">
+            <div className="relative w-full max-w-4xl h-[90vh] max-[500px]:h-[80vh] bg-white rounded-2xl shadow-lg overflow-auto py-4">
+              <button
+                aria-label="Close cover letter"
+                onClick={() => setShowCoverLetter(false)}
+                className="absolute right-4 top-4 text-gray-600 hover:text-gray-900"
+              >
+                <X />
+              </button>
+              <div className="sm:ml-4 flex items-center gap-2">
                 <button
-                  aria-label="Close cover letter"
-                  onClick={() => setShowCoverLetter(false)}
-                  className="absolute right-4 top-4 text-gray-600 hover:text-gray-900"
+                  onClick={() => {
+                    const el = document.getElementById('coverletter');
+                    const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
+                    navigator.clipboard.writeText(text);
+                    showToast('Copied to clipboard', 'success', 3000)
+                    setShowCoverLetter(false)
+                  }} className="ml-2 px-3 py-1  text-sm text-gray-700 rounded bg-gray-300 flex items-center justify-center gap-2 "
                 >
-                  <X />
+                  <Copy className='w-4 h-4' /> Copy
                 </button>
-                <div className="sm:ml-4 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById('coverletter');
-                      const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
-                      navigator.clipboard.writeText(text);
-                      showToast('Copied to clipboard', 'success', 3000)
-                      setShowCoverLetter(false)
-                    }} className="ml-2 px-3 py-1 bg-gray-100 text-sm rounded hover:bg-gray-200"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById('coverletter');
-                      const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
-                      const blob = new Blob([text], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                  >
-                    Download
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('coverletter');
+                    const text = el ? el.innerText : (coverLetter.parsed?.coverLetter || coverLetter.coverLetter || '');
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${(resumeData?.profile?.fullname ?? 'coverletter')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-3 py-1 bg-blue-600  text-sm rounded hover:bg-blue-700"
+                >
+                  Download
+                </button>
+              </div>
 
-                <div id="coverletter">
-                  <header className="flex flex-col  items-start justify-between gap-4 p-6 ">
-                    <div>
-                      <div className="text-sm ">{coverLetter.userDetails?.fullname ?? '[Your Name]'}</div>
-                      <div className="text-xs ">{coverLetter.userDetails?.location}</div>
-                      <div className="text-xs ">{coverLetter.userDetails?.phone}</div>
-                      <div className='text-xs'>{coverLetter.userDetails?.email}</div>
+              <div id="coverletter">
+                <header className="flex text-gray-700 flex-col  items-start justify-between gap-4 p-6 ">
+                  <div>
+                    <div className="text-sm ">{coverLetter.userDetails?.fullname ?? '[Your Name]'}</div>
+                    <div className="text-xs ">{coverLetter.userDetails?.location}</div>
+                    <div className="text-xs ">{coverLetter.userDetails?.phone}</div>
+                    <div className='text-xs'>{coverLetter.userDetails?.email}</div>
+                  </div>
+
+                  <div className="text-left">
+                    <div className="text-xs ">{coverLetter.jobTitle ?? '[Job Title]'}</div>
+                    <div className="text-xs ">{coverLetter.companyName ?? '[Company]'}</div>
+                    <div className="text-xs ">{coverLetter.location ?? ''}</div>
+                  </div>
+                </header>
+                <main className="p-6 space-y-6">
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                    <div className="mb-4 font-medium">{coverLetter.parsed?.salutation ?? coverLetter.salutation}</div>
+
+                    <div className="prose prose-sm max-w-none text-gray-800">
+                      {coverLetter.parsed?.coverLetter
+                        ? <div className="whitespace-pre-wrap">{coverLetter.parsed.coverLetter}</div>
+                        : <div className="whitespace-pre-wrap">{coverLetter.coverLetter}</div>}
                     </div>
 
-                    <div className="text-left">
-                      <div className="text-xs ">{coverLetter.jobTitle ?? '[Job Title]'}</div>
-                      <div className="text-xs ">{coverLetter.companyName ?? '[Company]'}</div>
-                      <div className="text-xs ">{coverLetter.location ?? ''}</div>
-                    </div>
-                  </header>
-                  <main className="p-6 space-y-6">
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      <div className="mb-4 font-medium">{coverLetter.parsed?.salutation ?? coverLetter.salutation}</div>
+                    <div className="mt-4 font-medium">{coverLetter.parsed?.closing ?? coverLetter.closing}</div>
+                  </div>
 
-                      <div className="prose prose-sm max-w-none text-gray-800">
-                        {coverLetter.parsed?.coverLetter
-                          ? <div className="whitespace-pre-wrap">{coverLetter.parsed.coverLetter}</div>
-                          : <div className="whitespace-pre-wrap">{coverLetter.coverLetter}</div>}
+                  {Array.isArray(coverLetter.keyParagraphs) && coverLetter.keyParagraphs.length > 0 && (
+                    <section>
+                      <h4 className="text-sm font-semibold mb-2">Key Paragraphs</h4>
+                      <div className="grid gap-3">
+                        {coverLetter.keyParagraphs.map((kp: any, idx: number) => (
+                          <div key={idx} className="text-sm text-gray-700">
+                            <div className="text-xs text-gray-500 font-medium">{kp.purpose}</div>
+                            <div className="whitespace-pre-wrap">{kp.text}</div>
+                          </div>
+                        ))}
                       </div>
+                    </section>
+                  )}
 
-                      <div className="mt-4 font-medium">{coverLetter.parsed?.closing ?? coverLetter.closing}</div>
-                    </div>
-
-                    {Array.isArray(coverLetter.keyParagraphs) && coverLetter.keyParagraphs.length > 0 && (
-                      <section>
-                        <h4 className="text-sm font-semibold mb-2">Key Paragraphs</h4>
-                        <div className="grid gap-3">
-                          {coverLetter.keyParagraphs.map((kp: any, idx: number) => (
-                            <div key={idx} className="text-sm text-gray-700">
-                              <div className="text-xs text-gray-500 font-medium">{kp.purpose}</div>
-                              <div className="whitespace-pre-wrap">{kp.text}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    )}
-
-                    {Array.isArray(coverLetter.highlights) && coverLetter.highlights.length > 0 && (
-                      <section>
-                        <h4 className="text-sm font-semibold mb-2">Highlights</h4>
-                        <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                          {coverLetter.highlights.map((h: any, i: number) => (
-                            <li key={i}><span className="font-medium">{h.title ? `${h.title}: ` : ''}</span>{h.text}</li>
-                          ))}
-                        </ul>
-                      </section>
-                    )}
-                  </main>
-                </div>
+                  {Array.isArray(coverLetter.highlights) && coverLetter.highlights.length > 0 && (
+                    <section>
+                      <h4 className="text-sm font-semibold mb-2">Highlights</h4>
+                      <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                        {coverLetter.highlights.map((h: any, i: number) => (
+                          <li key={i}><span className="font-medium">{h.title ? `${h.title}: ` : ''}</span>{h.text}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </main>
               </div>
             </div>
-          )
+          </div>
+        )
         }
 
         <ConfirmDialog
@@ -821,9 +872,9 @@ const PreviewPage = () => {
   }
   // No data fallback only when status is not-found
 
-  if (status === 'error') {
+  if (resumeResponse.isError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-600 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Resume</h2>
           <p className="text-gray-600 mb-6">An unexpected error occurred. Redirecting…</p>
@@ -831,9 +882,9 @@ const PreviewPage = () => {
       </div>
     );
   }
-  if (status === 'not-found' && showFallback) {
+  if (status === 'not-found') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-600 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
           <p className="text-gray-600 mb-6">Please complete your resume before previewing or create a new one.</p>
@@ -851,12 +902,12 @@ const PreviewPage = () => {
   return (
     <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-5xl grid gap-8">
-        <div className="h-10 w-64 rounded-md bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
         <div className="grid grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 animate-pulse"
+              className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
             />
           ))}
         </div>
@@ -864,9 +915,6 @@ const PreviewPage = () => {
       </div>
     </div>
   );
-
-
-
 };
 
 export default PreviewPage;

@@ -3,13 +3,9 @@ import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import GitHubProvider from 'next-auth/providers/github'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaClient } from '@prisma/client';
 import type { JWT } from 'next-auth/jwt'
 import type { Account } from 'next-auth'
-
-
-const prisma = new PrismaClient();
-
+import { prisma } from '@/lib/prisma'
 
 const handleLogin = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
@@ -24,7 +20,7 @@ const handleLogin = async (email: string, password: string) => {
   if (!valid) {
     throw new Error('Invalid credentials.');
   }
-  return { id: user.id, email: user.email, name: user.name, image: user.image || null };
+  return { id: user.id, email: user.email, name: user.name, image: user.image || null, isVerified: user.isVerified ?? false };
 };
 
 const handleOAuthUserRegister = async (email: string, name: string | null | undefined, image: string | null | undefined, provider: string, providerId: string) => {
@@ -36,7 +32,8 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
         name: name || email.split('@')[0],
         image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
         provider: provider || 'credentials',
-        providerId: providerId || null
+        providerId: providerId || null,
+        isVerified: true
       },
     });
   } else {
@@ -47,7 +44,8 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
         name: name || email.split('@')[0],
         image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
         provider: provider || 'credentials',
-        providerId: providerId || null
+        providerId: providerId || null,
+        isVerified: true
       },
     });
   }
@@ -58,7 +56,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
 
 };
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -94,7 +92,8 @@ const handler = NextAuth({
               email: user.email,
               image: user.image || null,
               provider: 'credentials',
-              providerId: user.id
+              providerId: user.id,
+              isVerified: user.isVerified
             }
           }
 
@@ -128,6 +127,29 @@ const handler = NextAuth({
       }
 
       if (user?.id) (token.id = user.id)
+      // Propagate isVerified into the token on initial sign-in
+      if (typeof user?.isVerified !== 'undefined') {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        token.isVerified = Boolean(user.isVerified)
+      }
+
+      // Attach subscription plan to token (fallback to FREE if none)
+      if (token.id && typeof token.plan === 'undefined') {
+        try {
+          const sub = await prisma.subscription.findUnique({
+            where: { userId: token.id as string },
+            select: { plan: true },
+          })
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          token.plan = sub?.plan ?? 'FREE'
+        } catch (err) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          token.plan = token.plan ?? 'FREE'
+        }
+      }
       return token
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,6 +158,38 @@ const handler = NextAuth({
         ; session.user.id = token.id as string | undefined
           ; session.user.provider = token.provider as string | undefined
           ; session.user.providerId = token.providerId as string | undefined
+        // Ensure session reflects latest user profile and verification/plan state
+        try {
+          if (token.id) {
+            const dbUser = await prisma.user.findUnique({ where: { id: token.id as string } })
+            session.user.name = dbUser?.name ?? session.user.name
+            session.user.email = dbUser?.email ?? session.user.email
+            session.user.image = dbUser?.image ?? session.user.image
+            session.user.isVerified = dbUser?.isVerified ?? false
+
+            const dbSub = await prisma.subscription.findUnique({
+              where: { userId: token.id as string },
+              select: { plan: true },
+            })
+            session.user.plan = dbSub?.plan ?? 'FREE'
+          } else {
+            // fallback to token value if DB not available
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            session.user.isVerified = Boolean(token.isVerified)
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            session.user.plan = token.plan ?? 'FREE'
+          }
+        } catch (err) {
+          // fallback to token value
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          session.user.isVerified = Boolean(token.isVerified)
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          session.user.plan = token.plan ?? 'FREE'
+        }
       }
       return session
     },
@@ -144,13 +198,15 @@ const handler = NextAuth({
     signIn: '/auth/createuser', // Custom sign-in page
   },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
     // One week expiry for sessions (in seconds)
     maxAge: 60 * 60 * 24 * 7, // 7 days
     // How often to update the session age (in seconds)
     updateAge: 60 * 60 * 24 // 24 hours
   },
   // debug: process.env.NODE_ENV === 'development',
-})
+}
+
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

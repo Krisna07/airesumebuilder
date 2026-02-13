@@ -1,6 +1,6 @@
 import React from "react";
 import Input from "../Input";
-import Button from '../UI/Button';
+import Button from '../Ui/Button';
 
 import { Plus, Trash2 } from 'lucide-react';
 import Datepicker from './Datepicker';

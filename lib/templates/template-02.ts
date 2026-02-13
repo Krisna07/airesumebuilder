@@ -81,7 +81,7 @@ export function generatetemplate02HTML(data: ResumeData): string {
             ${techSkills.length ? `
               <div class="skills-group">
                 <div class="skills-label">Technical</div>
-                <div class="skills-row">${safeJoin(techSkills.map(s => `<span class="skill-chip">${escapeHtml(s)}</span>`))} $</div>
+                <div class="skills-row">${safeJoin(techSkills.map(s => `<span class="skill-chip">${escapeHtml(s)}</span>`))}</div>
               </div>` : ''}
             ${softSkills.length ? `
               <div class="skills-group">
@@ -91,7 +91,7 @@ export function generatetemplate02HTML(data: ResumeData): string {
           </div>` : ''}
         ${data.customSections?.length ? `
           <div class="section">
-            ${safeJoin(data.customSections.slice(0, 6).map(renderCustomSections))}
+            ${safeJoin(data.customSections.slice(0, 6).map(s => renderCustomSections(s)))}
           </div>` : ''}
       </div>
     </div>

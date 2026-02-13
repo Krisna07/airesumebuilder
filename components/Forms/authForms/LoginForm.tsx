@@ -1,5 +1,6 @@
 'use client';
-import Button from '@/components/UI/Button';
+import Button from '@/components/Ui/Button';
+import { UserAuthLoading } from '@/components/Ui/LoadingScreen';
 import { useAuth } from '@/context/authContext'; import { useToast } from '@/context/PopupContext';
 import React, { useState } from 'react';
 import { FaGithub, FaGoogle } from 'react-icons/fa6';
@@ -21,9 +22,8 @@ const LoginForm: React.FC = () => {
         const response = await signIn('credentials', { email: form.email, password: form.password, redirect: false });
 
         if (!response?.ok) {
-            console.log(response)
             setLoader(false)
-            return toast.showToast(`Error logging in. Please try again later.`, 'error', 3000)
+            return toast.showToast(response?.error ? response.error : "Error logging in please try again !!", 'error', 3000)
         }
         toast.showToast("Login successfull", 'success', 3000)
         setLoader(false)
@@ -45,12 +45,9 @@ const LoginForm: React.FC = () => {
         }
     }
     return (
-        <div className=' overflow-hidden min-[600px]:w-[600px] w-full p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
-            {loader && <div className='w-screen h-screen fixed top-0 z-1000 bg-gray-900/75 flex items-center justify-center'>
-                <div className='grid gap-4 place-items-center font-bold text-3xl text-center'>
-                    <div className="loader"></div>
-                    <h3 className='text-white animate-pulse'>Authenticating User....</h3>
-                </div>
+        <div className=' overflow-hidden w-full max-w-[600px] p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
+            {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl  flex items-center justify-center'>
+                <UserAuthLoading />
             </div>}
             <h2 className='text-[2rem] font-bold'>Welcome back</h2>
             <p>
@@ -59,14 +56,17 @@ const LoginForm: React.FC = () => {
                     Join now
                 </a>{' '}
             </p>
-            <form onSubmit={handleSubmit} className='w-full lg:w-[600px] grid gap-4    p-4 font-semibold '>
+            <form onSubmit={handleSubmit} className='w-full max-w-[600px] grid gap-4 p-4 font-semibold '>
                 <div className='grid gap-2'>
                     <label className=''>Email Address</label>
-                    <input type='email' name='email' value={form.email} onChange={handleChange} className='font-normal p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400 rounded-md' />
+                    <input type='email' name='email' value={form.email} onChange={handleChange} className='font-normal p-2  outline-none ring-1 focus:ring-green-600 ring-gray-400 rounded-md' />
                 </div>
                 <div className='grid gap-2'>
                     <label className=''>Password</label>
-                    <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2 text-black outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
+                    <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2  outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
+                    <div className="flex justify-end">
+                        <a href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline">Forgot password?</a>
+                    </div>
                 </div>
 
                 <Button variant='primary' size='large' className='w-full flex items-center justify-center rounded-full mt-4 pt-2 pb-2' disabled={loading ? true : false}>

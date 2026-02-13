@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { AIService } from '@/services/aiServices';
 import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
 interface JobDetails extends JobDescription {
   id: string;
@@ -39,6 +38,20 @@ const fetchResume = async (resumeId: string) => {
 
 export async function POST(req: NextRequest) {
   try {
+
+    let userId: string
+    try {
+      ({ userId } = await requireUserSession())
+    } catch (err) {
+      const mapped = mapSubscriptionError(err)
+      return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+    }
+    try {
+      await assertQuota(userId, 'analysis')
+    } catch (err) {
+      const mapped = mapSubscriptionError(err)
+      return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+    }
 
     const body = await req.json();
     const analyzeResumeParams = body.analyzeResumeParams;
@@ -105,6 +118,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await consumeUsage(userId, 'analysis')
+
     return NextResponse.json({
       data: updated
     });
@@ -146,5 +161,26 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Analyze API error:', error);
     return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const analysisId = searchParams.get('analysisId');
+    const resumeId = searchParams.get('resumeId');
+    if (!analysisId || !resumeId) {
+      return NextResponse.json({ error: 'analysisId and resumeId are required' }, { status: 400 });
+    }
+    const deletion = await prisma.analysisResult.deleteMany({
+      where: {
+        id: analysisId,
+        resumeId: resumeId
+      }
+    });
+    return NextResponse.json({ data: deletion });
+  } catch (error) {
+    console.error('Delete Analysis API error:', error);
+    return NextResponse.json({ error: 'Failed to delete analysis' }, { status: 500 })
   }
 }

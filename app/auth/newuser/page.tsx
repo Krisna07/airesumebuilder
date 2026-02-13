@@ -6,7 +6,7 @@ import React from 'react'
 const page = async () => {
   await redirectIfAuthenticated('/builder')
   return (
-    <div className='place-items-center md:py-8'><SignUpForm /></div>
+    <div className='w-full h-[80vh] grid place-items-center md:py-8 px-4'><SignUpForm /></div>
   )
 }
 

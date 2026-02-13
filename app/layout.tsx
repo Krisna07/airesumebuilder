@@ -3,12 +3,13 @@ import { Inter } from 'next/font/google';
 import './global.css';
 import Providers from '@/components/Providers';
 import Navbar from '@/components/Navbar';
+import { ToastContainer } from 'react-toastify';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AI Resume Builder',
-  description: 'Create a professional resume with the help of AI.',
+  title: 'AI Resume Craft',
+  description: 'Build and Taylor your job search process with AI',
 };
 
 export default function RootLayout({
@@ -17,8 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en'>
-      <body className={`${inter.className} w-full min-h-screen  relative `}>
+    <html lang='en' data-scroll-behavior="smooth">
+      <body className={`${inter.className} w-full min-h-screen relative text-neutral-900 transition-colors duration-200 dark:bg-neutral-950 dark:text-neutral-50 scroll-smooth overflow-x-hidden`}>
+        <ToastContainer />
         <Providers>
           <Navbar />
           <main className='w-full'>

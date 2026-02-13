@@ -33,17 +33,16 @@ export const renderContactInfo = (data: ResumeData) => safeJoin([
   ...((data.profile.links || []).map(link => link?.url && `<a href="${escapeHtml(link.url)}" class="contact-item">🔗 ${escapeHtml(link.type)}</a>`))
 ].filter(Boolean) as string[]);
 
-export const renderCustomSections = (customSection: CustomSectionData): string => {
-  return `
+export const renderCustomSections = (customSection: CustomSectionData, hideDes?: boolean | false): string => {
+  return (customSection.subsections && customSection.subsections.length > 0) ? `
     <div class="custom-section avoid-break">
       <div class="section-title">${escapeHtml(customSection.title)}</div>
       ${safeJoin(customSection.subsections?.map((sub, index) => `
         <div class="custom-subsection">
-          <div class="job-title" >${index + 1}. ${escapeHtml(sub.title)}</div>
-          ${sub.date ? `<div class="job-date">${escapeHtml(sub.date)}</div>` : ''}
-          <div class="summary">${escapeHtml(sub.content)}</div>
+          <a class="job-title" href="${escapeHtml(sub.url ? sub.url : '')}"  >${index + 1}. ${escapeHtml(sub.title)}</a>
+          ${hideDes ? '' : `<div class="summary">${escapeHtml(sub.content)}</div>`}
         </div>
       `) || [])}
     </div>
-  `;
+  `: '';
 };

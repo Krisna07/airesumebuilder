@@ -42,9 +42,10 @@ export function generatetemplate01HTML(data: ResumeData): string {
   const flatten = (groups: typeof techGroups) => groups.flatMap(g => g.skills || []);
   const techSkills = flatten(techGroups);
   const softSkills = flatten(softGroups);
-  const truncate = (arr: string[], max: number) => ({ visible: arr.slice(0, max), hidden: arr.length > max ? arr.length - max : 0 });
-  const techView = truncate(techSkills, 14);
-  const softView = truncate(softSkills, 10);
+  // Disabled truncation for better content visibility
+  // const truncate = (arr: string[], max: number) => ({ visible: arr.slice(0, max), hidden: arr.length > max ? arr.length - max : 0 });
+  const techView = { visible: techSkills, hidden: 0 };
+  const softView = { visible: softSkills, hidden: 0 };
 
   return `
 <!DOCTYPE html>
@@ -99,8 +100,8 @@ export function generatetemplate01HTML(data: ResumeData): string {
       
     </div>
       ${data.customSections?.length ? `
-          <div class="section >
-            ${safeJoin(data.customSections.slice(0, 5).map(renderCustomSections))}
+          <div class="section">
+         ${safeJoin(data.customSections.map(section => renderCustomSections(section, false)))}
           </div>` : ''}
     <div class="footer-space"></div>
   </div>

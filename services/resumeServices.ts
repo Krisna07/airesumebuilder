@@ -1,10 +1,16 @@
-// 'use client';
+
 import { ScrapeResult } from "@/components/Forms/JobDescription";
-import { JobDescription, ResumeData } from "@/types/types";
+import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
 import { LocalResumeService } from "./localResumeService";
 import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
 
+
+type analyzeResumeParams = {
+    resumeId: string;
+    jobDetails?: JobDescription;
+    jobDescriptionId?: string
+}
 export class ResumeService {
     static async save(userId: string, resumeId: string, template: string, resumeData: ResumeData) {
         try {
@@ -24,7 +30,7 @@ export class ResumeService {
         }
     }
 
-    static async getSingle(resumeId: string) {
+    static async getSingle(resumeId: string): Promise<Response> {
         try {
             const response = await fetch(`/api/resume?id=${resumeId}`, {
                 method: 'GET',
@@ -48,16 +54,19 @@ export class ResumeService {
         }
     }
 
-    static async getAll(userId: string | null) {
-        try {
-            const response = await fetch(`/api/resume/all?id=${userId}`, {
+    static async getAll(userId: string | null): Promise<ResumeData[]> {
+        if (!userId) {
+            throw new Error('User ID is required to fetch resumes');
+        }
+        const response = await fetch(`/api/resume/all?id=${userId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             })
-            return response
-        } catch (error) {
-            throw error
+        if (!response.ok) {
+            throw new Error('Failed to fetch resumes');
         }
+        const data = await response.json();
+        return data.data;
     }
 
     static async create(userId: string, template?: string, data?: Partial<ResumeData>) {
@@ -110,14 +119,16 @@ export class ResumeService {
         return response
     }
 
-    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult) {
+    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult, analysis?: AnalysisResult): Promise<Response> {
         try {
             const response = await fetch('/api/ai/generate-resume', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     resume: resumeData,
-                    jobDescription: jobDescription
+                    jobDescription: jobDescription,
+                    analysis: analysis
                 })
             });
             return response
@@ -138,6 +149,7 @@ export async function uploadResume(file: File, userId?: string) {
         const structuredData: ResumeData = await fetch('/api/ai/extract-resume', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ text })
         }).then(res => res.json()).then(data => data.data);
 
@@ -146,7 +158,7 @@ export async function uploadResume(file: File, userId?: string) {
             }
 
             if (!userId) {
-                const saveLocal = await LocalResumeService.create(structuredData)
+                const saveLocal = await LocalResumeService.create('classic', structuredData)
                 return NextResponse.json({ data: saveLocal }, { status: 200 })
             }
 
@@ -158,16 +170,13 @@ export async function uploadResume(file: File, userId?: string) {
         }
     }
 
-type analyzeResumeParams = {
-    resumeId: string;
-    jobDetails?: JobDescription;
-    jobDescriptionId?: string
-}
+
 export async function analyzeResume(analyzeResumeParams: analyzeResumeParams) {
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ analyzeResumeParams })
         });
         const data = await response.json();

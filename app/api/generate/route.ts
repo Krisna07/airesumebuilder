@@ -1,31 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import chromium from '@sparticuz/chromium';
-import fs from 'fs'; // added import
+// Dynamic imports for puppeteer and chromium
+import fs from 'fs';
+
+// Force Node.js runtime for this route (not edge)
+export const runtime = "nodejs";
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
-
-async function sleep(ms: number) {
-    return new Promise((r) => setTimeout(r, ms));
-}
-
-async function launchWithRetries(puppeteerPkg: any, launchOptions: Record<string, any>, retries = 2) {
-    let attempt = 0;
-    while (true) {
-        try {
-            const browser = await puppeteerPkg.launch(launchOptions);
-            console.log(`puppeteer.launch succeeded (attempt ${attempt + 1})`);
-            return browser;
-        } catch (err: any) {
-            attempt++;
-            console.warn(`puppeteer.launch failed (attempt ${attempt}):`, err?.message ?? err);
-            if (attempt > retries) throw err;
-            const backoff = Math.min(30000, 300 * 2 ** attempt);
-            await sleep(backoff + Math.floor(Math.random() * 300));
-        }
-    }
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -45,58 +27,58 @@ export async function POST(req: NextRequest) {
         if (!content) {
             throw new Error('No content provided for PDF generation');
         }
-        let executablePath;
-        const puppeteerPkg = isProd ? await import('puppeteer-core') : await import('puppeteer');
 
+        let browser;
+        let puppeteerPkg;
+        let chromium;
+        const viewport = {
+            deviceScaleFactor: 1,
+            hasTouch: false,
+            height: 1080,
+            isLandscape: true,
+            isMobile: false,
+            width: 1920,
+        };
         if (isProd) {
-            executablePath = await chromium.executablePath();
+            puppeteerPkg = await import('puppeteer-core');
+            chromium = (await import('@sparticuz/chromium')).default;
+            browser = await puppeteerPkg.launch({
+                args: puppeteerPkg.defaultArgs({ args: chromium.args, headless: "shell" }),
+                defaultViewport: viewport,
+                executablePath: await chromium.executablePath(),
+                headless: "shell",
+            });
         } else {
+            puppeteerPkg = await import('puppeteer');
             // handle both puppeteer versions where executablePath might be function or string
-            executablePath = typeof puppeteerPkg.executablePath === 'function'
+            const executablePath = typeof puppeteerPkg.executablePath === 'function'
                 ? await puppeteerPkg.executablePath()
                 : puppeteerPkg.executablePath;
+            // Ensure executablePath actually exists locally before launching (only check in dev)
+            try {
+                if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
+                    console.error('Chromium executable not found at resolved path:', executablePath);
+                    throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
+                }
+            } catch (err) {
+                console.error('Error checking Chromium executable:', err);
+                throw err;
+            }
+            browser = await puppeteerPkg.launch({
+                args: [
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    '--disable-extensions',
+                    '--disable-background-networking',
+                ],
+                executablePath,
+                headless: true,
+                defaultViewport: viewport,
+            });
         }
 
-        console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
-        console.log('resolved executablePath:', executablePath);
-
-        // Choose args per environment - don't reuse sparticuz args in local dev
-        const args = isProd
-            ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-            : [
-                // safer flags for local Windows dev
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                // DO NOT use '--single-process' on Windows/local — it breaks V8 proxy resolver and crashes Chromium.
-                '--no-sandbox',
-                '--disable-extensions',
-                '--disable-background-networking'
-            ];
-
-        // Ensure executablePath actually exists locally before launching
-        if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
-            console.error('Chromium executable not found at resolved path:', executablePath);
-            throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
-        }
-
-        const launchOptions = {
-            args,
-            executablePath,
-            headless: true,
-            defaultViewport: null,
-            // dump io so Chromium stderr/logs appear in server logs (helps debug ECONNRESET)
-            dumpio: true,
-            timeout: 120000,
-        };
-        // Try to log puppeteer version (best-effort)
-        try {
-            const pkg = await import('puppeteer/package.json');
-            console.log('local puppeteer version:', pkg?.version ?? 'unknown');
-        } catch {
-            console.log('puppeteer package.json not found (ok if using puppeteer-core in prod)');
-        }
-
-        const browser = await launchWithRetries(puppeteerPkg, launchOptions, 2);
+        // ...existing code...
 
         // log child process PID if available (helps correlate OS-level crashes)
         try {

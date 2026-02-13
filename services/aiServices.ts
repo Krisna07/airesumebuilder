@@ -23,6 +23,8 @@ function coerceArrayStrings(value: unknown): string[] {
     return [];
 }
 const callAIWithRetry = async (prompt: string, retries = 3) => {
+    console.log("Calling Gemini AI with prompt:");
+
     if (!genAI && !openRouter) {
         throw new Error('AI clients are not initialized. This function must be run on the server with GEMINI_API_KEY or OPENROUTER_API_KEY set.');
     }
@@ -61,13 +63,17 @@ const callAIWithRetry = async (prompt: string, retries = 3) => {
 
 
 const callOpenRouterAI = async (prompt: string, retries = 3) => {
+    console.log("Calling OpenRouter AI with prompt:");
+    if (!openRouter) {
+        throw new Error('OpenRouter client is not initialized. This function must be run on the server with OPENROUTER_API_KEY set.');
+    }
     try {
-        let modelToUse = 'google/gemma-3-12b-it:free';
+        let modelToUse = 'mistralai/mistral-7b-instruct:free';
         if (retries == 2) {
-            modelToUse = 'google/gemini-2.0-flash-exp:free';
+            modelToUse = 'nvidia/nemotron-3-nano-30b-a3b:free';
         }
         if (retries == 1) {
-            modelToUse = 'meta-llama/llama-3.3-70b-instruct:free';
+            modelToUse = 'openai/gpt-oss-20b:free';
         }
         if (!openRouter) throw new Error('OpenRouter client not available');
         const response = await openRouter.chat.send({
