@@ -8,7 +8,9 @@ import fs from 'fs';
 export const runtime = "nodejs";
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
-const remotePackUrl = "https://github.com/sparticuz/chromium/releases/download/v141.0.0/chromium-v141.0.0-pack.tar";
+const chromiumVersion = process.env.CHROMIUM_VERSION || '141.0.0';
+const chromiumArch = process.arch === 'arm64' ? 'arm64' : 'x64';
+const remotePackUrl = `https://github.com/Sparticuz/chromium/releases/download/v${chromiumVersion}/chromium-v${chromiumVersion}-pack.${chromiumArch}.tar`;
 
 export async function POST(req: NextRequest) {
     try {
