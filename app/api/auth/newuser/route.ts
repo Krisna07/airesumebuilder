@@ -43,7 +43,7 @@ async function handleCreateUser(req: NextRequest) {
     }
 
     // Credentials-based signup
-    if (provider === 'credentials') {
+    if (!provider) {
       if (!password) {
         return NextResponse.json({ error: 'Password is required for credentials signup.' }, { status: 400 });
       }
@@ -76,12 +76,7 @@ async function handleCreateUser(req: NextRequest) {
         const code = generateVerificationCode();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-        // Send welcome email with the code
-        const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
-        if (emailResponse && 'error' in emailResponse) {
-          console.error('Failed to send verification email:', emailResponse.error);
-          return NextResponse.json({ error: 'Failed to send verification email.' }, { status: 500 });
-        }
+
         user = await prisma.user.create({
           data: {
             email,
@@ -101,7 +96,13 @@ async function handleCreateUser(req: NextRequest) {
             expiresAt,
           },
         });
+        const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
 
+        // Send welcome email with the code
+        if (emailResponse && 'error' in emailResponse) {
+          console.error('Failed to send verification email:', emailResponse.error);
+          return NextResponse.json({ error: 'Failed to send verification email.' }, { status: 500 });
+        }
         return NextResponse.json({
           data: {
             id: user.id,
@@ -115,6 +116,7 @@ async function handleCreateUser(req: NextRequest) {
         }, { status: 200 });
       }
     }
+
 
     if (user) {
       return NextResponse.json({
