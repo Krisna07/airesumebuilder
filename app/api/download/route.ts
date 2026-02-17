@@ -73,11 +73,13 @@ export async function POST(req: NextRequest) {
             : 'Resume.pdf';
 
         // 8. Return PDF Response
-        return new NextResponse(pdfBuffer, {
+        const pdfArrayBuffer = Uint8Array.from(pdfBuffer).buffer;
+
+        return new NextResponse(pdfArrayBuffer, {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `attachment; filename="${filename}"`,
-                'Content-Length': pdfBuffer.length.toString(),
+                'Content-Length': pdfBuffer.byteLength.toString(),
             },
         });
 
