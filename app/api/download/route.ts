@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import chromium from '@sparticuz/chromium-min';
-import puppeteer from 'puppeteer-core';
 
 // Vercel Settings: Chromium takes ~2-4s to download and launch.
 export const maxDuration = 60; 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
     let browser = null;
@@ -27,23 +26,43 @@ export async function POST(req: NextRequest) {
         if (!content) throw new Error('No content provided for PDF generation');
 
         // 2. Determine Environment
-        const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
-        
-        // 3. Setup Launch Options
-        // We use the hosted Brotli pack to keep the Vercel deployment size tiny.
-        const remotePackUrl = "https://github.com/sparticuz/chromium/releases/download/v132.0.0/chromium-v132.0.0-pack.tar";
+        const isProd = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 
-        const launchOptions = {
-            args: isProd ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
-            defaultViewport: chromium.defaultViewport,
-            executablePath: isProd 
-                ? await chromium.executablePath(remotePackUrl) 
-                : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Path for Mac. Use your local path for Windows/Linux.
-            headless: chromium.headless,
+        const viewport = {
+            deviceScaleFactor: 1,
+            hasTouch: false,
+            height: 1080,
+            isLandscape: true,
+            isMobile: false,
+            width: 1920,
         };
 
-        // 4. Launch Browser
-        browser = await puppeteer.launch(launchOptions);
+        // 3. Launch Browser (dynamic imports avoid bundling heavy binaries unnecessarily)
+        if (isProd) {
+            const puppeteer = await import('puppeteer-core');
+            const chromium = (await import('@sparticuz/chromium')).default;
+
+            browser = await puppeteer.launch({
+                args: puppeteer.defaultArgs({ args: chromium.args, headless: 'shell' }),
+                defaultViewport: viewport,
+                executablePath: await chromium.executablePath(),
+                headless: 'shell',
+            });
+        } else {
+            const puppeteer = await import('puppeteer');
+            const executablePath = typeof puppeteer.executablePath === 'function'
+                ? await puppeteer.executablePath()
+                : puppeteer.executablePath;
+
+            browser = await puppeteer.launch({
+                args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox', '--disable-extensions'],
+                defaultViewport: viewport,
+                executablePath,
+                headless: true,
+            });
+        }
+
+        // 4. Create page
         const page = await browser.newPage();
         
         // Use 'networkidle0' to ensure all CSS/Images are loaded before PDFing
