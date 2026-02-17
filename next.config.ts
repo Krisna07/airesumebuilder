@@ -12,7 +12,7 @@ const nextConfig = {
     experimental: {
         turbo: false // Disable Turbopack, use webpack
     },
-    serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium-min'],
+    serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     webpack: (config: any, { isServer }: { isServer: boolean }) => {
         if (isServer) {
