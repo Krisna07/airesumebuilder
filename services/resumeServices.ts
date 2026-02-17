@@ -1,9 +1,8 @@
 
 import { ScrapeResult } from "@/components/Forms/JobDescription";
 import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
-import { LocalResumeService } from "./localResumeService";
-import { NextResponse } from "next/server";
 import { extractTextFromPdf } from "@/utils/pdfExtractor";
+import { LocalResumeService } from "./localResumeService";
 
 
 type analyzeResumeParams = {
@@ -146,29 +145,42 @@ export async function uploadResume(file: File, userId?: string) {
         if (!text || text.trim().length === 0) {
             throw new Error('No text extracted from PDF.');
         }
-        const structuredData: ResumeData = await fetch('/api/ai/extract-resume', {
+        const endpoint = userId ? '/api/ai/extract-resume' : '/api/ai/extract-resume-guest';
+
+        const extractResponse = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ text })
-        }).then(res => res.json()).then(data => data.data);
+        });
+
+        const extractBody = await extractResponse.json();
+
+        if (!extractResponse.ok) {
+            throw new Error(extractBody?.error || extractBody?.details || 'Failed to extract resume data');
+        }
+
+        const structuredData: ResumeData = extractBody?.data;
 
         if (!structuredData) {
             throw new Error('Failed to process resume data');
-            }
-
-            if (!userId) {
-                const saveLocal = await LocalResumeService.create('classic', structuredData)
-                return NextResponse.json({ data: saveLocal }, { status: 200 })
-            }
-
-            const resumeId = self.crypto.randomUUID();
-        const saveResume = await ResumeService.save(userId, resumeId, 'modern', structuredData);
-            return saveResume
-        } catch (error) {
-            throw error
         }
+
+        if (!userId) {
+            const saveLocal = await LocalResumeService.create('classic', structuredData)
+            return new Response(JSON.stringify({ data: saveLocal }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        }
+
+        const resumeId = self.crypto.randomUUID();
+        const saveResume = await ResumeService.save(userId, resumeId, 'modern', structuredData);
+        return saveResume
+    } catch (error) {
+        throw error
     }
+}
 
 
 export async function analyzeResume(analyzeResumeParams: analyzeResumeParams) {

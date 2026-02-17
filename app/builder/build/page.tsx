@@ -24,6 +24,7 @@ const Page = () => {
 
   const handleFileChange = async (file: File | null) => {
     if (!file) return;
+
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -45,16 +46,18 @@ const Page = () => {
       console.log(response);
       const data = await response.json();
       if (!response.ok) {
-        showToast('Failed to process resume', 'error');
-        setError('Error has occured');
+        const errorMessage = data?.error || data?.details || 'Failed to process resume';
+        showToast(errorMessage, 'error');
+        setError(errorMessage);
         setFileName(null);
         resetFileInput();
         return;
       }
       showToast('Resume uploaded successfully!', 'success');
       setSuccess(true);
-      // Avoid forced subscription refresh; counts update server-side
-      await getSubscription(false);
+      if (user?.id) {
+        await getSubscription(false);
+      }
       // Start a 2-second interval when upload is successful
       const redirect = setInterval(() => {
         return (window.location.href = `/builder/${data.data.id}`);
@@ -102,12 +105,12 @@ const Page = () => {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={triggerFileSelect}
-        className={`flex flex-col items-center justify-center w-full p-6 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${error ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+          className={`flex flex-col items-center justify-center w-full p-6   rounded-xl cursor-pointer transition-all shadow-2xl hover:scale-[1.05] ${loading ? 'scale-[1.1]' : ''} ${error ? 'border-red-400' : ' dark:bg-gray-700'
           }`}
       >
         {loading ? (
-          <div className="flex flex-col items-center text-gray-500">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+            <div className="flex flex-col items-center ">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border"></div>
             <p className="mt-2">Analyzing your resume...</p>
           </div>
         ) : error ? (
@@ -116,7 +119,7 @@ const Page = () => {
             <p className="mt-2 font-semibold">Error</p>
             <p className="text-sm text-center">Error has occured please try again. </p>
             <button
-              className="mt-2 px-4 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                  className="mt-2 px-4 py-1  text-red-700 rounded hover:bg-red-200"
               onClick={e => {
                 e.stopPropagation();
                 setError(null);
@@ -135,7 +138,7 @@ const Page = () => {
             <p className="text-sm">{fileName}</p>
           </div>
         ) : (
-          <div className="flex flex-col items-center text-center text-gray-500">
+                  <div className="flex flex-col items-center text-center ">
             <UploadCloud className="w-10 h-10 mb-2" />
             <p className="font-semibold">Click to upload or drag and drop</p>
             <p className="text-sm">PDF only. The content will be extracted by AI.</p>
