@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 // import { validate } from 'deep-email-validator'; // Properly destructure validate
 import { EmailService } from '@/utils/sendEmail';
 
-export async function PUT(req: NextRequest) {
+async function handleCreateUser(req: NextRequest) {
   try {
     let user;
     const { email, name, image, provider, providerId, password } = await req.json();
@@ -73,8 +73,8 @@ export async function PUT(req: NextRequest) {
         // }
         // Generate verification details and store in DB
         const generateVerificationCode = () => Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
-        const code = generateVerificationCode()
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+        const code = generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
         // Send welcome email with the code
         const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
@@ -99,8 +99,8 @@ export async function PUT(req: NextRequest) {
             userId: user.id,
             code,
             expiresAt,
-          }
-        })
+          },
+        });
 
         return NextResponse.json({
           data: {
@@ -135,6 +135,14 @@ export async function PUT(req: NextRequest) {
     console.error('Error creating user:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
+}
+
+export async function POST(req: NextRequest) {
+  return handleCreateUser(req);
+}
+
+export async function PUT(req: NextRequest) {
+  return handleCreateUser(req);
 }
 
 
