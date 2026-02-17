@@ -1,127 +1,55 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import chromium from '@sparticuz/chromium';
-import fs from 'fs'; // added import
-import path from 'path';
+import chromium from '@sparticuz/chromium-min';
+import puppeteer from 'puppeteer-core';
 
-
-const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
-
-async function sleep(ms: number) {
-    return new Promise((r) => setTimeout(r, ms));
-}
-
-async function launchWithRetries(puppeteerPkg: any, launchOptions: Record<string, any>, retries = 2) {
-    let attempt = 0;
-    while (true) {
-        try {
-            const browser = await puppeteerPkg.launch(launchOptions);
-            console.log(`puppeteer.launch succeeded (attempt ${attempt + 1})`);
-            return browser;
-        } catch (err: any) {
-            attempt++;
-            console.warn(`puppeteer.launch failed (attempt ${attempt}):`, err?.message ?? err);
-            if (attempt > retries) throw err;
-            const backoff = Math.min(30000, 300 * 2 ** attempt);
-            await sleep(backoff + Math.floor(Math.random() * 300));
-        }
-    }
-}
+// Vercel Settings: Chromium takes ~2-4s to download and launch.
+export const maxDuration = 60; 
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+    let browser = null;
+
     try {
         const body = await req.json();
         let content = body.content;
 
-        // If resumeData and template are provided, generate HTML from template
+        // 1. Generate HTML if template data is provided
         if (body.resumeData && body.template) {
             try {
                 content = generateTemplateHTML(body.template, body.resumeData);
-            } catch (htmlError) {
-                console.error('❌ HTML generation error:', htmlError);
-                throw new Error(`HTML generation failed: ${htmlError instanceof Error ? htmlError.message : 'Unknown error'}`);
+            } catch (htmlError: any) {
+                throw new Error(`HTML generation failed: ${htmlError.message}`);
             }
         }
 
-        if (!content) {
-            throw new Error('No content provided for PDF generation');
-        }
-        const rawBrowserlessWs = process.env.BROWSERLESS_WS;
-        const browserlessWs = rawBrowserlessWs
-            ? (rawBrowserlessWs.startsWith('ws://') || rawBrowserlessWs.startsWith('wss://')
-                ? rawBrowserlessWs
-                : `wss://chrome.browserless.io?token=${rawBrowserlessWs}`)
-            : undefined;
-        let executablePath;
-        const puppeteerPkg = isProd || browserlessWs ? await import('puppeteer-core') : await import('puppeteer');
+        if (!content) throw new Error('No content provided for PDF generation');
 
-        if (isProd && !browserlessWs) {
-    executablePath = await chromium.executablePath();
-    // CRITICAL: Tell the system where to find the extracted .so libraries
-    const execDir = path.dirname(executablePath);
-    process.env.LD_LIBRARY_PATH = execDir; 
-}else if (!browserlessWs) {
-            // handle both puppeteer versions where executablePath might be function or string
-            executablePath = typeof puppeteerPkg.executablePath === 'function'
-                ? await puppeteerPkg.executablePath()
-                : puppeteerPkg.executablePath;
-        }
-
-        console.log('puppeteer package version:', (puppeteerPkg as any).version ?? 'unknown');
-        console.log('resolved executablePath:', executablePath ?? 'none');
-        console.log('browserless:', !!browserlessWs);
-
-        // Choose args per environment - don't reuse sparticuz args in local dev
-        const args = isProd
-            ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-            : [
-                // safer flags for local Windows dev
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                // DO NOT use '--single-process' on Windows/local — it breaks V8 proxy resolver and crashes Chromium.
-                '--no-sandbox',
-                '--disable-extensions',
-                '--disable-background-networking'
-            ];
-
-        // Ensure executablePath actually exists locally before launching
-        if (!browserlessWs && (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath)))) {
-            console.error('Chromium executable not found at resolved path:', executablePath);
-            throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
-        }
+        // 2. Determine Environment
+        const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+        
+        // 3. Setup Launch Options
+        // We use the hosted Brotli pack to keep the Vercel deployment size tiny.
+        const remotePackUrl = "https://github.com/sparticuz/chromium/releases/download/v132.0.0/chromium-v132.0.0-pack.tar";
 
         const launchOptions = {
-            args,
-            executablePath,
-            headless: true,
-            defaultViewport: null,
-            // dump io so Chromium stderr/logs appear in server logs (helps debug ECONNRESET)
-            dumpio: true,
-            timeout: 120000,
+            args: isProd ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
+            defaultViewport: chromium.defaultViewport,
+            executablePath: isProd 
+                ? await chromium.executablePath(remotePackUrl) 
+                : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Path for Mac. Use your local path for Windows/Linux.
+            headless: chromium.headless,
         };
-        // Try to log puppeteer version (best-effort)
-        try {
-            const pkg = await import('puppeteer/package.json');
-            console.log('local puppeteer version:', pkg?.version ?? 'unknown');
-        } catch {
-            console.log('puppeteer package.json not found (ok if using puppeteer-core in prod)');
-        }
 
-        const browser = browserlessWs
-            ? await (puppeteerPkg as any).connect({ browserWSEndpoint: browserlessWs })
-            : await launchWithRetries(puppeteerPkg, launchOptions, 2);
-
-        // log child process PID if available (helps correlate OS-level crashes)
-        try {
-            const proc: any = (browser as any).process?.();
-            if (proc) console.log('chromium pid:', proc.pid);
-        } catch { }
-
+        // 4. Launch Browser
+        browser = await puppeteer.launch(launchOptions);
         const page = await browser.newPage();
-        await page.setContent(content, { waitUntil: 'load' });
+        
+        // Use 'networkidle0' to ensure all CSS/Images are loaded before PDFing
+        await page.setContent(content, { waitUntil: 'networkidle0' });
 
-        // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
+        // 5. PDF Configuration
         const pageGap = body.pageGap || {
             top: '4mm',
             bottom: '4mm',
@@ -134,18 +62,18 @@ export async function POST(req: NextRequest) {
             printBackground: true,
             margin: pageGap,
             preferCSSPageSize: false,
-            displayHeaderFooter: false,
         });
 
+        // 6. Cleanup
         await browser.close();
 
-        // Generate filename
+        // 7. Prepare Filename
         const filename = body.resumeData?.profile?.fullname
             ? `${body.resumeData.profile.fullname.replace(/\s+/g, '_')}_Resume.pdf`
             : 'Resume.pdf';
 
-        // Return PDF as response
-        return new Response(Buffer.from(pdfBuffer), {
+        // 8. Return PDF Response
+        return new NextResponse(pdfBuffer, {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `attachment; filename="${filename}"`,
@@ -153,19 +81,15 @@ export async function POST(req: NextRequest) {
             },
         });
 
-    } catch (error) {
-        console.log(error)
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    } catch (error: any) {
+        console.error('❌ PDF Generation Error:', error);
+        
+        if (browser) await (browser as any).close();
 
-        return new Response(JSON.stringify({
+        return NextResponse.json({
             error: 'PDF generation failed',
-            details: errorMessage,
+            details: error.message,
             timestamp: new Date().toISOString()
-        }), {
-            status: 500,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        }, { status: 500 });
     }
 }
