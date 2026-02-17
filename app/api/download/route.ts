@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
 import chromium from '@sparticuz/chromium';
 import fs from 'fs'; // added import
+import path from 'path';
+
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
 
@@ -55,8 +57,11 @@ export async function POST(req: NextRequest) {
         const puppeteerPkg = isProd || browserlessWs ? await import('puppeteer-core') : await import('puppeteer');
 
         if (isProd && !browserlessWs) {
-            executablePath = await chromium.executablePath();
-        } else if (!browserlessWs) {
+    executablePath = await chromium.executablePath();
+    // CRITICAL: Tell the system where to find the extracted .so libraries
+    const execDir = path.dirname(executablePath);
+    process.env.LD_LIBRARY_PATH = execDir; 
+}else if (!browserlessWs) {
             // handle both puppeteer versions where executablePath might be function or string
             executablePath = typeof puppeteerPkg.executablePath === 'function'
                 ? await puppeteerPkg.executablePath()
