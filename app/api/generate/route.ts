@@ -8,6 +8,7 @@ import fs from 'fs';
 export const runtime = "nodejs";
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
+const remotePackUrl = "https://github.com/sparticuz/chromium/releases/download/v141.0.0/chromium-v141.0.0-pack.tar";
 
 export async function POST(req: NextRequest) {
     try {
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
             browser = await puppeteerPkg.launch({
                 args: puppeteerPkg.defaultArgs({ args: chromium.args, headless: "shell" }),
                 defaultViewport: viewport,
-                executablePath: await chromium.executablePath(),
+                executablePath: await chromium.executablePath(remotePackUrl),
                 headless: "shell",
             });
         } else {

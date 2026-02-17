@@ -6,6 +6,7 @@ import { generateTemplateHTML } from "@/lib/template-utils";
 export const maxDuration = 60; 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+const remotePackUrl = "https://github.com/sparticuz/chromium/releases/download/v141.0.0/chromium-v141.0.0-pack.tar";
 
 export async function POST(req: NextRequest) {
     let browser = null;
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
             browser = await puppeteer.launch({
                 args: puppeteer.defaultArgs({ args: chromium.args, headless: 'shell' }),
                 defaultViewport: viewport,
-                executablePath: await chromium.executablePath(),
+                executablePath: await chromium.executablePath(remotePackUrl),
                 headless: 'shell',
             });
         } else {
