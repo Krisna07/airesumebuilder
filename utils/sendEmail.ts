@@ -102,7 +102,7 @@ The AireSumeCraft Team
 
         const htmlContent = `
 <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-    <h2>Hi three</h2>
+    <h2>Hi There</h2>
     <p><strong>Your Password reset code is:</strong></p>
     <div style="font-size: 20px; font-weight: bold; color: #4CAF50; margin: 10px 0;">${code}</div>
     <p>Please use this code to authenticate yourself.</p>
