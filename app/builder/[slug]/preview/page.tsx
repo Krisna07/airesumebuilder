@@ -6,7 +6,7 @@ import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/type
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2, SettingsIcon, BarChart2Icon, BotIcon, BookTemplateIcon, X, FileUser, FileSliders, Copy } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2, BotIcon, X, FileUser, FileSliders, Copy } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/Ui/Button';
 import ConfirmDialog from '@/components/Ui/ConfirmDialog';
@@ -21,6 +21,7 @@ import { useJobDescriptions } from '@/hooks/useJobDescriptions';
 import { useGetResume } from '@/hooks/useResume';
 import { JobDescriptionService } from '@/services/jdServices';
 import { ResumeCache } from '@/lib/resumeCache';
+import LiquidNav from './LiqidNav';
 
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
@@ -508,13 +509,13 @@ const PreviewPage = () => {
         className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
         <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
-          <div className='w-full flex items-start justify-between  shadow  p-4'>
+          {/* <div className='w-full flex items-start justify-between relative shadow dark:bg-gray-800 bg-gray-200  p-4'>
             <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
               e.stopPropagation();
               showMenu(false);
               setShowTemplates(false);
               showReports(!reports);
-            }} className={`${reports ? 'text-blue-600  scale-105' : ''} transition-all ease-in-out  w-fit`} />
+            }} className={`${reports ? 'text-blue-600  scale-110' : ''} transition-all ease-in-out  w-fit`} />
 
             <BookTemplateIcon
               onMouseDown={(e) => e.stopPropagation()}
@@ -532,11 +533,20 @@ const PreviewPage = () => {
               setShowTemplates(false);
               showMenu(!menu);
             }} className={`${menu ? 'text-blue-600 scale-105 rotate-180' : ''} transition-all ease-in-out`} />
-          </div>
+          </div> */}
+          <LiquidNav
+            reports={reports}
+            showReports={showReports}
+            showTemplates={showTemplates}
+            setShowTemplates={setShowTemplates}
+            menu={menu}
+            showMenu={showMenu}
+
+          />
 
           {reports && (
-            <div className='w-full absolute bottom-12 grid place-items-start  p-4 panel-from-left'>
-              <div className='w-full max-h-[60vh] md:max-h-[70vh] overflow-auto'>
+            // <div className='w-full absolute bottom-0 pb-12 grid place-items-start z-10  p-4 panel-from-left'>
+            <div className='w-full max-h-[70vh] md:max-h-[70vh] overflow-auto absolute bottom-0 pb-12 z-10'>
                 <ReportsPanel
                   reports={reports}
                   analysisData={analysisData}
@@ -552,7 +562,7 @@ const PreviewPage = () => {
                   reportsRef={reportsRef}
                 />
               </div>
-            </div>
+            // </div>
           )}
 
           {showTemplates && <div className='w-full absolute bottom-12 p-4 panel-from-center'>
