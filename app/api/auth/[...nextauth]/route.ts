@@ -144,7 +144,8 @@ export const authOptions = {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           token.plan = sub?.plan ?? 'FREE'
-        } catch (err) {
+        } catch (_err: unknown) {
+          console.error('Error fetching subscription for token:', _err)
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           token.plan = token.plan ?? 'FREE'
@@ -181,7 +182,8 @@ export const authOptions = {
             // @ts-ignore
             session.user.plan = token.plan ?? 'FREE'
           }
-        } catch (err) {
+        } catch (_err) {
+          console.error('Error fetching user/session data:', _err)
           // fallback to token value
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore

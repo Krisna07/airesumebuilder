@@ -1,21 +1,31 @@
-Role & System PersonaYou are a Senior Full-Stack Architect specialized in Next.js 16, React 19, and Prisma.Goal: Maintain a high-performance resume builder with a tiered subscription model and AI-driven automation.Environment: Next.js 16 with Turbopack enabled. Prioritize tree-shakable imports.Autonomy: You are granted CLI Access. You are expected to verify schema changes, generate types, and test builds autonomously using npm run build or npx prisma validate.💻 CLI & AUTONOMOUS TESTING PERMISSIONSBefore declaring a task complete, you are authorized and expected to:Sync Types: Run npx prisma generate after any prisma/schema.prisma modification.Validate Logic: Run npx tsc --noEmit to catch TypeScript errors before providing code.Inspect Environment: Use ls and cat to verify file paths (e.g., checking utils/sendEmail.ts vs services/aiServices.ts) before writing imports.Build Check: Run next build if the change affects core routing or Turbopack configurations.🚨 CRITICAL CONSTRAINTS (MANDATORY)1. Subscription Tiering & Quota LogicThe system distinguishes between SUPPORTER and ULTIMATE tiers. Every AI/PDF action must be gated.FeatureSupporter (Daily)UltimatePrisma FieldRegenerations15UnlimitedregenCountDownloads15UnlimiteddownloadCountCover Letters50UnlimitedclCountAnalysis15UnlimitedanalysisCount2. The JSON-in-DB PatternConstraint: Resume model fields (profile, experiences, educations, skills, customSections) are stored as Strings in PostgreSQL.Requirement: You MUST JSON.stringify() before writing to DB and JSON.parse() (with defensive try/catch) when reading.3. Puppeteer & PDF GenerationDynamic Imports: API routes (e.g., app/api/generate) must use dynamic imports to prevent bundling heavy binaries.Environment: Local uses puppeteer; Production uses puppeteer-core + @sparticuz/chromium.4. Authentication & VerificationFlow: Users start with isVerified: false. Use Verification model for 6-digit codes sent via utils/sendEmail.ts.Session Sync: Ensure isVerified is synced in the NextAuth jwt and session callbacks.🏗️ Technical Architecture ReferenceAI Service: services/aiServices.ts (Google GenAI gemini-2.5-flash-lite).Prompts: lib/prompts.ts (Strict JSON requirement).Email: utils/sendEmail.ts (Nodemailer).Auth Context: context/authContext.tsx (Client-side verification state).📊 Database & Types (Subscription Logic)Updated Prisma SchemaCode snippetenum Plan {
-  FREE
-  SUPPORTER
-  ULTIMATE
-}
 
-model Subscription {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  plan            Plan     @default(FREE)
-  
-  // Usage Tracking
-  regenCount      Int      @default(0)
-  downloadCount   Int      @default(0)
-  clCount         Int      @default(0)
-  analysisCount   Int      @default(0)
-  
-  lastResetDate   DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id])
-}
+# Project Guidelines
+
+## Code Style
+- Follow the Next.js App Router layout, keeping metadata and global styles in `app/layout.tsx`/`app/page.tsx` and importing CSS via `global.css`; the README summarizes this entry pattern and TypeScript / Prisma stack choices.
+- Prefer React + Tailwind-free components similar to `components/Navbar.tsx` and context-heavy helpers in `context/authContext.tsx`; mirrors the TypeScript-first shape described under the Quick Links in [README.md](README.md#L1-L80).
+
+## Architecture
+- Keep UI logic in `app/` and shared components while routing AI, auth, subscription, and PDF work through `app/api/*` as shown in [README.md](README.md#L30-L140); data flows from React contexts → API routes → `services/` → Prisma.
+- Heavy business logic (AI orchestration, resume caching, email, subscription checks) belongs in `services/aiServices.ts`, `lib/`, and server-only APIs; CLAUDE.md reinforces that server-side routes handle sensitive tasks before touching Prisma models.
+
+## Build and Test
+- Install deps with `npm install`, then keep browsers synced via `npx puppeteer browsers install chrome` and run `npx prisma generate` before `npm run dev` as noted in [README.md](README.md#L120-L180).
+- For CI/dev checks run `npm run build`, `npm run lint`, and `npx tsc --noEmit`; CLAUDE.md lists the same plus subscription utilities (`npm run subscription:*`).
+
+## Project Conventions
+- Resume JSON fields stay stored as strings (`Resume.profile`, `.experiences`, etc.); parse/stringify around Prisma calls instead of native JSON columns; see [README.md](README.md#L160-L210).
+- Prompts live in `lib/prompts.ts` and their outputs always funnel through `lib/jsonParse.ts`; updating either requires touching the other to keep the strict JSON contract described
+- Soft deletes use `Resume.isDeleted` (filter `isDeleted: false` on queries) and subscription limits live in `lib/subscription-server.ts`/`app/api/subscription/increment` as detailed
+
+## Integration Points
+- AI hooks go through `services/aiServices.ts` (OpenRouter fallback → Gemini models) and export wrapper methods so API routes stay thin [CLAUDE.md].
+- Email verification uses `app/api/auth/*` routes, `utils/sendEmail.ts`, and the `Verification` Prisma model; keep the 6-digit code flow in sync with the modal in `components/VerificationModal.tsx` per [README.md](README.md#L140-L200).
+- Subscription/Stripe handling is fronted by `components/Checkout.tsx`, `app/api/webhooks/stripe`, and the Prisma `Subscription`/`Stripe*` models identified
+
+## Security
+- All sensitive env vars (`DATABASE_URL`, `GEMINI_API_KEY`, `NEXTAUTH_SECRET`, SMTP/Stripe keys) must exist before running the server, as emphasized in [README.md](README.md#L90-L150).
+- Treat API responses consistently: `{ success: boolean, data?: ..., error?: string }` and avoid leaking secrets in `utils/sendEmail.ts` or webhook handlers discussed
+- Hashing verification codes and rate-limiting resend endpoints are future hardening ideas already noted in README so ensure any new work keeps the current flow intact.
+
+Please flag any places where this guidance feels incomplete so we can iterate—happy to expand or adjust based on your goals.

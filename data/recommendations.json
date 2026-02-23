@@ -1,0 +1,2946 @@
+{
+  "roles": {
+    "software_engineer": {
+      "aliases": [
+        "software engineer",
+        "software developer",
+        "full stack engineer",
+        "fullstack developer",
+        "web developer"
+      ],
+      "specializations": {
+        "frontend": {
+          "tags": [
+            "react",
+            "ui",
+            "frontend"
+          ],
+          "bullets": {
+            "junior": [
+              "Developed responsive UI components using {{frontend_stack}} and modern CSS frameworks.",
+              "Integrated REST APIs for seamless data rendering and real-time state management.",
+              "Collaborated with senior developers to implement high-quality UI features and accessibility standards.",
+              "Optimized image assets and code-splitting to improve application load times.",
+              "Fixed visual bugs and regression issues identified during QA cycles.",
+              "Assisted in migration from legacy components to modern functional React architectures.",
+              "Participated in code reviews to ensure adherence to team styling guidelines.",
+              "Implemented unit tests for shared UI components using Jest and React Testing Library.",
+              "Resolved cross-browser compatibility issues for mobile and desktop views.",
+              "Assisted in documentation of UI component libraries for internal team use.",
+              "Configured build tools and linting rules to maintain code quality."
+            ],
+            "senior": [
+              "Architected scalable frontend architectures using {{frontend_stack}} and micro-frontend patterns.",
+              "Lead the development of complex UI components, improving maintainability across {{metric}} projects.",
+              "Optimized frontend performance, achieving a {{metric}}% reduction in initial load time.",
+              "Spearheaded the transition to a centralized design system, reducing design-to-dev time by {{metric}}%.",
+              "Mentored junior developers through structured pair programming and technical workshops.",
+              "Implemented robust end-to-end testing suites, increasing deployment confidence by {{metric}}%.",
+              "Established CI/CD pipelines for frontend assets, ensuring zero-downtime deployments.",
+              "Defined technical roadmaps for UI modernization and tech stack upgrades.",
+              "Collaborated with UX designers to bridge the gap between design vision and technical feasibility.",
+              "Optimized SEO and Core Web Vitals, resulting in a {{metric}}% increase in organic traffic.",
+              "Architected state management solutions using Redux/Zustand for complex data flows."
+            ]
+          }
+        },
+        "backend": {
+          "tags": [
+            "node",
+            "api",
+            "database"
+          ],
+          "bullets": {
+            "junior": [
+              "Built REST APIs using {{backend_stack}} and connected them to relational databases.",
+              "Designed relational database schemas and optimized basic query performance.",
+              "Assisted in deploying backend services using {{cloud_platform}} and Docker.",
+              "Refactored legacy backend logic to improve readability and maintainability.",
+              "Assisted in implementing OAuth2 and JWT-based authentication systems.",
+              "Wrote integration tests for critical API endpoints using Supertest/Mocha.",
+              "Monitored server logs and resolved production performance bottlenecks.",
+              "Contributed to the design of message queue consumers for background tasks.",
+              "Documented API endpoints using Swagger/OpenAPI specifications.",
+              "Supported data migration scripts for database version upgrades.",
+              "Collaborated on improving error handling and logging across microservices."
+            ],
+            "senior": [
+              "Architected highly available REST APIs using {{backend_stack}} supporting {{metric}}k concurrent users.",
+              "Optimized database performance and query efficiency on {{cloud_platform}} for large-scale datasets.",
+              "Implemented robust security protocols, rate limiting, and multi-factor authentication systems.",
+              "Led the migration from monolithic architecture to a distributed microservices model.",
+              "Designed event-driven architectures using Kafka/RabbitMQ for high-throughput processing.",
+              "Reduced server infrastructure costs by {{metric}}% through container orchestration and auto-scaling.",
+              "Mentored senior engineering staff on system design and distributed systems best practices.",
+              "Established comprehensive observability stacks (ELK/Prometheus) reducing MTTR by {{metric}}%.",
+              "Directed security audits and implemented data encryption-at-rest strategies.",
+              "Spearheaded database sharding and replication strategies to support global users.",
+              "Optimized CI/CD pipelines to achieve {{metric}} deployments per day with high reliability."
+            ]
+          }
+        },
+      "general": {
+  "tags": [
+    "software engineering",
+    "agile",
+    "sdlc",
+    "git",
+    "system design"
+  ],
+  "bullets": {
+    "junior": [
+      "Contributed to the full Software Development Life Cycle (SDLC) for {{metric}}+ production applications.",
+      "Collaborated with cross-functional teams in an Agile environment to deliver bi-weekly sprint goals.",
+      "Utilized Git for version control, managing branches and resolving merge conflicts efficiently.",
+      "Participated in daily stand-ups and sprint planning to align on project requirements and timelines.",
+      "Identified and refactored inefficient code blocks to improve overall system performance.",
+      "Assisted in technical feasibility studies for new feature requests and product enhancements.",
+      "Authored clean, maintainable, and well-documented code following industry best practices.",
+      "Performed manual and automated testing to ensure software reliability across different environments.",
+      "Supported the deployment process by preparing release notes and monitoring post-launch metrics.",
+      "Researched and integrated third-party libraries and SDKs to accelerate development cycles.",
+      "Provided technical support and bug fixes for internal tools used by {{metric}}+ staff members."
+    ],
+    "senior": [
+      "Led the end-to-end delivery of enterprise-grade software solutions for {{metric}}+ global users.",
+      "Architected distributed systems with a focus on high availability, scalability, and fault tolerance.",
+      "Defined and enforced coding standards and architectural patterns across multiple engineering teams.",
+      "Optimized the SDLC by implementing automated CI/CD pipelines, reducing lead time by {{metric}}%.",
+      "Directed technical discovery and system design phases for high-impact product initiatives.",
+      "Managed technical debt by prioritizing refactoring tasks alongside new feature development.",
+      "Mentored engineering leads on system design, performance tuning, and career progression.",
+      "Collaborated with Product and Design leadership to translate business vision into technical roadmaps.",
+      "Spearheaded the adoption of {{cloud_platform}} services to modernize legacy infrastructure.",
+      "Reduced operational overhead by {{metric}}% through the implementation of automated monitoring and alerting.",
+      "Championed a culture of testing and quality, resulting in a {{metric}}% decrease in production incidents."
+    ]
+  }
+}
+      }
+    },
+    "project_manager": {
+      "aliases": [
+        "project manager",
+        "product manager",
+        "program manager"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "agile",
+            "scrum",
+            "sdlc"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed project timelines and deliverables for cross-functional teams of {{metric}} members.",
+              "Facilitated daily stand-ups, sprint planning, and retrospective agile ceremonies.",
+              "Tracked project metrics and reported on progress to department stakeholders.",
+              "Assisted in the definition of project scope and technical requirements gathering.",
+              "Coordinated between design and engineering to resolve product blockers early.",
+              "Managed product backlogs and prioritized user stories for development sprints.",
+              "Assisted in budget tracking and resource allocation for small-to-mid scale projects.",
+              "Maintained project documentation and internal wikis for team transparency.",
+              "Drafted weekly status reports highlighting risks and mitigation strategies.",
+              "Participated in stakeholder meetings to align project outcomes with business goals.",
+              "Analyzed post-launch data to measure project success and user adoption."
+            ],
+            "senior": [
+              "Led complex project portfolios from conception to delivery, ensuring alignment with $1M+ business goals.",
+              "Implemented strategic agile methodologies that increased team velocity by {{metric}}%.",
+              "Managed multi-million dollar budgets and complex vendor/contractor relationships.",
+              "Spearheaded organizational-wide digital transformations, impacting {{metric}}+ employees.",
+              "Mentored project management staff on risk management and strategic communication.",
+              "Developed long-term product roadmaps and defined KPIs for executive-level reporting.",
+              "Optimized resource utilization, reducing project overhead by {{metric}}% over 12 months.",
+              "Directed cross-departmental steering committees for mission-critical initiatives.",
+              "Negotiated project priorities with C-suite executives and board members.",
+              "Implemented robust quality assurance protocols, reducing post-release defects by {{metric}}%.",
+              "Pioneered the adoption of data-driven decision making across the project lifecycle."
+            ]
+          }
+        }
+      }
+    },
+    "data_analyst": {
+      "aliases": [
+        "data analyst",
+        "business analyst",
+        "insights analyst"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "sql",
+            "python",
+            "powerbi"
+          ],
+          "bullets": {
+            "junior": [
+              "Conducted data cleaning and preprocessing for business-critical reports.",
+              "Developed interactive dashboards using {{frontend_stack}} (or BI tools) to visualize trends.",
+              "Analyzed key business metrics to identify growth opportunities and cost savings.",
+              "Automated weekly reporting processes using Python scripts, saving {{metric}} manual hours.",
+              "Performed exploratory data analysis to support strategic decision making.",
+              "Assisted in the development of SQL queries for extracting raw data from data warehouses.",
+              "Collaborated with data engineers to improve data quality and pipeline reliability.",
+              "Drafted comprehensive analytical summaries for non-technical stakeholders.",
+              "Maintained metadata catalogs to ensure data consistency across the organization.",
+              "Assisted in A/B test analysis to measure the impact of new product features.",
+              "Optimized existing Excel-based workflows into scalable BI solutions."
+            ],
+            "senior": [
+              "Developed advanced statistical models and predictive analytics to drive strategic direction.",
+              "Optimized data pipeline workflows, reducing processing time and latency by {{metric}}%.",
+              "Presented data-driven insights to executive leadership to influence multi-year roadmaps.",
+              "Lead the implementation of central data warehouses, unifying data across {{metric}} departments.",
+              "Directed enterprise-level data governance and privacy compliance initiatives.",
+              "Mentored junior analysts on advanced data visualization and storytelling techniques.",
+              "Identified {{metric}}% potential revenue growth through deep-dive customer behavior analysis.",
+              "Architected automated alerting systems for tracking critical business anomalies.",
+              "Spearheaded the integration of external data sources for a 360-degree customer view.",
+              "Reduced operational churn by {{metric}}% by developing proactive customer retention models.",
+              "Standardized data reporting frameworks, improving cross-functional alignment by {{metric}}%."
+            ]
+          }
+        }
+      }
+    },
+    "information_systems_manager": {
+      "aliases": [
+        "information systems manager",
+        "it manager",
+        "is manager"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "it strategy",
+            "infrastructure",
+            "compliance"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed IT infrastructure and supported daily systems operations for {{metric}}+ users.",
+              "Implemented security protocols and access controls under senior leadership guidance.",
+              "Assisted in the procurement and rollout of new hardware and software systems.",
+              "Monitored network performance and resolved connectivity issues promptly.",
+              "Maintained technical documentation and user manuals for internal IT systems.",
+              "Coordinated with vendors for hardware maintenance and software licensing.",
+              "Assisted in disaster recovery planning and periodic backup testing.",
+              "Performed system audits to ensure compliance with company IT policies.",
+              "Managed help desk tickets and provided technical support to internal employees.",
+              "Assisted in the setup and configuration of cloud-based collaborative tools.",
+              "Supported the onboarding of new employees by configuring workstations and accounts."
+            ],
+            "senior": [
+              "Directed IT strategy and managed multi-million dollar technology budgets for global operations.",
+              "Optimized systems performance, achieving {{metric}}% uptime across critical infrastructure.",
+              "Led digital transformation initiatives that improved operational efficiency by {{metric}}%.",
+              "Architected secure, scalable cloud transitions on {{cloud_platform}}, reducing costs by {{metric}}%.",
+              "Established enterprise-wide cybersecurity frameworks and incident response protocols.",
+              "Managed large-scale IT departments and mentored technical leads on leadership and architecture.",
+              "Negotiated enterprise-level service agreements with major technology vendors.",
+              "Directed global help desk operations, maintaining a {{metric}}% user satisfaction rating.",
+              "Spearheaded the implementation of automated infrastructure-as-code (IaC) solutions.",
+              "Oversaw large-scale data migration projects with zero data loss and minimal downtime.",
+              "Influenced executive-level business decisions through strategic technology roadmaps."
+            ]
+          }
+        }
+      }
+    },
+  "it_support_analyst": {
+    "aliases": [
+      "it support analyst",
+      "technical support analyst",
+      "help desk analyst",
+      "desktop support technician",
+      "it support specialist", 
+      "information technology support"
+    ],
+    "specializations": {
+      "general": {
+        "tags": [
+          "technical troubleshooting",
+          "itil",
+          "customer service",
+          "active directory",
+          "hardware diagnostics"
+        ],
+        "bullets": {
+          "junior": [
+            "Resolved {{metric}}+ technical support tickets weekly, maintaining a {{metric}}% first-call resolution rate.",
+            "Provided first-level troubleshooting for hardware, software, and network connectivity issues.",
+            "Provisioned and configured workstations, peripherals, and mobile devices for {{metric}}+ new hires.",
+            "Managed user accounts and group permissions within Active Directory and Microsoft 365.",
+            "Documented common technical issues and resolutions in the internal knowledge base.",
+            "Escalated complex hardware and software problems to senior technical teams when necessary.",
+            "Performed routine system maintenance and software updates across local workstations.",
+            "Assisted users with remote access tools and VPN configuration for off-site connectivity.",
+            "Monitored automated alerts to proactively identify and resolve printer and hardware failures.",
+            "Conducted basic hardware repairs and coordinated warranty replacements with vendors.",
+            "Educated employees on cybersecurity best practices and internal IT security policies."
+          ],
+          "senior": [
+            "Led a high-performing support team to maintain a {{metric}}% SLA compliance rate across the enterprise.",
+            "Optimized help desk workflows and ticketing systems, reducing average resolution time by {{metric}}%.",
+            "Architected and deployed automated OS imaging and software distribution using {{cloud_platform}} tools.",
+            "Spearheaded the migration of legacy support documentation to a centralized Wiki, improving self-service by {{metric}}%.",
+            "Managed the deployment and security patching of {{metric}}+ endpoints using MDM and RMM solutions.",
+            "Analyzed recurring incident trends to identify root causes and implement permanent infrastructure fixes.",
+            "Mentored junior analysts on advanced troubleshooting techniques and effective communication strategies.",
+            "Evaluated and recommended new support technologies and diagnostic tools to executive leadership.",
+            "Directed large-scale hardware refresh projects for multiple departments within strict deadlines.",
+            "Administered cloud-based productivity suites and identity management systems for {{metric}}+ users.",
+            "Developed and tracked KPIs to report on help desk performance and user satisfaction to management."
+          ]
+        }
+      }
+    }
+  },
+    "ai_manager": {
+      "aliases": [
+        "artificial intelligence manager",
+        "ai lead",
+        "machine learning manager"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "mlops",
+            "ai ethics",
+            "deep learning"
+          ],
+          "bullets": {
+            "junior": [
+              "Assisted in the deployment of machine learning models into production environments.",
+              "Coordinated data collection, cleaning, and labeling efforts for AI training sets.",
+              "Monitored AI system performance and reported on accuracy and latency metrics.",
+              "Supported the integration of AI APIs into existing software products.",
+              "Assisted in researching state-of-the-art algorithms for specific business problems.",
+              "Maintained experimental logs and documentation for machine learning projects.",
+              "Wrote unit tests for data preprocessing pipelines to ensure data integrity.",
+              "Collaborated with data scientists to optimize model architecture for inference speed.",
+              "Supported the setup of GPU clusters and distributed training environments.",
+              "Assisted in the development of internal tools for model versioning and tracking.",
+              "Participated in AI ethics reviews to ensure responsible model development."
+            ],
+            "senior": [
+              "Led the adoption of generative AI across the organization, saving {{metric}} manual hours.",
+              "Architected scalable MLOps pipelines reducing model deployment time by {{metric}}%.",
+              "Directed AI research and development to create proprietary algorithms and patents.",
+              "Established enterprise AI governance frameworks and ethical guidelines for model use.",
+              "Managed multi-disciplinary teams of data scientists, ML engineers, and researchers.",
+              "Negotiated strategic partnerships with AI infrastructure providers and research labs.",
+              "Influenced product roadmaps by identifying high-impact AI/ML opportunities.",
+              "Reduced AI inference costs by {{metric}}% through model quantization and pruning.",
+              "Spearheaded the development of custom LLM solutions for internal knowledge management.",
+              "Directed large-scale data acquisition strategies for training foundation models.",
+              "Presented AI strategy and progress to board members and executive leadership."
+            ]
+          }
+        }
+      }
+    },
+    "data_scientist": {
+      "aliases": [
+        "data scientist",
+        "ml engineer",
+        "machine learning scientist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "python",
+            "pytorch",
+            "scikit-learn"
+          ],
+          "bullets": {
+            "junior": [
+              "Developed predictive models to solve specific business problems and optimize operations.",
+              "Cleaned and explored large datasets for feature engineering and statistical analysis.",
+              "Implemented data visualization to communicate complex findings to diverse stakeholders.",
+              "Assisted in building automated data pipelines for model training and evaluation.",
+              "Performed cross-validation and hyperparameter tuning to improve model performance.",
+              "Collaborated with software engineers to integrate models into production applications.",
+              "Documented research methodologies and model assumptions for transparency.",
+              "Monitored model drift and performed periodic retraining to maintain accuracy.",
+              "Assisted in drafting technical reports and whitepapers on research outcomes.",
+              "Performed sentiment analysis and text mining on customer feedback datasets.",
+              "Developed custom scripts for web scraping and external data acquisition."
+            ],
+            "senior": [
+              "Designed innovative machine learning architectures that improved prediction accuracy by {{metric}}%.",
+              "Developed real-time analytics platforms processing {{metric}} TB of data daily.",
+              "Published high-impact research and mentored junior data scientists on advanced modeling.",
+              "Spearheaded the development of recommendation engines that increased conversion by {{metric}}%.",
+              "Architected robust A/B testing frameworks for validating model performance at scale.",
+              "Led cross-functional data science initiatives resulting in {{metric}}% cost savings.",
+              "Directed the integration of deep learning models into core enterprise products.",
+              "Optimized distributed training workflows on {{cloud_platform}}, reducing training time by {{metric}}%.",
+              "Established data science best practices for Reproducibility and MLOps.",
+              "Identified business growth opportunities using advanced cluster analysis and segmentation.",
+              "Advised executive leadership on data-driven strategy and investment priorities."
+            ]
+          }
+        }
+      }
+    },
+    "ux_manager": {
+      "aliases": [
+        "ux manager",
+        "product design manager",
+        "head of design"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "figma",
+            "user research",
+            "design systems"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed design timelines and ensured adherence to brand and accessibility guidelines.",
+              "Facilitated user testing sessions and analyzed feedback to iterate on product designs.",
+              "Coordinated with development teams to ensure high-fidelity implementation of UI components.",
+              "Created wireframes, prototypes, and high-fidelity mockups for new feature launches.",
+              "Assisted in the maintenance of the company's central design system in Figma.",
+              "Conducted competitive analysis to identify design opportunities and industry trends.",
+              "Assisted in the creation of user personas and journey maps for product discovery.",
+              "Supported the design of landing pages and marketing assets for seasonal campaigns.",
+              "Participated in design critiques and provided constructive feedback to junior peers.",
+              "Managed design assets and files to ensure consistency across the global design team.",
+              "Assisted in quantitative UX research using heatmaps and click-tracking analytics tools."
+            ],
+            "senior": [
+              "Led the creation of enterprise-wide design systems, reducing design-to-dev time by {{metric}}%.",
+              "Spearheaded user-centric product strategies that increased user satisfaction by {{metric}}%.",
+              "Managed and scaled a global design team of {{metric}} designers and researchers.",
+              "Directed the UX vision for major product rebrands and platform-wide overhauls.",
+              "Influenced executive product strategy through compelling, user-centered narratives.",
+              "Reduced usability-related support tickets by {{metric}}% through iterative design improvements.",
+              "Architected complex user workflows for enterprise SaaS platforms supporting {{metric}}k users.",
+              "Established UX research departments and standardized research methodologies.",
+              "Mentored design leads on leadership, career development, and design excellence.",
+              "Bridged the gap between business goals, technical constraints, and evolving user needs.",
+              "Advocated for accessibility and inclusive design at the highest levels of the organization."
+            ]
+          }
+        }
+      }
+    },
+    "marketing_manager": {
+      "aliases": [
+        "marketing manager",
+        "digital marketing lead",
+        "brand manager"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "seo",
+            "content strategy",
+            "analytics"
+          ],
+          "bullets": {
+            "junior": [
+              "Executed multi-channel marketing campaigns under budget and ahead of schedule.",
+              "Analyzed campaign performance metrics and optimized for higher conversion rates.",
+              "Collaborated with creative teams to produce high-performing marketing collateral and ads.",
+              "Managed social media accounts and increased community engagement by {{metric}}%.",
+              "Assisted in the planning and execution of industry events and webinars.",
+              "Conducted market research to identify target audience segments and preferences.",
+              "Drafted compelling copy for email marketing, blogs, and promotional materials.",
+              "Supported SEO audits and implemented on-page optimization strategies.",
+              "Tracked marketing spend and assisted in budget forecasting efforts.",
+              "Managed relationships with external marketing agencies and freelance contractors.",
+              "Assisted in the development of brand guidelines and ensured consistency across channels."
+            ],
+            "senior": [
+              "Developed global marketing strategies that increased brand reach by {{metric}}%.",
+              "Optimized marketing spend, achieving a {{metric}}x return on investment (ROI) globally.",
+              "Led market expansion initiatives into {{metric}} new territories and demographics.",
+              "Directed multi-million dollar marketing budgets with focus on measurable growth.",
+              "Spearheaded integrated marketing campaigns that generated {{metric}}k qualified leads.",
+              "Established marketing analytics frameworks to track customer acquisition costs (CAC).",
+              "Mentored marketing teams on brand storytelling and data-driven campaign management.",
+              "Negotiated strategic partnerships and co-marketing agreements with industry leaders.",
+              "Influenced product development based on deep market insights and consumer trends.",
+              "Led high-performing teams across digital, content, and events departments.",
+              "Optimized lifecycle marketing, increasing customer lifetime value (LTV) by {{metric}}%."
+            ]
+          }
+        }
+      }
+    },
+    "sales_manager": {
+      "aliases": [
+        "sales manager",
+        "account manager",
+        "sales lead"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "crm",
+            "negotiation",
+            "forecasting"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed a pipeline of qualified leads and closed high-value contracts consistently.",
+              "Maintained strong client relationships to ensure long-term retention and satisfaction.",
+              "Exceeded monthly sales targets by {{metric}}% for {{metric}} consecutive quarters.",
+              "Conducted product demonstrations and presentations for prospective clients.",
+              "Utilized CRM tools to track sales activity and forecast future pipeline performance.",
+              "Developed custom sales proposals and contracts tailored to client needs.",
+              "Collaborated with marketing to refine lead generation and qualification processes.",
+              "Assisted in the training of new sales representatives on product knowledge.",
+              "Participated in sales conferences and networking events to build leads.",
+              "Resolved client concerns and negotiated renewal agreements successfully.",
+              "Conducted market analysis to identify potential sales opportunities in new sectors."
+            ],
+            "senior": [
+              "Managed a high-performing sales team, increasing total revenue by {{metric}}%.",
+              "Developed strategic sales playbooks that improved close rates by {{metric}}%.",
+              "Negotiated enterprise-level agreements with Fortune 500 companies and global brands.",
+              "Directed sales strategy for new product launches, achieving {{metric}}% market penetration.",
+              "Optimized sales operations and CRM workflows, increasing team productivity by {{metric}}%.",
+              "Mentored sales directors on complex negotiation tactics and strategic account management.",
+              "Reduced customer churn by {{metric}}% through proactive relationship management strategies.",
+              "Spearheaded global sales expansion, establishing presence in {{metric}} new regions.",
+              "Influenced pricing strategy and sales incentives to maximize profitability.",
+              "Presented sales forecasts and performance reports to executive leadership.",
+              "Oversaw large-scale sales partnerships and distribution channel development."
+            ]
+          }
+        }
+      }
+    },
+    "it_program_manager": {
+      "aliases": [
+        "it program manager",
+        "pmo lead",
+        "technology program manager"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "sdlc",
+            "risk management",
+            "governance"
+          ],
+          "bullets": {
+            "junior": [
+              "Coordinated project activities across multiple technical teams of {{metric}}+ engineers.",
+              "Tracked program milestones and managed cross-functional dependency risks.",
+              "Developed program status reports and dashboards for senior department management.",
+              "Assisted in the governance and compliance audits for enterprise IT initiatives.",
+              "Facilitated program-level sync meetings to resolve cross-team blockers.",
+              "Assisted in the onboarding of specialized contractors and external vendor teams.",
+              "Managed program documentation and central resource repositories for transparency.",
+              "Supported the tracking of program spend against multi-quarter budgets.",
+              "Assisted in the definition of success metrics and KPIs for technical programs.",
+              "Coordinated user acceptance testing (UAT) phases for large-scale software rollouts.",
+              "Maintained Jira boards and program backlogs to ensure alignment with SDLC phases."
+            ],
+            "senior": [
+              "Directed global technology programs with budgets exceeding $10M and {{metric}}+ stakeholders.",
+              "Standardized agile processes across the entire organization, improving delivery speed by {{metric}}%.",
+              "Managed strategic vendor relationships and complex multi-year contractual negotiations.",
+              "Established enterprise PMO frameworks that reduced project overlap by {{metric}}%.",
+              "Mentored senior project managers on portfolio management and strategic risk mitigation.",
+              "Led high-impact digital transformation programs impacting global user bases of {{metric}}M+.",
+              "Implemented automated program reporting tools, reducing reporting overhead by {{metric}}%.",
+              "Spearheaded executive steering committees to align technical debt reduction with product goals.",
+              "Optimized capital allocation across diverse project portfolios to maximize ROI.",
+              "Directed the recovery of off-track mission-critical programs, returning to schedule within {{metric}} months.",
+              "Influenced the long-term technical roadmap through data-driven program performance insights."
+            ]
+          }
+        }
+      }
+    },
+    "sre": {
+      "aliases": [
+        "site reliability engineer",
+        "sre",
+        "reliability engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "kubernetes",
+            "terraform",
+            "monitoring"
+          ],
+          "bullets": {
+            "junior": [
+              "Maintained system reliability and participated in 24/7 on-call rotations.",
+              "Automated routine infrastructure tasks using Python and Bash script-based tools.",
+              "Resolved production incidents and contributed to detailed blameless post-mortem analyses.",
+              "Assisted in the management of Kubernetes clusters and containerized applications.",
+              "Monitored application health using Prometheus and Grafana dashboards.",
+              "Assisted in the rollout of infrastructure changes using Terraform and CI/CD.",
+              "Documented incident response procedures and common troubleshooting steps.",
+              "Performed periodic load testing to identify potential system bottlenecks.",
+              "Assisted in managing cloud cost optimization initiatives locally.",
+              "Supported the maintainance of backup and disaster recovery systems.",
+              "Collaborated with developers to improve service observability and logging."
+            ],
+            "senior": [
+              "Architected self-healing infrastructure on {{cloud_platform}} that achieved {{metric}}% availability.",
+              "Implemented robust observability platforms reducing Mean Time To Recovery (MTTR) by {{metric}}%.",
+              "Led capacity planning initiatives to support {{metric}}% year-over-year user growth.",
+              "Established error budgets and Service Level Objectives (SLOs) across the engineering org.",
+              "Automated {{metric}}% of manual operational tasks through advanced Go or Python tooling.",
+              "Mentored engineering teams on building reliable, scalable distributed systems.",
+              "Directed the architectural design of global, multi-region failover strategies.",
+              "Reduced production incidents by {{metric}}% through proactive chaos engineering experiments.",
+              "Spearheaded the migration of legacy workloads to modern, serverless or containerized stacks.",
+              "Optimized cloud infrastructure spending, saving the organization ${{metric}}k annually.",
+              "Led the adoption of 'Security as Code' practices across all infrastructure layers."
+            ]
+          }
+        }
+      }
+    },
+    "cloud_architect": {
+      "aliases": [
+        "cloud engineer",
+        "cloud architect",
+        "aws engineer",
+        "azure architect"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "aws",
+            "azure",
+            "cloud-native"
+          ],
+          "bullets": {
+            "junior": [
+              "Deployed cloud resources and managed environment configurations on {{cloud_platform}}.",
+              "Optimized cloud spend by identifying and rightsizing underutilized compute resources.",
+              "Assisted in migrating on-premise legacy workloads to modern cloud architectures.",
+              "Implemented basic identity and access management (IAM) policies for team members.",
+              "Assisted in the setup of VPCs, subnets, and basic network security groups.",
+              "Monitored cloud service health and reported on resource utilization trends.",
+              "Supported the automation of cloud resource provisioning using basic templates.",
+              "Assisted in the configuration of cloud storage and content delivery networks (CDNs).",
+              "Participated in cloud security audits and assisted with remediation tasks.",
+              "Documented cloud architecture diagrams and configuration standards.",
+              "Troubleshot cloud-related deployment failures in CI/CD pipelines."
+            ],
+            "senior": [
+              "Architected multi-cloud enterprise solutions ensuring high availability and disaster recovery.",
+              "Reduced cloud infrastructure costs by {{metric}}% through automation and architecture refinement.",
+              "Led cloud security audits and implemented zero-trust networking models platform-wide.",
+              "Directed the design of cloud-native architectures supporting {{metric}}M+ daily active users.",
+              "Spearheaded the transition to serverless architectures, reducing operational overhead by {{metric}}%.",
+              "Mentored senior developers on cloud best practices and serverless design patterns.",
+              "Negotiated enterprise agreements with cloud providers, resulting in major cost benefits.",
+              "Architected global data residency solutions to comply with international regulations.",
+              "Defined company-wide standards for Infrastructure as Code (IaC) and cloud governance.",
+              "Led technical evaluations of emerging cloud technologies and third-party integrations.",
+              "Optimized big data processing pipelines on {{cloud_platform}}, reducing latency by {{metric}}%."
+            ]
+          }
+        }
+      }
+    },
+    "civil_engineer": {
+      "aliases": [
+        "civil engineer",
+        "structural engineer",
+        "transportation engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "autocad",
+            "bim",
+            "project management"
+          ],
+          "bullets": {
+            "junior": [
+              "Supported the design and planning of large-scale infrastructure projects worth ${{metric}}M+.",
+              "Conducted site inspections and ensured strict compliance with regional safety regulations.",
+              "Assisted in preparing technical specifications and detailed budget estimates for proposals.",
+              "Collaborated with cross-functional teams to resolve complex design and structural challenges.",
+              "Developed detailed 2D and 3D models using AutoCAD and Revit for client reviews.",
+              "Monitored environmental impact assessments and proposed mitigation strategies.",
+              "Coordinated with subcontractors to ensure project milestones were met on schedule.",
+              "Assisted in analyzing soil reports and geological data for foundation designs.",
+              "Supported the preparation of permit applications for local government agencies.",
+              "Maintained meticulous project documentation and quality control logs.",
+              "Assisted in the evaluation of sustainable building materials for green initiatives."
+            ],
+            "senior": [
+              "Directed complex civil engineering projects with budgets over $50M from start to finish.",
+              "Optimized project workflows, delivering critical infrastructure {{metric}}% ahead of schedule.",
+              "Spearheaded sustainable design initiatives, reducing material waste by {{metric}}% globally.",
+              "Managed multi-layered relationships with government agencies and regulatory bodies.",
+              "Mentored junior engineers and led specialized teams through high-risk project phases.",
+              "Championed the adoption of BIM (Building Information Modeling) across all departments.",
+              "Led forensic engineering investigations into site failures and implemented corrective actions.",
+              "Negotiated large-scale project contracts and managed multi-disciplinary consultant teams.",
+              "Influenced city planning and regional transportation policies through expert testimony.",
+              "Reduced project overhead by {{metric}}% through advanced resource planning and technology.",
+              "Directly oversaw the structural integrity of landmark projects supporting {{metric}}k+ users daily."
+            ]
+          }
+        }
+      }
+    },
+    "mechanical_engineer": {
+      "aliases": [
+        "mechanical engineer",
+        "manufacturing engineer",
+        "systems engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "solidworks",
+            "cad",
+            "thermodynamics"
+          ],
+          "bullets": {
+            "junior": [
+              "Designed mechanical components and systems for large-scale industrial applications.",
+              "Conducted rigorous performance testing and failure analysis on mechanical prototypes.",
+              "Developed comprehensive technical documentation and maintenance procedures for end-users.",
+              "Assisted in the selection of materials and components based on thermal and stress analysis.",
+              "Collaborated with manufacturing teams to optimize designs for ease of assembly.",
+              "Simplified complex mechanical assemblies, reducing part count by {{metric}}% in prototypes.",
+              "Performed CAD modeling and simulations using SolidWorks and ANSYS.",
+              "Assisted in the commissioning of new machinery on client production floors.",
+              "Supported root-cause analysis investigations for production line equipment failures.",
+              "Maintained accurate engineering change notices (ECN) and design history files.",
+              "Assisted in vendor evaluations and component sourcing for new product developments."
+            ],
+            "senior": [
+              "Lead the design of complex mechanical systems, improving energy efficiency by {{metric}}%.",
+              "Optimized manufacturing processes, reducing annual production costs by {{metric}}%.",
+              "Managed large-scale engineering teams and oversaw product lifecycles from concept to launch.",
+              "Directed capital equipment upgrades totaling ${{metric}}M, improving throughput by {{metric}}%.",
+              "Mentored senior engineering staff on advanced thermodynamics and materials science.",
+              "Spearheaded the transition to Industry 4.0 and automated manufacturing technologies.",
+              "Established enterprise-wide quality standards for mechanical design and testing.",
+              "Hold {{metric}} patents for innovative mechanical solutions in {{frontend_stack}} (or related).",
+              "Negotiated strategic sourcing agreements for critical mechanical components.",
+              "Influenced product roadmaps by identifying emerging mechanical technology trends.",
+              "Directed global R&D initiatives for next-generation industrial machinery."
+            ]
+          }
+        }
+      }
+    },
+    "management_consultant": {
+      "aliases": [
+        "management consultant",
+        "strategy consultant",
+        "business consultant"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "strategy",
+            "transformation",
+            "analysis"
+          ],
+          "bullets": {
+            "junior": [
+              "Conducted market research and competitive analysis for Fortune {{metric}} client engagements.",
+              "Developed data-driven recommendations to improve operational and business performance.",
+              "Facilitated client workshops and presented findings to mid-level management and directors.",
+              "Analyzed financial statements and KPIs to identify areas for business process improvement.",
+              "Supported the implementation of organizational change management initiatives.",
+              "Created high-impact presentations and reports for senior consulting leadership.",
+              "Assisted in the development of business cases for large-scale technology investments.",
+              "Monitored project risks and assisted in the development of mitigation strategies.",
+              "Conducted benchmark studies and industry trend analysis to support client strategy.",
+              "Assisted in the design of new organizational structures and reporting lines.",
+              "Managed project workstreams and ensures deliverables met internal quality standards."
+            ],
+            "senior": [
+              "Directed large-scale organizational transformations for Fortune 100 global clients.",
+              "Identified strategic growth opportunities resulting in a {{metric}}% revenue increase for clients.",
+              "Led high-impact consulting teams and managed multi-year, multi-million dollar client relationships.",
+              "Advised C-suite executives on strategic M&A and market entry strategies.",
+              "Spearheaded cost-reduction initiatives that saved clients ${{metric}}M+ in operating expenses.",
+              "Established proprietary consulting methodologies used across the firm's global practices.",
+              "Mentored senior consultants and directors on executive communication and relationship building.",
+              "Influenced industry-wide best practices through published thought leadership and whitepapers.",
+              "Managed multi-disciplinary teams across strategy, technology, and human capital functions.",
+              "Directed the successful turnaround of underperforming business units within {{metric}} months.",
+              "Optimized corporate governance and board reporting frameworks for public companies."
+            ]
+          }
+        }
+      }
+    },
+    "financial_manager": {
+      "aliases": [
+        "financial planning & analysis manager",
+        "fp&a manager",
+        "finance director"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "forecasting",
+            "budgeting",
+            "financial modeling"
+          ],
+          "bullets": {
+            "junior": [
+              "Assisted in the preparation of annual budgets and multi-year forecasts for departments.",
+              "Conducted detailed variance analysis and reported on financial performance to leadership.",
+              "Developed robust financial models to support business case development and ROI analysis.",
+              "Monitored cash flow and assisted in managing working capital requirements.",
+              "Assisted in the preparation of monthly and quarterly financial reporting packages.",
+              "Optimized data collection processes for financial analysts, reducing turnaround time by {{metric}}%.",
+              "Performed sensitivity analysis to evaluate the impact of various market scenarios.",
+              "Supported the team during internal and external financial audits.",
+              "Assisted in the implementation of new ERP and financial planning software systems.",
+              "Maintained accurate financial records and ensured compliance with GAAP standards.",
+              "Drafted technical notes and summaries for complex financial transactions."
+            ],
+            "senior": [
+              "Directed company-wide financial planning and strategy, optimizing capital allocation globally.",
+              "Implemented financial control systems that improved reporting accuracy by {{metric}}% platform-wide.",
+              "Led strategic investment analyses that achieved a {{metric}}% internal rate of return (IRR).",
+              "Managed relationships with banks, investors, and external financial consultants.",
+              "Spearheaded cost-saving initiatives that reduced operating expenses by ${{metric}}M annually.",
+              "Mentored senior finance staff on advanced modeling and strategic financial management.",
+              "Directed global treasury operations and managed multi-currency risk strategies.",
+              "Influenced executive-level business strategy through data-driven financial insights.",
+              "Oversaw large-scale M&A due diligence and financial integration processes.",
+              "Optimized tax strategies and ensured international regulatory compliance.",
+              "Presented financial results and strategic plans to board members and stakeholders."
+            ]
+          }
+        }
+      }
+    },
+    "surgeon": {
+      "aliases": [
+        "surgeon",
+        "operating physician",
+        "surgical specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "surgical precision",
+            "patient care",
+            "emergency response"
+          ],
+          "bullets": {
+            "junior": [
+              "Performed complex surgical procedures with high success rates and minimal complications.",
+              "Provided comprehensive post-operative care and monitored patient recovery closely.",
+              "Collaborated with multidisciplinary teams to develop effective, patient-centered treatment plans.",
+              "Participated in surgical research and contributed to peer-reviewed medical publications.",
+              "Ensured meticulous documentation of surgical notes and patient outcomes.",
+              "Managed surgical emergencies and performed life-saving interventions with precision.",
+              "Assisted senior surgeons in high-complexity cases, gaining specialized expertise.",
+              "Educated patients and their families on surgical risks, benefits, and recovery protocols.",
+              "Maintained a high level of surgical proficiency through continuous medical education.",
+              "Collaborated with anesthesiology to ensure optimal patient stability during procedures.",
+              "Participated in surgical audits and quality improvement committees for the department."
+            ],
+            "senior": [
+              "Led high-risk surgical teams, achieving {{metric}}% superior patient outcomes in the region.",
+              "Pioneered minimally invasive surgical techniques, reducing patient recovery time by {{metric}}%.",
+              "Directed surgical departments and mentored the next generation of specialized surgeons.",
+              "Spearheaded international clinical trials for innovative surgical technologies.",
+              "Established enterprise-wide surgical safety protocols, reducing adverse events by {{metric}}%.",
+              "Influenced regional healthcare policy through expert testimony and medical leadership.",
+              "Negotiated strategic equipment acquisitions totaling ${{metric}}M for surgical units.",
+              "Directed residency programs and established specialized surgical fellowship initiatives.",
+              "Achieved a {{metric}}% reduction in post-operative infection rates through new clinical protocols.",
+              "Oversaw the integration of robotic-assisted surgery platforms into daily practice.",
+              "Represented the surgical department in executive-level hospital leadership meetings."
+            ]
+          }
+        }
+      }
+    },
+    "dentist": {
+      "aliases": [
+        "dentist",
+        "dental surgeon",
+        "general dentist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "oral health",
+            "dental surgery",
+            "patient comfort"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided comprehensive dental exams and routine restorative procedures for {{metric}}+ patients.",
+              "Educated patients on preventive oral hygiene, nutrition, and diverse treatment options.",
+              "Managed meticulous patient records and ensured compliance with all health and safety standards.",
+              "Performed basic endodontic and periodontal treatments with high precision.",
+              "Assisted in complex dental surgeries under the supervision of senior practitioners.",
+              "Utilized digital imaging and X-ray technologies for accurate diagnosis and planning.",
+              "Maintained a sterile and organized clinical environment according to OSHA guidelines.",
+              "Coordinated with dental laboratories for the custom fabrication of crowns and bridges.",
+              "Monitored patient comfort levels and administered local anesthesia effectively.",
+              "Assisted in front-office duties, including scheduling and billing for a small practice.",
+              "Participated in community dental health fairs and educational outreach initiatives."
+            ],
+            "senior": [
+              "Led a high-volume dental practice, increasing patient retention and referrals by {{metric}}%.",
+              "Specialized in advanced cosmetic and restorative dentistry with {{metric}}% verified success rates.",
+              "Implemented modern practice management systems increasing overall operational efficiency by {{metric}}%.",
+              "Mentored junior dentists and hygienists on clinical techniques and patient communication.",
+              "Spearheaded the adoption of laser dentistry and other emerging dental technologies.",
+              "Directed multi-disciplinary dental teams to provide comprehensive full-mouth reconstructions.",
+              "Negotiated strategic contracts with insurance providers and dental equipment suppliers.",
+              "Architected practice expansion plans that resulted in {{metric}} new clinic locations.",
+              "Reduced patient chair time by {{metric}}% through optimized clinical workflows and training.",
+              "Established clinical excellence standards and conducted periodic peer-review audits.",
+              "Influenced the regional dental community through leadership in professional associations."
+            ]
+          }
+        }
+      }
+    },
+    "psychiatrist": {
+      "aliases": [
+        "psychiatrist",
+        "mental health physician",
+        "psychiatric specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "mental health",
+            "psychopharmacology",
+            "therapy"
+          ],
+          "bullets": {
+            "junior": [
+              "Diagnosed and treated a wide range of complex mental health disorders in diverse patient groups.",
+              "Developed personalized treatment plans incorporating evidence-based therapy and medication.",
+              "Collaborated with clinical teams to ensure holistic, multi-disciplinary patient support.",
+              "Maintained detailed psychiatric evaluations and progress notes in medical databases.",
+              "Assisted in crisis intervention and emergency psychiatric assessments as needed.",
+              "Educated patients and their families on mental health conditions and recovery expectations.",
+              "Participated in case conferences to optimize treatment strategies for high-risk patients.",
+              "Ensured strictly ethical practice and adherence to patient confidentiality regulations.",
+              "Supported the onboarding of psychiatric residents and medical students on the unit.",
+              "Performed physical examinations and ordered laboratory tests to rule out organic causes.",
+              "Assisted in the development of group therapy programs for specific patient populations."
+            ],
+            "senior": [
+              "Directed psychiatric departments, improving verified patient recovery rates by {{metric}}%.",
+              "Pioneered innovative mental health programs that reduced hospital readmission by {{metric}}%.",
+              "Led high-impact research initiatives on advanced psychopharmacological treatments and outcomes.",
+              "Mentored senior clinical staff on complex case management and psychiatric leadership.",
+              "Established enterprise-wide mental health protocols, improving care consistency by {{metric}}%.",
+              "Influenced regional mental health policy through advocacy and expert advisory roles.",
+              "Directed large-scale community mental health initiatives impacting {{metric}}k+ residents.",
+              "Negotiated with healthcare payers to expand coverage for specialized psychiatric services.",
+              "Architected integrated behavioral health models in primary care settings (BHI).",
+              "Oversaw the implementation of tele-psychiatry platforms, increasing patient access by {{metric}}%.",
+              "Presented high-impact psychiatric research at international medical conferences."
+            ]
+          }
+        }
+      }
+    },
+    "physical_therapist": {
+      "aliases": [
+        "physical therapist",
+        "pt",
+        "physiotherapist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "rehabilitation",
+            "mobility",
+            "patient education"
+          ],
+          "bullets": {
+            "junior": [
+              "Developed individualized physical rehabilitation plans for patients with diverse impairments.",
+              "Facilitated therapeutic exercises and monitored patient progress towards mobility goals.",
+              "Educated patients on injury prevention, body mechanics, and long-term wellness strategies.",
+              "Documented patient evaluations and progress reports with high clinical accuracy.",
+              "Utilized manual therapy techniques and modalities (TENS, ultrasound) effectively.",
+              "Collaborated with physicians and orthopaedic surgeons on post-surgical rehab protocols.",
+              "Managed a caseload of {{metric}}+ patients daily while maintaining high quality of care.",
+              "Assisted in the fitting and training of patients for adaptive equipment and prosthetics.",
+              "Participated in unit-level quality improvement projects for rehabilitation services.",
+              "Ensured adherence to clinical safety standards and patient privacy regulations.",
+              "Supported the training of physical therapy assistants and student interns."
+            ],
+            "senior": [
+              "Directed multi-disciplinary rehabilitation clinics, increasing annual patient throughput by {{metric}}%.",
+              "Implemented specialized orthopaedic protocols that reduced patient recovery time by {{metric}}%.",
+              "Mentored junior therapists and spoke at national physiotherapy conferences as an expert.",
+              "Spearheaded the development of specialized sports medicine programs for elite athletes.",
+              "Architected telerehabilitation services that expanded clinic reach by {{metric}}%.",
+              "Negotiated strategic partnerships with local health systems and athletic organizations.",
+              "Influenced national rehabilitation standards through clinical research and leadership.",
+              "Optimized clinic resource utilization, reducing operational costs by {{metric}}%.",
+              "Achieved a {{metric}}% patient satisfaction rating through evidence-based clinical excellence.",
+              "Established clinical mentorship frameworks for career progression within the organization.",
+              "Directed large-scale public health campaigns focused on mobility and senior wellness."
+            ]
+          }
+        }
+      }
+    },
+    "veterinarian": {
+      "aliases": [
+        "veterinarian",
+        "small animal vet",
+        "veterinary surgeon"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "animal health",
+            "surgery",
+            "diagnostics"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided comprehensive medical care and surgical services for a wide variety of small and exotic animals.",
+              "Diagnosed complex health issues using advanced imaging (X-ray, Ultrasound) and laboratory tests.",
+              "Educated pet owners on animal nutrition, preventive healthcare, and chronic disease management.",
+              "Maintained accurate medical records and treatment logs in veterinary management software.",
+              "Performed routine surgeries including spays, neuters, and basic soft-tissue procedures with high success.",
+              "Collaborated with veterinary technicians to ensure high-quality care during patient hospitalization.",
+              "Managed emergency cases and performed life-saving interventions for companion animals.",
+              "Ensured strictly ethical practice and adherence to veterinary board regulations and standards.",
+              "Supported the training of veterinary assistants and student interns in clinical practice.",
+              "Advised clients on behavioral issues and implemented basic behavior modification plans.",
+              "Participated in community health outreach and animal welfare education programs."
+            ],
+            "senior": [
+              "Managed high-volume veterinary hospitals, achieving {{metric}}% growth in annual client base.",
+              "Specialized in advanced soft-tissue and orthopaedic surgery with consistently high success rates.",
+              "Led public health initiatives and community outreach programs for zoonotic disease prevention.",
+              "Mentored senior associate veterinarians on clinical excellence and surgical techniques.",
+              "Directed hospital-wide safety and quality control audits, ensuring 100% compliance.",
+              "Negotiated strategic partnerships with veterinary suppliers and specialized referral centers.",
+              "Influenced the regional veterinary community through leadership in professional associations.",
+              "Architected hospital expansion plans resulting in {{metric}}% increase in diagnostic capabilities.",
+              "Optimized clinic resource utilization, reducing operational costs by {{metric}}% over 12 months.",
+              "Achieved a {{metric}}% client satisfaction rating through clinical excellence and empathy.",
+              "Oversaw the integration of advanced diagnostic technologies like digital dental radiography."
+            ]
+          }
+        }
+      }
+    },
+    "operations_director": {
+      "aliases": [
+        "director of operations",
+        "operations lead",
+        "chief operating officer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "optimization",
+            "supply chain",
+            "lean"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed daily operations for {{metric}}+ employees and ensured production targets were met consistently.",
+              "Identified bottlenecks in the global supply chain and implemented effective corrective actions.",
+              "Monitored operational KPIs and reported on performance to the executive leadership team.",
+              "Optimized warehouse layout and inventory management, reducing waste by {{metric}}%.",
+              "Assisted in the implementation of new ERP and supply chain management software.",
+              "Coordinated with procurement teams to ensure timely delivery of raw materials.",
+              "Drafted operational SOPs and ensured adherence to quality control standards.",
+              "Assisted in budget tracking and resource allocation for regional operations projects.",
+              "Participated in lean manufacturing workshops to identify process improvement opportunities.",
+              "Managed relationships with logistics providers and external manufacturing partners.",
+              "Supervised the onboarding and training of operational staff on new safety protocols."
+            ],
+            "senior": [
+              "Directed global operations strategy for multi-site facilities, reducing overhead by {{metric}}%.",
+              "Implemented lean manufacturing and Six Sigma principles that increased efficiency by {{metric}}%.",
+              "Managed large-scale operations and oversaw massive business scale-up initiatives globally.",
+              "Spearheaded multi-million dollar capital expenditure projects for automated manufacturing.",
+              "Negotiated enterprise-level logistics and procurement contracts, saving ${{metric}}M annually.",
+              "Mentored senior operations managers on strategic planning and organizational leadership.",
+              "Established enterprise-wide operational excellence frameworks and KPI dashboards.",
+              "Influenced corporate strategy by identifying operational advantages and market opportunities.",
+              "Directed the successful turnaround of underperforming manufacturing sites within {{metric}} months.",
+              "Architected robust disaster recovery and business continuity plans for global supply chains.",
+              "Optimized labor utilization and increased production throughput by {{metric}}% over 2 years."
+            ]
+          }
+        }
+      }
+    },
+    "petroleum_engineer": {
+      "aliases": [
+        "petroleum engineer",
+        "drilling engineer",
+        "reservoir engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "drilling",
+            "extraction",
+            "geology"
+          ],
+          "bullets": {
+            "junior": [
+              "Designed and monitored complex drilling operations for oil and gas extraction in diverse fields.",
+              "Analyzed reservoir performance and optimized production strategies using simulation software.",
+              "Ensured 100% compliance with strict environmental and safety regulations for on-site projects.",
+              "Assisted in the evaluation of geological data and core samples for field development planning.",
+              "Collaborated with geoscientists to identify potential drilling locations and hazards.",
+              "Maintained meticulous drilling logs and documented daily production metrics accurately.",
+              "Assisted in the testing and commissioning of new extraction technologies on-site.",
+              "Supported senior engineers in the development of well completion and stimulation plans.",
+              "Assisted in budget forecasting and resource allocation for small-to-mid scale drilling projects.",
+              "Monitored well-site operations and troubleshot mechanical and geological issues promptly.",
+              "Participated in safety audits and incident response drills for offshore and onshore sites."
+            ],
+            "senior": [
+              "Led a multi-disciplinary engineering team for offshore drilling projects valued at $100M+.",
+              "Implemented innovative extraction technologies that increased total field yield by {{metric}}%.",
+              "Optimized reservoir recovery strategies, extending field life by {{metric}} additional years.",
+              "Directed global petroleum exploration strategy for major energy organizations.",
+              "Negotiated strategic agreements with oilfield service providers and government entities.",
+              "Mentored senior engineering staff on advanced reservoir modeling and drilling technology.",
+              "Spearheaded the adoption of sustainable extraction practices, reducing carbon intensity by {{metric}}%.",
+              "Established enterprise-wide safety standards for high-pressure high-temperature (HPHT) drilling.",
+              "Influenced national energy policy through expert advisory roles and industry leadership.",
+              "Optimized capital allocation across global exploration portfolios to maximize ROI.",
+              "Oversaw the successful deployment of automated drilling systems, increasing safety by {{metric}}%."
+            ]
+          }
+        }
+      }
+    },
+    "research_scientist": {
+      "aliases": [
+        "computer research scientist",
+        "research engineer",
+        "ai researcher"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "algorithms",
+            "theory",
+            "paper publication"
+          ],
+          "bullets": {
+            "junior": [
+              "Conducted background research and developed high-fidelity prototypes for novel algorithms.",
+              "Performed rigorous testing and comparative analysis of existing and emerging technologies.",
+              "Contributed to the writing and successful publication of peer-reviewed research papers.",
+              "Assisted in the design and execution of user studies to validate research hypotheses.",
+              "Analyzed large-scale datasets using statistical tools to extract meaningful insights.",
+              "Documented research methodologies, experimental setups, and results for transparency.",
+              "Collaborated with product teams to translate research findings into functional features.",
+              "Wrote clean, modular code for research simulations and experimental testbeds.",
+              "Assisted in drafting patent applications for proprietary research outcomes.",
+              "Participated in internal research seminars and presented findings to the team.",
+              "Maintained laboratory equipment and managed cloud resources for research compute."
+            ],
+            "senior": [
+              "Led groundbreaking research in {{frontend_stack}} (or related fields), resulting in {{metric}} global patents.",
+              "Developed state-of-the-art architectures that set new benchmarks in industry and academic standards.",
+              "Established and directed long-term research roadmaps for major global technology organizations.",
+              "Mentored senior research staff and PhD interns on advanced algorithms and theory.",
+              "Negotiated strategic research partnerships with top-tier universities and labs.",
+              "Influenced the technical direction of core products through innovative research applications.",
+              "Secured multi-million dollar research grants and managed long-term R&D budgets.",
+              "Presented high-impact research as a keynote speaker at major international conferences.",
+              "Headed multi-disciplinary research teams across AI, systems, and human-computer interaction.",
+              "Reduced compute costs for large-scale simulations by {{metric}}% through algorithmic optimization.",
+              "Authored seminal papers in top-tier journals with {{metric}}+ citations in the first year."
+            ]
+          }
+        }
+      }
+    },
+    "sales_head": {
+      "aliases": [
+        "sales head",
+        "vp of sales",
+        "head of sales"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "strategic sales",
+            "revenue growth",
+            "partnership"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed high-value sales accounts and drove revenue growth in assigned global regions.",
+              "Developed strategic sales plans and identified new high-potential market opportunities.",
+              "Led cross-functional teams to deliver complex, tailored sales solutions to enterprise clients.",
+              "Exceeded annual sales quotas by {{metric}}% for {{metric}} consecutive years.",
+              "Developed and delivered compelling technical sales presentations for C-suite executives.",
+              "Analyzed market trends and competitor activity to refine sales positioning and tactics.",
+              "Managed sales CRM data and provided accurate revenue forecasting for the department.",
+              "Coordinated with product and marketing teams to ensure alignment of sales initiatives.",
+              "Assisted in the negotiation of multi-year service agreements with major regional accounts.",
+              "Supported the onboarding and training of junior sales representatives on the team.",
+              "Participated in strategic account planning sessions for mission-critical clients."
+            ],
+            "senior": [
+              "Directed global sales organizations, achieving a {{metric}}% increase in total annual revenue.",
+              "Spearheaded strategic partnerships and alliances that expanded market reach by {{metric}}%.",
+              "Member of the executive leadership team, influencing long-term business strategy and revenue goals.",
+              "Directed sales operations for multi-billion dollar business units on a global scale.",
+              "Mentored sales VPs and directors on enterprise selling and strategic leadership.",
+              "Established enterprise-wide sales playbooks that increased close rates by {{metric}}%.",
+              "Optimized global sales incentives and compensation structures to maximize performance.",
+              "Influenced product roadmaps based on deep understanding of enterprise customer needs.",
+              "Negotiated landmark agreements with Fortune 10 clients, totaling ${{metric}}M+.",
+              "Reduced customer acquisition cost (CAC) by {{metric}}% through optimized sales funnels.",
+              "Presented global sales performance and strategy to the board and investors weekly."
+            ]
+          }
+        }
+      }
+    },
+    "epidemiologist": {
+      "aliases": [
+        "epidemiologist",
+        "public health researcher",
+        "medical researcher"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "public health",
+            "data analysis",
+            "infectious disease"
+          ],
+          "bullets": {
+            "junior": [
+              "Collected and analyzed multi-source health data to track the spread of infectious diseases.",
+              "Developed detailed reports and evidence-based recommendations for public health interventions.",
+              "Collaborated with government agencies to monitor Community health trends and outcomes.",
+              "Performed complex statistical modeling to predict disease transmission and impact.",
+              "Drafted educational materials and briefings for public health officials and the media.",
+              "Assisted in the coordination of field investigations and community outreach programs.",
+              "Ensured strictly ethical data management and adherence to patient privacy standards.",
+              "Assisted in the design of public health surveys and data collection protocols.",
+              "Supported senior researchers in the publication of epidemiological findings in peer journals.",
+              "Assisted in the evaluation of the effectiveness of public health vaccination programs.",
+              "Monitored environmental factors contributing to localized disease outbreaks."
+            ],
+            "senior": [
+              "Directed large-scale epidemiological studies, resulting in key national public health policy changes.",
+              "Pioneered innovative disease tracking systems that improved community response time by {{metric}}%.",
+              "Led expert panels on global health crises and published influential research in top journals.",
+              "Mentored senior public health researchers and advised national governments on crisis strategy.",
+              "Established enterprise-wide data standards for epidemiological surveillance and reporting.",
+              "Negotiated strategic research funding with global health organizations and NGO partners.",
+              "Influenced international health standards through leadership in organizations like the WHO.",
+              "Directed the epidemiologic response to large-scale outbreaks, impacting millions of lives.",
+              "Optimized public health resource allocation, improving intervention efficiency by {{metric}}%.",
+              "Architected robust biostatistical frameworks for analyzing complex multi-country datasets.",
+              "Presented high-impact public health research at the highest levels of government and academia."
+            ]
+          }
+        }
+      }
+    },
+    "interpreter_translator": {
+      "aliases": [
+        "interpreter & translator",
+        "medical interpreter",
+        "legal translator"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "linguistic accuracy",
+            "cultural competency",
+            "translation"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided accurate oral interpretation and written translation services in multiple languages.",
+              "Maintained high levels of linguistic accuracy and cultural sensitivity in all interactions.",
+              "Managed documentation and ensured consistency in specialized terminology."
+            ],
+            "senior": [
+              "Directed language services departments for global organizations, ensuring seamless communication.",
+              "Specialized in high-stakes simultaneous interpretation for international conferences and legal proceedings.",
+              "Implemented translation memory systems that improved translation efficiency by {{metric}}%."
+            ]
+          }
+        }
+      }
+    },
+    "judge_magistrate": {
+      "aliases": [
+        "judge",
+        "magistrate",
+        "judicial officer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "legal ruling",
+            "judicial integrity",
+            "litigation"
+          ],
+          "bullets": {
+            "junior": [
+              "Presided over legal proceedings and ensured the fair administration of justice.",
+              "Researched complex legal issues and issued well-reasoned judicial opinions.",
+              "Managed courtroom activities and ensured compliance with legal procedures."
+            ],
+            "senior": [
+              "Presided over high-profile appellate cases, setting significant legal precedents.",
+              "Directed judicial committees and influenced regional legal policy and reform.",
+              "Mentored junior judges and spoke at international legal conferences on judicial ethics."
+            ]
+          }
+        }
+      }
+    },
+    "occupational_therapist": {
+      "aliases": [
+        "occupational therapist",
+        "ot",
+        "rehab specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "rehabilitation",
+            "adaptive equipment",
+            "patient care"
+          ],
+          "bullets": {
+            "junior": [
+              "Developed personalized occupational therapy plans to improve patient daily living skills.",
+              "Recommended adaptive equipment and environmental modifications for enhanced independence.",
+              "Monitored patient progress and adjusted therapy programs based on clinical outcomes."
+            ],
+            "senior": [
+              "Directed occupational therapy departments, improving clinical outcomes by {{metric}}%.",
+              "Specialized in advanced neurological rehabilitation with consistently high success rates.",
+              "Led clinical education programs and pioneered innovative therapeutic techniques."
+            ]
+          }
+        }
+      }
+    },
+    "speech_pathologist": {
+      "aliases": [
+        "speech-language pathologist",
+        "slp",
+        "speech therapist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "communication disorders",
+            "clinical therapy",
+            "patient education"
+          ],
+          "bullets": {
+            "junior": [
+              "Diagnosed and treated a wide range of speech, language, and swallowing disorders.",
+              "Developed individualized therapy plans and monitored progress towards communication goals.",
+              "Educated patients and families on communication strategies and disorder management."
+            ],
+            "senior": [
+              "Directed speech-language departments, achieving high success rates in complex clinical cases.",
+              "Pioneered innovative therapy programs for {{metric}}% improvement in patient communication scores.",
+              "Led clinical research and spoke at national conferences on advanced speech pathology."
+            ]
+          }
+        }
+      }
+    },
+    "medical_technician": {
+      "aliases": [
+        "diagnostic medical sonographer",
+        "respiratory therapist",
+        "medical technologist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "medical imaging",
+            "patient diagnostics",
+            "clinical support"
+          ],
+          "bullets": {
+            "junior": [
+              "Performed diagnostic medical procedures and imaging with high precision.",
+              "Assisted physicians in interpreting results and developing patient care plans.",
+              "Maintained clinical equipment and ensured compliance with safety standards."
+            ],
+            "senior": [
+              "Directed diagnostic imaging departments, improving throughput by {{metric}}%.",
+              "Implemented advanced diagnostic protocols that improved clinical accuracy by {{metric}}%.",
+              "Led specialized technician teams and managed complex clinical workflows."
+            ]
+          }
+        }
+      }
+    },
+    "market_research_analyst": {
+      "aliases": [
+        "market research analyst",
+        "consumer insights analyst",
+        "marketing analyst"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "market analysis",
+            "consumer behavior",
+            "data visualization"
+          ],
+          "bullets": {
+            "junior": [
+              "Conducted market research and analyzed consumer behavior trends.",
+              "Developed reports and presentations to communicate research findings.",
+              "Collaborated with marketing teams to optimize campaign performance based on data."
+            ],
+            "senior": [
+              "Directed comprehensive market strategy research for global product launches.",
+              "Identified key market opportunities resulting in a {{metric}}% increase in market share.",
+              "Led advanced analytics initiatives and influenced long-term brand strategy."
+            ]
+          }
+        }
+      }
+    },
+    "school_psychologist": {
+      "aliases": [
+        "school psychologist",
+        "educational psychologist",
+        "student counselor"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "student wellness",
+            "educational assessment",
+            "crisis intervention"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided psychological support and counseling to students in educational settings.",
+              "Conducted educational assessments and developed support plans for diverse learners.",
+              "Collaborated with teachers and parents to promote student mental health and academic success."
+            ],
+            "senior": [
+              "Directed district-wide student wellness programs, improving mental health outcomes by {{metric}}%.",
+              "Pioneered innovative crisis intervention strategies that reduced behavioral incidents by {{metric}}%.",
+              "Led advocacy efforts for inclusive education and influenced state-level educational policy."
+            ]
+          }
+        }
+      }
+    },
+    "java_developer": {
+      "aliases": [
+        "java developer",
+        "backend java engineer",
+        "enterprise developer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "java",
+            "spring boot",
+            "microservices"
+          ],
+          "bullets": {
+            "junior": [
+              "Developed enterprise-level applications using Java and the Spring framework.",
+              "Designed and implemented RESTful APIs for scalable backend services.",
+              "Collaborated with cross-functional teams to deliver high-quality code and unit tests."
+            ],
+            "senior": [
+              "Architected highly available Java-based microservices architectures.",
+              "Optimized application performance, achieving a {{metric}}% reduction in latency.",
+              "Led the adoption of modern CI/CD pipelines and mentored junior Java developers."
+            ]
+          }
+        }
+      }
+    },
+    "physician": {
+      "aliases": [
+        "physician",
+        "general practitioner",
+        "medical doctor"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "internal medicine",
+            "patient diagnosis",
+            "preventive care"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided primary care and diagnostic services for a diverse patient population.",
+              "Developed and managed comprehensive treatment plans for chronic conditions.",
+              "Collaborated with specialists to coordinate complex patient care and referrals."
+            ],
+            "senior": [
+              "Directed primary care clinics, improving patient satisfaction and clinic efficiency by {{metric}}%.",
+              "Implemented innovative health management programs that reduced hospital readmissions by {{metric}}%.",
+              "Led medical faculty and influenced regional healthcare policy and best practices."
+            ]
+          }
+        }
+      }
+    },
+    "systems_administrator": {
+      "aliases": [
+        "computer systems administrator",
+        "it admin",
+        "systems admin"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "linux",
+            "windows server",
+            "network security"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed and maintained server infrastructure and network systems.",
+              "Provided technical support and troubleshooting for hardware and software issues.",
+              "Implemented security patches and system updates to ensure optimal performance."
+            ],
+            "senior": [
+              "Directed enterprise-wide system administrations, ensuring {{metric}}% infrastructure uptime.",
+              "Optimized system performance and reliability through automation and configuration management.",
+              "Led high-impact security audits and implemented robust disaster recovery strategies."
+            ]
+          }
+        }
+      }
+    },
+    "substance_abuse_counselor": {
+      "aliases": [
+        "substance abuse counselor",
+        "addiction counselor",
+        "mental health counselor"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "addiction therapy",
+            "crisis management",
+            "recovery support"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided individual and group counseling for individuals struggling with substance abuse.",
+              "Developed and implemented treatment plans focused on recovery and relapse prevention.",
+              "Collaborated with healthcare teams to provide holistic support for patients."
+            ],
+            "senior": [
+              "Directed addiction treatment centers, improving patient recovery outcomes by {{metric}}%.",
+              "Pioneered innovative recovery programs that increased long-term sobriety rates by {{metric}}%.",
+              "Led community outreach and advocacy efforts for substance abuse awareness and prevention."
+            ]
+          }
+        }
+      }
+    },
+    "cleaner": {
+      "aliases": [
+        "cleaner",
+        "housekeeper",
+        "janitor",
+        "custodian"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "sanitation",
+            "detail-oriented",
+            "time management"
+          ],
+          "bullets": {
+            "junior": [
+              "Performed comprehensive cleaning duties for residential and commercial spaces of {{metric}}+ sq ft.",
+              "Maintained meticulous sanitation standards in high-traffic areas and restrooms.",
+              "Managed cleaning supply inventory and reported on resource needs to management.",
+              "Utilized specialized cleaning equipment (floor buffers, industrial vacuums) with high safety.",
+              "Ensured strictly ethical practice and adherence to health and safety regulations on-site.",
+              "Assisted in the setup and breakdown of event spaces for diverse client requirements.",
+              "Maintained accurate cleaning logs and documented completed tasks for quality audits.",
+              "Resolved client complaints promptly with a high level of professionalism and care.",
+              "Supported the training of new cleaning staff on specialized sanitation protocols.",
+              "Ensured 100% compliance with chemical safety (MSDS) and storage standards.",
+              "Performed minor maintenance tasks and reported structural issues to building management."
+            ],
+            "senior": [
+              "Directed large-scale cleaning operations for multi-site facilities, maintaining 100% uptime.",
+              "Implemented green cleaning initiatives that reduced chemical waste by {{metric}}% annually.",
+              "Led specialized janitorial teams and managed multi-year service contracts for corporate clients.",
+              "Mentored senior housekeeping staff on efficiency, quality control, and safety leadership.",
+              "Established enterprise-wide sanitation protocols that reduced cross-contamination risk by {{metric}}%.",
+              "Negotiated strategic agreements with cleaning supply vendors, saving ${{metric}}k annually.",
+              "Architected facility maintenance plans that improved overall building health and aesthetics.",
+              "Optimized labor utilization, reducing operational costs by {{metric}}% over 12 months.",
+              "Achieved a {{metric}}% client satisfaction rating through exceptional attention to detail.",
+              "Oversaw the implementation of automated cleaning technologies in large industrial spaces.",
+              "Represented the cleaning department in executive-level facility management meetings."
+            ]
+          }
+        }
+      }
+    },
+    "dishwasher": {
+      "aliases": [
+        "dishwasher",
+        "kitchen steward",
+        "dish machine operator"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "efficiency",
+            "sanitation",
+            "teamwork"
+          ],
+          "bullets": {
+            "junior": [
+              "Maintained a high-speed dishwashing station during peak service hours for {{metric}}+ guests.",
+              "Ensured 100% sanitation of all kitchenware, utensils, and food preparation equipment.",
+              "Managed the organization of the dish storage area to support efficient kitchen workflows.",
+              "Performed deep-cleaning tasks for kitchen floors, walls, and specialized appliances.",
+              "Assisted in basic food preparation and inventory unloading during off-peak times.",
+              "Ensured adherence to local health department standards and internal safety protocols.",
+              "Monitored chemical levels in dishwashing machines and reported malfunctions promptly.",
+              "Collaborated with front-of-house staff to ensure timely return of glassware and plates.",
+              "Supported the onboarding of new kitchen stewards on sanitation and safety standards.",
+              "Maintained accurate cleaning logs and participated in periodic kitchen safety audits.",
+              "Resolved dishwashing bottlenecks, improving turnaround time by {{metric}}% during rushes."
+            ],
+            "senior": [
+              "Directed steward teams in high-volume fine dining establishments, ensuring 100% reliability.",
+              "Implemented water-saving dishwashing protocols that reduced utility costs by {{metric}}%.",
+              "Spearheaded kitchen sanitation audits, achieving consistent 100/100 scores from health inspectors.",
+              "Mentored junior stewards on efficiency, machine maintenance, and kitchen safety.",
+              "Negotiated strategic contracts for eco-friendly cleaning chemicals and equipment.",
+              "Optimized kitchen layout for dish return, reducing breakage by {{metric}}% annually.",
+              "Architected robust kitchen maintenance schedules that extended equipment life by {{metric}}%.",
+              "Reduced peak-hour dish delays by {{metric}}% through improved workflow design and training.",
+              "Achieved a 'Kitchen Excellence' award for maintaining superior sanitation standards.",
+              "Managed multi-site steward staffing and budget for large hospital or hotel groups.",
+              "Directed the recovery of off-track kitchen sanitation standards within {{metric}} weeks."
+            ]
+          }
+        }
+      }
+    },
+    "cashier": {
+      "aliases": [
+        "cashier",
+        "checkout operator",
+        "retail clerk"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "customer service",
+            "cash handling",
+            "accuracy"
+          ],
+          "bullets": {
+            "junior": [
+              "Processed {{metric}}+ customer transactions daily with high accuracy and speed.",
+              "Provided exceptional customer service, resolving inquiries and complaints professionally.",
+              "Managed cash drawer reconciliations with {{metric}}% accuracy for {{metric}} consecutive months.",
+              "Upsold promotional items and loyalty programs, increasing store revenue by {{metric}}%.",
+              "Maintained a clean and organized checkout area to enhance the customer experience.",
+              "Assisted in stocking shelves and updating price tags during off-peak hours.",
+              "Ensured 100% compliance with age-restricted sales laws and company policies.",
+              "Processed returns and exchanges according to store procedures with high precision.",
+              "Supported the training of new cashiers on POS systems and customer service standards.",
+              "Collaborated with security teams to prevent loss and identify suspicious activities.",
+              "Participated in store-wide inventory audits and reported on stock discrepancies."
+            ],
+            "senior": [
+              "Directed front-end operations for high-volume retail stores, improving customer throughput by {{metric}}%.",
+              "Implemented cash handling protocols that reduced drawer discrepancies by {{metric}}%.",
+              "Led cashier teams and managed multi-million dollar daily revenue streams with precision.",
+              "Mentored senior clerks on advanced POS systems, conflicts resolution, and leadership.",
+              "Spearheaded the adoptation of contactless payment systems, increasing checkout speed by {{metric}}%.",
+              "Negotiated with local vendors for front-end promotional space and displays.",
+              "Architected customer loyalty initiatives that increased repeat business by {{metric}}%.",
+              "Reduced customer wait times by {{metric}}% through optimized checkout scheduling.",
+              "Achieved 'Employee of the Year' for consistent excellence in service and accuracy.",
+              "Directed large-scale inventory reconciliation projects for enterprise retail groups.",
+              "Influenced store layouts to maximize impulse purchases at checkout lanes."
+            ]
+          }
+        }
+      }
+    },
+    "waiter": {
+      "aliases": [
+        "waiter",
+        "server",
+        "waitress",
+        "food server"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "hospitality",
+            "multitasking",
+            "sales"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided high-quality table service for {{metric}}+ guests simultaneously in fast-paced settings.",
+              "Memorized entire menus including daily specials and ingredients to assist with guest inquiries.",
+              "Upsold premium menu items and beverages, increasing average check size by {{metric}}%.",
+              "Ensured 100% accuracy in order entry using modern POS systems and handheld devices.",
+              "Collaborated with kitchen staff to ensure timely and accurate food delivery for all tables.",
+              "Resolved guest complaints and issues promptly to maintain a high level of satisfaction.",
+              "Maintained excellent dining room aesthetics and followed strict sanitation protocols.",
+              "Processed payments and reconciled cash/card transactions with {{metric}}% accuracy.",
+              "Supported the training of new servers on service standards and menu knowledge.",
+              "Managed reservations and guest seating to optimize dining room flow and turnover.",
+              "Participated in weekly service audits and contributed to team performance reviews."
+            ],
+            "senior": [
+              "Directed front-of-house service for high-volume fine dining establishments.",
+              "Implemented server training programs that improved guest satisfaction scores by {{metric}}%.",
+              "Lead high-impact service teams and managed VIP events for {{metric}}+ attendees.",
+              "Mentored senior staff on advanced wine pairing, tableside service, and leadership.",
+              "Spearheaded the transition to digital ordering systems, increasing table turnover by {{metric}}%.",
+              "Negotiated with local suppliers for premium beverage and specialty food items.",
+              "Architected loyalty programs that increased dining frequency of local residents by {{metric}}%.",
+              "Reduced service errors by {{metric}}% through improved communication and workflow design.",
+              "Achieved 'Sommelier of the Year' or similar honors for excellence in beverage service.",
+              "Directed the successful launch of new restaurant concepts and seasonal menus.",
+              "Influenced restaurant strategy through data-driven insights into guest preferences."
+            ]
+          }
+        }
+      }
+    },
+    "receptionist": {
+      "aliases": [
+        "receptionist",
+        "front desk agent",
+        "administrative assistant"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "communication",
+            "organization",
+            "professionalism"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed high-volume front-desk operations and directed {{metric}}+ daily visitors professionally.",
+              "Handled multi-line phone systems and routed inquiries with high accuracy and speed.",
+              "Coordinated complex scheduling for executive meetings and multi-room conference spaces.",
+              "Maintained a polished and professional lobby environment ensuring a positive first impression.",
+              "Assisted in the preparation of internal documents and executive-level presentations.",
+              "Managed office supply inventory and coordinated with vendors for timely replenishment.",
+              "Ensured 100% security compliance by managing visitor logs and access badges.",
+              "Processed incoming and outgoing mail and deliveries for the entire organization.",
+              "Supported the onboarding of new administrative staff on office protocols and software.",
+              "Maintained meticulous filing systems and digital records for high transparency.",
+              "Resolved guest and employee inquiries promptly, achieving high satisfaction ratings."
+            ],
+            "senior": [
+              "Directed administrative operations for global corporate headquarters with {{metric}}+ staff.",
+              "Implemented office efficiency protocols that reduced administrative overhead by {{metric}}%.",
+              "Led administrative teams and managed multi-million dollar facility budgets.",
+              "Mentored senior receptionists on executive support and office leadership.",
+              "Spearheaded the transition to paperless office systems, improving data access by {{metric}}%.",
+              "Negotiated strategic facility management contracts, saving the company ${{metric}}k annually.",
+              "Architected visitor experience standards that improved client satisfaction by {{metric}}%.",
+              "Reduced administrative errors by {{metric}}% through advanced automation and training.",
+              "Achieved 'Administrative Excellence' awards for consistent superior performance.",
+              "Directed large-scale office relocations and workspace redesign projects.",
+              "Influenced corporate culture through leadership in internal events and committees."
+            ]
+          }
+        }
+      }
+    },
+    "security_guard": {
+      "aliases": [
+        "security guard",
+        "security officer",
+        "loss prevention specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "surveillance",
+            "safety",
+            "emergency response"
+          ],
+          "bullets": {
+            "junior": [
+              "Maintained 24/7 surveillance of high-value facilities using advanced CCTV systems.",
+              "Performed thorough site patrols and identified potential security vulnerabilities promptly.",
+              "Responded to emergency situations and alarms with high speed and professionalism.",
+              "Ensured 100% compliance with facility access protocols for {{metric}}+ daily visitors.",
+              "Documented detailed incident reports and maintained accurate daily activity logs.",
+              "Collaborated with local law enforcement and emergency services for coordinated response.",
+              "Managed visitor parking and traffic flow to ensure safety in high-traffic zones.",
+              "Performed basic maintenance on security equipment and reported malfunctions.",
+              "Supported the onboarding of new security personnel on site-specific protocols.",
+              "Maintained a high level of physical fitness and readiness for emergency interventions.",
+              "Educated employees on personal safety and facility security best practices."
+            ],
+            "senior": [
+              "Directed security operations for multi-site critical infrastructure or corporate campuses.",
+              "Implemented advanced security protocols that reduced annual incident rates by {{metric}}%.",
+              "Led specialized security teams and managed multi-million dollar technology budgets.",
+              "Mentored senior security staff on risk assessment, leadership, and crisis management.",
+              "Spearheaded the adoptation of AI-powered surveillance systems, improving detection by {{metric}}%.",
+              "Negotiated strategic security contracts with external vendors and specialized agencies.",
+              "Architected robust disaster recovery and evacuation plans for global facilities.",
+              "Reduced security-related losses by {{metric}}% through proactive risk mitigation strategy.",
+              "Achieved high-level certifications in executive protection and enterprise security.",
+              "Directed high-stakes investigations into internal and external security breaches.",
+              "Influenced corporate policy on safety, security, and employee wellness."
+            ]
+          }
+        }
+      }
+    },
+    "delivery_driver": {
+      "aliases": [
+        "delivery driver",
+        "courier",
+        "distribution driver"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "reliability",
+            "navigation",
+            "time management"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed a daily route with {{metric}}+ time-sensitive deliveries across the region.",
+              "Ensured 100% on-time delivery rate while maintaining high safety and traffic compliance.",
+              "Handled delicate and high-value cargo with {{metric}}% zero-damage record.",
+              "Utilized advanced GPS and routing software to optimize fuel and time efficiency.",
+              "Maintained meticulous delivery logs and obtained digital proof-of-delivery accurately.",
+              "Provided professional customer service during all client interactions on-site.",
+              "Performed daily vehicle safety inspections and reported mechanical issues promptly.",
+              "Assisted in loading and unloading cargo to ensure balanced and secure transport.",
+              "Supported the training of new drivers on navigation tools and company standards.",
+              "Maintained a clean and professional vehicle appearance at all times.",
+              "Resolved routing conflicts and delivery delays promptly to minimize customer impact."
+            ],
+            "senior": [
+              "Directed logistics operations for regional distribution centers with {{metric}}+ drivers.",
+              "Implemented routing optimization systems that reduced fuel costs by {{metric}}% annually.",
+              "Led specialized delivery teams for high-stakes medical or technical equipment.",
+              "Mentored senior couriers on defensive driving, efficiency, and route leadership.",
+              "Spearheaded the transition to electric delivery fleets, reducing carbon footprint by {{metric}}%.",
+              "Negotiated strategic maintenance contracts with regional vehicle service providers.",
+              "Architected last-mile delivery strategies that improved delivery speed by {{metric}}%.",
+              "Reduced delivery-related incidents by {{metric}}% through advanced safety training programs.",
+              "Achieved a 'Driver Excellence' award for 5+ years of zero-incident operations.",
+              "Directed the successful expansion of delivery services into new regional markets.",
+              "Influenced supply chain strategy through data-driven insights into delivery performance."
+            ]
+          }
+        }
+      }
+    },
+    "customer_service": {
+      "aliases": [
+        "customer service representative",
+        "csr",
+        "support agent"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "empathy",
+            "problem solving",
+            "communication"
+          ],
+          "bullets": {
+            "junior": [
+              "Resolved {{metric}}+ customer inquiries daily via phone, email, and live chat with high empathy.",
+              "Maintained a {{metric}}% customer satisfaction rating while adhering to strict response time SLAs.",
+              "Identified recurring product issues and provided detailed feedback to the engineering team.",
+              "Utilized modern CRM tools to track customer interactions and manage high-volume ticket queues.",
+              "Ensured strictly ethical practice and adherence to data privacy and security standards.",
+              "Assisted in the development of self-service help articles and internal knowledge bases.",
+              "Processed orders and handled technical troubleshooting with high accuracy and speed.",
+              "Collaborated with cross-functional teams to resolve complex customer billing issues.",
+              "Supported the onboarding of new support agents on product features and empathy standards.",
+              "Maintained meticulous documentation of customer feedback and feature requests.",
+              "Resolved customer escalations promptly, preventing churn and improving brand loyalty."
+            ],
+            "senior": [
+              "Directed global customer support organizations, achieving a {{metric}}% reduction in ticket volume.",
+              "Implemented AI-powered support tools that improved first-response time by {{metric}}% globally.",
+              "Led high-impact support teams and managed enterprise-level client relationships with precision.",
+              "Mentored senior support staff on advanced conflict resolution and leadership.",
+              "Spearheaded the transition to Omni-channel support, increasing customer accessibility by {{metric}}%.",
+              "Negotiated strategic SLAs with major corporate clients and enterprise partners.",
+              "Architected customer feedback loops that influenced the long-term product roadmap.",
+              "Reduced churn by {{metric}}% through proactive customer success and engagement initiatives.",
+              "Achieved 'Support Leader of the Year' for consistent excellence in service and metrics.",
+              "Directed large-scale support migration projects for multi-billion dollar business units.",
+              "Influenced corporate policy on customer experience (CX) and brand perception."
+            ]
+          }
+        }
+      }
+    },
+    "retail_associate": {
+      "aliases": [
+        "retail associate",
+        "sales associate",
+        "store associate"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "sales",
+            "product knowledge",
+            "visual merchandising"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided personalized styling and product recommendations to {{metric}}+ customers daily.",
+              "Maintained superior visual merchandising standards, increasing floor sales by {{metric}}%.",
+              "Processed sales transactions and managed inventory restocking with high accuracy.",
+              "Memorized entire product collections and technical specifications to assist customers.",
+              "Resolved customer inquiries and complaints professionally, maintaining a high satisfaction score.",
+              "Assisted in the setup of promotional displays and seasonal floor transitions.",
+              "Ensured 100% compliance with store safety protocols and loss prevention standards.",
+              "Collaborated with team members to achieve daily and weekly sales targets consistently.",
+              "Supported the training of new associates on product knowledge and service standards.",
+              "Maintained a clean and organized store environment to enhance the brand experience.",
+              "Participated in periodic inventory audits and reported on stock levels accurately."
+            ],
+            "senior": [
+              "Directed retail operations for flagship stores, achieving a {{metric}}% increase in annual sales.",
+              "Implemented visual merchandising strategies that improved shelf-turnover by {{metric}}%.",
+              "Led retail teams and managed multi-million dollar inventory and revenue streams.",
+              "Mentored senior associates on advanced sales techniques, leadership, and store management.",
+              "Spearheaded the adoption of mobile POS systems, reducing checkout wait times by {{metric}}%.",
+              "Negotiated with regional suppliers for specialized in-store promotional placements.",
+              "Architected local community engagement events that increased store foot-traffic by {{metric}}%.",
+              "Reduced shrinkage by {{metric}}% through improved loss prevention and staff training.",
+              "Achieved 'Store Manager of the Year' or similar honors for excellence in retail leadership.",
+              "Directed large-scale store redesigns and grand-opening projects for regional branches.",
+              "Influenced regional retail strategy through data-driven insights into buyer behavior."
+            ]
+          }
+        }
+      }
+    },
+    "barista": {
+      "aliases": [
+        "barista",
+        "coffee specialist",
+        "cafe associate"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "espresso",
+            "customer service",
+            "speed"
+          ],
+          "bullets": {
+            "junior": [
+              "Crafted {{metric}}+ premium coffee beverages daily with high consistency and speed.",
+              "Provided exceptional customer service in high-volume cafe environments with a positive attitude.",
+              "Maintained 100% sanitation of espresso machines, grinders, and brewing equipment daily.",
+              "Upsold seasonal specialties and food items, increasing average transaction value by {{metric}}%.",
+              "Memorized complex beverage recipes and origin profiles to educate customers.",
+              "Maintained a clean and organized cafe environment according to health safety standards.",
+              "Processed payments and managed cash drawer reconciliations with high accuracy.",
+              "Assisted in inventory management and reported on supply needs to cafe leadership.",
+              "Supported the training of new baristas on espresso techniques and service protocols.",
+              "Collaborated with team members to ensure efficient workflow during peak morning rushes.",
+              "Ensured 100% compliance with food safety and allergen handling procedures."
+            ],
+            "senior": [
+              "Directed cafe operations for high-volume specialty coffee shops on a regional scale.",
+              "Implemented barista training programs that improved beverage quality consistency by {{metric}}%.",
+              "Lead cafe teams and managed multi-site equipment maintenance and supply chains.",
+              "Mentored senior baristas on advanced latte art, roasting profiles, and leadership.",
+              "Spearheaded the transition to eco-friendly packaging, reducing waste by {{metric}}% annually.",
+              "Negotiated strategic partnerships with local coffee roasters and dairy suppliers.",
+              "Architected cafe loyalty programs that increased customer retention by {{metric}}%.",
+              "Reduced peak-hour wait times by {{metric}}% through improved workflow and tech integration.",
+              "Achieved high-level certifications (SCA) and represented the brand in barista competitions.",
+              "Directed the successful launch of new cafe concepts and seasonal beverage menus.",
+              "Influenced brand strategy through data-driven insights into local coffee trends."
+            ]
+          }
+        }
+      }
+    },
+    "electrician": {
+      "aliases": [
+        "electrician",
+        "journeyman electrician",
+        "electrical technician"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "electrical systems",
+            "troubleshooting",
+            "safety"
+          ],
+          "bullets": {
+            "junior": [
+              "Installed and maintained electrical systems for residential and commercial projects worth ${{metric}}M+.",
+              "Troubleshot complex wiring issues and resolved hardware malfunctions with high safety and precision.",
+              "Ensured 100% compliance with National Electrical Code (NEC) and local building regulations.",
+              "Utilized specialized diagnostic tools (multimeters, circuit testers) to identify system faults.",
+              "Documented detailed electrical diagrams and maintenance logs for high transparency.",
+              "Collaborated with general contractors to ensure timely completion of project milestones.",
+              "Managed electrical supply inventory and coordinated with vendors for resource procurement.",
+              "Performed preventive maintenance on electrical panels and distribution systems daily.",
+              "Supported the training of electrical apprentices on safety and technical standards.",
+              "Ensured a sterile and safe work environment, adhering to strict OSHA regulations.",
+              "Resolved power distribution issues, improving system uptime by {{metric}}% for clients."
+            ],
+            "senior": [
+              "Directed large-scale electrical installations for industrial facilities and critical infrastructure.",
+              "Implemented energy-efficient lighting and power systems that reduced utility costs by {{metric}}% annually.",
+              "Led master-level electrical teams and managed multi-million dollar electrical budgets.",
+              "Mentored senior electricians on advanced systems design, leadership, and code compliance.",
+              "Spearheaded the integration of smart-grid technologies and renewable energy systems (Solar/EV).",
+              "Negotiated strategic maintenance contracts with regional facility management groups.",
+              "Architected robust electrical disaster recovery and backup power (UPS/Generator) solutions.",
+              "Reduced electrical incidents by {{metric}}% through advanced safety training and audits.",
+              "Achieved Master Electrician certification and represented the trade in regional associations.",
+              "Directed high-stakes electrical forensic investigations into system failures.",
+              "Influenced facility strategy through data-driven insights into power consumption trends."
+            ]
+          }
+        }
+      }
+    },
+    "plumber": {
+      "aliases": [
+        "plumber",
+        "journeyman plumber",
+        "piping specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "piping",
+            "troubleshooting",
+            "installation"
+          ],
+          "bullets": {
+            "junior": [
+              "Installed and repaired complex plumbing and drainage systems for {{metric}}+ residential units.",
+              "Troubleshot intricate pipe leaks and resolved pressure issues with high precision and speed.",
+              "Ensured 100% compliance with regional plumbing codes and environmental regulations.",
+              "Utilized specialized diagnostic tools (pipe cameras, sonic leak detectors) effectively.",
+              "Documented detailed plumbing layouts and maintenance logs for client transparency.",
+              "Collaborated with construction teams to ensure seamless integration of plumbing systems.",
+              "Managed plumbing supply inventory and coordinated with specialized parts vendors.",
+              "Performed preventive maintenance on water heaters and boiler systems for commercial clients.",
+              "Supported the training of plumbing apprentices on technical and safety standards.",
+              "Maintained a clean and professional work environment during on-site interventions.",
+              "Resolved emergency sewage and water main breaks with high reliability and efficiency."
+            ],
+            "senior": [
+              "Directed large-scale plumbing and mechanical installations for high-rise developments.",
+              "Implemented water-efficient fixture plans that reduced water consumption by {{metric}}% annually.",
+              "Led master-level plumbing teams and managed multi-million dollar mechanical budgets.",
+              "Mentored senior plumbers on advanced hydraulics, system design, and leadership.",
+              "Spearheaded the integration of greywater recycling and sustainable plumbing technologies.",
+              "Negotiated strategic service contracts with municipal and corporate facility groups.",
+              "Architected robust flood prevention and backflow protection systems for critical sites.",
+              "Reduced plumbing-related field errors by {{metric}}% through improved workflow design.",
+              "Achieved Master Plumber certification and influenced regional plumbing standards.",
+              "Directed the successful turnaround of failed plumbing infrastructure projects within {{metric}} weeks.",
+              "Influenced building strategy through data-driven insights into water usage efficiency."
+            ]
+          }
+        }
+      }
+    },
+    "hvac_technician": {
+      "aliases": [
+        "hvac technician",
+        "hvac engineer",
+        "climate control specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "hvacre",
+            "thermodynamics",
+            "troubleshooting"
+          ],
+          "bullets": {
+            "junior": [
+              "Installed and serviced HVAC systems for residential and commercial clients totaling {{metric}}+ units.",
+              "Troubleshot refrigeration and air-flow issues, resolving hardware faults with high precision.",
+              "Ensured 100% compliance with EPA regulations (608) and local environmental standards.",
+              "Utilized advanced diagnostic tools (refrigerant gauges, anemometers) for system optimization.",
+              "Documented detailed service reports and energy audits for client transparency.",
+              "Collaborated with facility managers to ensure optimal climate control and indoor air quality.",
+              "Managed HVAC supply inventory and coordinated with specialized equipment vendors.",
+              "Performed seasonal preventive maintenance on large-scale chiller and boiler plants.",
+              "Supported the training of HVAC apprentices on safety and technical standards.",
+              "Maintained meticulous records of refrigerant usage and recovery for regulatory audits.",
+              "Resolved system failures, improving climate control reliability by {{metric}}% for clients."
+            ],
+            "senior": [
+              "Directed large-scale HVAC/R installations for industrial facilities and data centers.",
+              "Implemented smart HVAC automation systems that reduced energy costs by {{metric}}% annually.",
+              "Led master-level HVAC teams and managed multi-million dollar climate control budgets.",
+              "Mentored senior technicians on advanced thermodynamics, load calculations, and leadership.",
+              "Spearheaded the transition to low-GWP refrigerants, reducing environmental impact by {{metric}}%.",
+              "Negotiated strategic maintenance agreements with regional corporate facility groups.",
+              "Architected redundant mission-critical cooling solutions for high-uptime environments.",
+              "Reduced HVAC down-time by {{metric}}% through proactive predictive maintenance strategy.",
+              "Achieved NATE certification and influenced regional HVAC standards and education.",
+              "Directed the successful commissioning of complex HVAC systems for landmark projects.",
+              "Influenced building strategy through data-driven insights into thermal efficiency."
+            ]
+          }
+        }
+      }
+    },
+    "carpenter": {
+      "aliases": [
+        "carpenter",
+        "formwork carpenter",
+        "finish carpenter"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "structural",
+            "finish work",
+            "woodworking"
+          ],
+          "bullets": {
+            "junior": [
+              "Constructed structural frameworks and finished wood interiors for {{metric}}+ residential projects.",
+              "Performed precise measurements and resolved high-complexity framing challenges with precision.",
+              "Ensured 100% adherence to architectural drawings and local building codes on-site.",
+              "Utilized specialized power tools and hand tools with high safety and technical skill.",
+              "Documented detailed material lists and progress logs for project transparency.",
+              "Collaborated with design teams to ensure high-quality finishes and client satisfaction.",
+              "Managed lumber inventory and coordinated with specialized woodworking suppliers.",
+              "Performed restorative carpentry on historical structures with high attention to detail.",
+              "Supported the training of carpentry apprentices on safety and craftsmanship standards.",
+              "Maintained a clean and organized work site, strictly adhering to OSHA regulations.",
+              "Resolved structural discrepancies, improving project delivery speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed large-scale carpentry and millwork projects for luxury developments and landmarks.",
+              "Implemented sustainable building practices that reduced material waste by {{metric}}% annually.",
+              "Led master-level carpentry teams and managed multi-million dollar construction budgets.",
+              "Mentored senior carpenters on advanced structural framing, finish work, and leadership.",
+              "Spearheaded the integration of modular and prefabricated timber construction technologies.",
+              "Negotiated strategic partnerships with regional timber and specialized lumber mills.",
+              "Architected custom high-end interior solutions that improved client equity by {{metric}}%.",
+              "Reduced construction errors by {{metric}}% through improved blueprint reading and training.",
+              "Achieved Red Seal or equivalent certifications and influenced regional building standards.",
+              "Directed the successful completion of complex timber-frame landmark projects.",
+              "Influenced architectural strategy through expert insights into wood species and structural integrity."
+            ]
+          }
+        }
+      }
+    },
+    "welder": {
+      "aliases": [
+        "welder",
+        "pipe welder",
+        "fabricator"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "welding",
+            "metallurgy",
+            "safety"
+          ],
+          "bullets": {
+            "junior": [
+              "Performed precision welding (MIG/TIG/Stick) for industrial projects worth ${{metric}}M+.",
+              "Troubleshot complex structural defects and resolved material integrity issues with high safety.",
+              "Ensured 100% compliance with AWS standards and regional fabrication codes.",
+              "Utilized specialized diagnostic tools (visual inspection, dye penetrant) for weld quality.",
+              "Documented detailed material tests and progress logs for high transparency.",
+              "Collaborated with engineering teams to ensure adherence to technical drawings and tolerances.",
+              "Managed welding supply inventory and coordinated with specialized gas and electrode vendors.",
+              "Performed preventive maintenance on industrial welding machines and plasma cutters daily.",
+              "Supported the training of welding apprentices on safety and technical metallurgy.",
+              "Ensured a sterile and safe work environment, adhering to strict OSHA regulations.",
+              "Resolved fabrication bottlenecks, improving project delivery speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed large-scale industrial fabrication projects for aerospace or heavy infrastructure.",
+              "Implemented robotic welding systems that reduced production time by {{metric}}% annually.",
+              "Led master-level fabrication teams and managed multi-million dollar shop budgets.",
+              "Mentored senior welders on advanced metallurgy, NDT methods, and leadership.",
+              "Spearheaded the integration of laser welding and high-efficiency fabrication technologies.",
+              "Negotiated strategic supply contracts for regional material and industrial gas providers.",
+              "Architected robust welding quality control systems that reduced rework by {{metric}}%.",
+              "Reduced fabrication incidents by {{metric}}% through advanced safety training and audits.",
+              "Achieved CWI (Certified Welding Inspector) status and influenced regional industry standards.",
+              "Directed high-stakes failure analysis investigations for critical infrastructure components.",
+              "Influenced manufacturing strategy through data-driven insights into material performance."
+            ]
+          }
+        }
+      }
+    },
+    "automotive_mechanic": {
+      "aliases": [
+        "automotive mechanic",
+        "auto technician",
+        "service technician"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "diagnostics",
+            "mechanical",
+            "troubleshooting"
+          ],
+          "bullets": {
+            "junior": [
+              "Diagnosed and repaired complex mechanical issues for {{metric}}+ vehicles monthly.",
+              "Troubleshot intricate engine and electrical faults with high precision and speed.",
+              "Ensured 100% compliance with manufacturer service standards and environmental regulations.",
+              "Utilized advanced diagnostic software (OBD-II, manufacturer-specific suites) effectively.",
+              "Documented detailed service reports and preventive maintenance logs for client transparency.",
+              "Collaborated with service advisors to ensure high customer satisfaction and trust.",
+              "Managed automotive parts inventory and coordinated with specialized component vendors.",
+              "Performed comprehensive safety inspections on high-performance and commercial vehicles.",
+              "Supported the training of mechanic apprentices on technical and safety standards.",
+              "Maintained a clean and professional shop environment, adhering to strict safety protocols.",
+              "Resolved recurring mechanical failures, improving vehicle reliability by {{metric}}% for clients."
+            ],
+            "senior": [
+              "Directed service operations for high-volume automotive dealerships or regional fleets.",
+              "Implemented digital diagnostic workflows that reduced service time by {{metric}}% annually.",
+              "Led ASE-certified technician teams and managed multi-million dollar service budgets.",
+              "Mentored senior mechanics on advanced hybrid/EV systems and leadership.",
+              "Spearheaded the integration of remote diagnostic and telematics-based maintenance systems.",
+              "Negotiated strategic parts and equipment contracts with regional automotive suppliers.",
+              "Architected redundant fleet maintenance plans that improved uptime by {{metric}}%.",
+              "Reduced service-related field errors by {{metric}}% through improved workflow design.",
+              "Achieved ASE Master Technician status and influenced regional automotive education.",
+              "Directed high-stakes forensic investigations into vehicle system failures.",
+              "Influenced fleet strategy through data-driven insights into vehicle lifecycle costs."
+            ]
+          }
+        }
+      }
+    },
+    "construction_worker": {
+      "aliases": [
+        "construction worker",
+        "laborer",
+        "site worker"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "site prep",
+            "safety",
+            "collaboration"
+          ],
+          "bullets": {
+            "junior": [
+              "Performed critical site preparation and support tasks for projects worth ${{metric}}M+.",
+              "Managed high-stakes logistics and material handling with 100% safety and speed.",
+              "Ensured 100% adherence to site safety protocols and local construction regulations.",
+              "Utilized specialized heavy machinery and power tools with high technical skill.",
+              "Documented daily progress logs and safety checks for project transparency.",
+              "Collaborated with trade specialists to ensure seamless project integration on-site.",
+              "Managed site inventory and coordinated with equipment rental vendors.",
+              "Performed complex site cleanup and environmental remediation tasks daily.",
+              "Supported the training of new site workers on safety and equipment operation.",
+              "Maintained a highly organized and safe work site, adhering to strict OSHA standards.",
+              "Resolved site logistical bottlenecks, improving overall construction speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed large-scale site operations for high-rise developments or civil infrastructure.",
+              "Implemented lean construction methodologies that reduced site waste by {{metric}}% annually.",
+              "Led site management teams and managed multi-million dollar logistics budgets.",
+              "Mentored senior site workers on leadership, risk assessment, and site optimization.",
+              "Spearheaded the integration of IoT-based site monitoring and worker safety systems.",
+              "Negotiated strategic logistics contracts with regional equipment and material providers.",
+              "Architected robust site emergency response and evacuation plans for global projects.",
+              "Reduced site-related incidents by {{metric}}% through proactive risk mitigation strategy.",
+              "Achieved high-level safety certifications and influenced regional construction policy.",
+              "Directed high-stakes site recovery efforts following major environmental or technical events.",
+              "Influenced development strategy through data-driven insights into site performance."
+            ]
+          }
+        }
+      }
+    },
+    "painter": {
+      "aliases": [
+        "painter",
+        "decorator",
+        "finishing specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "finishing",
+            "color theory",
+            "detail-oriented"
+          ],
+          "bullets": {
+            "junior": [
+              "Performed high-quality interior and exterior painting for projects worth ${{metric}}k+.",
+              "Mastered surface preparation and resolved complex material adhesion issues with precision.",
+              "Ensured 100% compliance with environmental safety and VOC regulations on-site.",
+              "Utilized specialized sprayers and finishing tools with high safety and technical skill.",
+              "Documented detailed material lists and color specifications for high transparency.",
+              "Collaborated with interior designers to ensure high-quality finishes and client satisfaction.",
+              "Managed paint inventory and coordinated with specialized coating and supply vendors.",
+              "Performed restoration painting on historical structures with high attention to detail.",
+              "Supported the training of painting apprentices on technical and safety standards.",
+              "Maintained a clean and professional work environment during on-site interventions.",
+              "Resolved finishing discrepancies, improving project delivery speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed large-scale finishing projects for luxury hospitality and corporate developments.",
+              "Implemented eco-friendly coating strategies that reduced VOC emissions by {{metric}}% annually.",
+              "Led master-level finishing teams and managed multi-million dollar decoration budgets.",
+              "Mentored senior painters on advanced finishing techniques, leadership, and color theory.",
+              "Spearheaded the integration of automated coating and digital color-matching systems.",
+              "Negotiated strategic supply contracts with regional material and equipment providers.",
+              "Architected robust surface protection and maintenance plans for global facilities.",
+              "Reduced finishing-related defects by {{metric}}% through improved training and QC.",
+              "Achieved industry-recognized certifications and influenced regional finishing standards.",
+              "Directed the successful turnaround of failed high-visibility finishing projects.",
+              "Influenced design strategy through expert insights into durable and sustainable finishes."
+            ]
+          }
+        }
+      }
+    },
+    "locksmith": {
+      "aliases": [
+        "locksmith",
+        "security technician",
+        "safe specialist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "security",
+            "precision",
+            "troubleshooting"
+          ],
+          "bullets": {
+            "junior": [
+              "Installed and repaired high-security locking systems for {{metric}}+ commercial sites.",
+              "Troubleshot complex mechanical and electronic access issues with high precision and speed.",
+              "Ensured 100% compliance with building security codes and life safety regulations.",
+              "Utilized specialized diagnostic tools (scopes, decoders) for non-destructive entry.",
+              "Documented detailed security audits and maintenance logs for client transparency.",
+              "Collaborated with facility security teams to ensure optimal access control and safety.",
+              "Managed locksmith inventory and coordinated with specialized hardware vendors.",
+              "Performed emergency locksmith services for high-priority corporate and residential clients.",
+              "Supported the training of locksmith apprentices on technical and ethical standards.",
+              "Maintained meticulous records of key codes and access credentials for security audits.",
+              "Resolved security vulnerabilities, improving facility safety by {{metric}}% for clients."
+            ],
+            "senior": [
+              "Directed security operations for multi-site critical infrastructure or government facilities.",
+              "Implemented IP-based access control systems that improved security efficiency by {{metric}}%.",
+              "Led master-level security teams and managed multi-million dollar access control budgets.",
+              "Mentored senior locksmiths on advanced electronics, leadership, and risk management.",
+              "Spearheaded the transition to keyless and biometric security technologies globally.",
+              "Negotiated strategic maintenance contracts with regional security and facility groups.",
+              "Architected robust master key systems for enterprise-level corporate campuses.",
+              "Reduced security-related incidents by {{metric}}% through proactive vulnerability assessment.",
+              "Achieved high-level security clearances and influenced regional locksmith standards.",
+              "Directed high-stakes investigations into unauthorized access and security breaches.",
+              "Influenced corporate security policy through data-driven insights into access patterns."
+            ]
+          }
+        }
+      }
+    },
+    "landscaper": {
+      "aliases": [
+        "landscaper",
+        "groundskeeper",
+        "horticulturist"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "horticulture",
+            "irrigation",
+            "design"
+          ],
+          "bullets": {
+            "junior": [
+              "Executed high-quality landscape installation and maintenance for projects worth ${{metric}}k+.",
+              "Managed high-stakes logistics and material handling with 100% safety and speed.",
+              "Ensured 100% adherence to horticultural standards and local environmental codes.",
+              "Utilized specialized heavy machinery and power tools with high technical skill.",
+              "Documented daily progress logs and site health audits for project transparency.",
+              "Collaborated with landscape architects to ensure high-quality finishes and client satisfaction.",
+              "Managed site inventory and coordinated with specialized nursery and equipment vendors.",
+              "Performed complex site cleanup and environmental remediation tasks daily.",
+              "Supported the training of new landscapers on safety and equipment operation.",
+              "Maintained a highly organized and safe work site, adhering to strict OSHA standards.",
+              "Resolved site logistical bottlenecks, improving overall landscape speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed large-scale landscape operations for regional parks or corporate campuses.",
+              "Implemented water-wise landscaping strategies that reduced water costs by {{metric}}% annually.",
+              "Led master-level grounds teams and managed multi-million dollar landscaping budgets.",
+              "Mentored senior landscapers on leadership, irrigation design, and horticultural science.",
+              "Spearheaded the integration of smart irrigation and IoT-based soil monitoring systems.",
+              "Negotiated strategic supply contracts with regional nursery and equipment providers.",
+              "Architected robust landscape disaster recovery and environmental resilience plans.",
+              "Reduced site-related incidents by {{metric}}% through proactive risk mitigation strategy.",
+              "Achieved industry-recognized certifications and influenced regional landscaping policy.",
+              "Directed high-stakes landscape restoration following major environmental events.",
+              "Influenced development strategy through expert insights into sustainable landscaping."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "lawyer": {
+    "aliases": [
+      "lawyer",
+      "attorney",
+      "legal counsel"
+    ],
+    "specializations": {
+      "general": {
+        "tags": [
+          "legal research",
+          "litigation",
+          "compliance"
+        ],
+        "bullets": {
+          "junior": [
+            "Conducted comprehensive legal research and drafted motions for high-stakes litigation worth ${{metric}}M+.",
+            "Managed discovery processes and resolved complex document review challenges with high precision.",
+            "Ensured 100% compliance with ethical standards and regional legal regulations.",
+            "Utilized specialized legal databases (Westlaw, LexisNexis) for case law analysis.",
+            "Documented detailed legal memorandums and client advisories for high transparency.",
+            "Collaborated with senior partners to ensure adherence to trial strategy and deadlines.",
+            "Managed legal case files and coordinated with expert witnesses and vendors.",
+            "Performed thorough contract analysis and identified potential risk factors for clients.",
+            "Supported the training of legal interns on research and drafting standards.",
+            "Maintained meticulous records of billable hours and case progress for client audits.",
+            "Resolved complex legal bottlenecks, improving case turnaround time by {{metric}}%."
+          ],
+          "senior": [
+            "Directed legal strategy for multi-billion dollar corporate mergers and acquisitions.",
+            "Implemented predictive legal analytics that improved case outcome success by {{metric}}% annually.",
+            "Led high-impact legal teams and managed multi-million dollar litigation budgets.",
+            "Mentored senior associates on advanced advocacy, leadership, and ethical practice.",
+            "Spearheaded the integration of AI-powered legal research and contract automation systems.",
+            "Negotiated strategic settlements with global corporate and government entities.",
+            "Architected robust corporate compliance frameworks that reduced legal risk by {{metric}}%.",
+            "Reduced legal expenses by {{metric}}% through improved case management and training.",
+            "Achieved 'Legal Leader of the Year' or similar honors for excellence in representation.",
+            "Directed high-stakes internal investigations into corporate and regulatory breaches.",
+            "Influenced government policy through leadership in national bar associations and committees."
+          ]
+        }
+      }
+    }
+  },
+  "architect": {
+    "aliases": [
+      "architect",
+      "design architect",
+      "project architect"
+    ],
+    "specializations": {
+      "general": {
+        "tags": [
+          "design",
+          "cad",
+          "sustainability"
+        ],
+        "bullets": {
+          "junior": [
+            "Developed detailed architectural designs and BIM models for projects worth ${{metric}}M+.",
+            "Resolved complex spatial design challenges and ensured 100% adherence to client requirements.",
+            "Ensured 100% compliance with local building codes, ADA standards, and zoning laws.",
+            "Utilized specialized design tools (Revit, AutoCad, Rhino) with high technical skill.",
+            "Documented detailed construction drawings and material specifications for high transparency.",
+            "Collaborated with engineering teams to ensure seamless structural integration.",
+            "Managed project design files and coordinated with specialized material vendors.",
+            "Performed thorough site analysis and identified potential environmental design constraints.",
+            "Supported the training of junior designers on BIM standards and design principles.",
+            "Maintained meticulous project timelines and budget tracking for client transparency.",
+            "Resolved design discrepancies, improving project delivery speed by {{metric}}%."
+          ],
+          "senior": [
+            "Directed design strategy for landmark multi-use developments and global corporate HQs.",
+            "Implemented sustainable design practices that achieved LEED Platinum status on {{metric}} projects.",
+            "Led high-impact design teams and managed multi-million dollar architectural budgets.",
+            "Mentored senior architects on advanced design theory, leadership, and urban planning.",
+            "Spearheaded the integration of generative design and VR-based client walkthrough systems.",
+            "Negotiated strategic design partnerships with global construction and engineering firms.",
+            "Architected robust urban resilience plans that improved community safety by {{metric}}%.",
+            "Reduced design-related rework by {{metric}}% through improved BIM coordination and training.",
+            "Achieved Pritzker or similar honors for excellence in architectural innovation.",
+            "Directed high-stakes architectural master-planning for entire city districts.",
+            "Influenced urban policy through leadership in international architectural associations."
+          ]
+        }
+      }
+    }
+  },
+  "professor": {
+    "aliases": [
+      "professor",
+      "academic researcher",
+      "lecturer"
+    ],
+    "specializations": {
+      "general": {
+        "tags": [
+          "pedagogy",
+          "research",
+          "mentorship"
+        ],
+        "bullets": {
+          "junior": [
+            "Developed and delivered comprehensive undergraduate curricula for classes of {{metric}}+ students.",
+            "Conducted high-impact research and published {{metric}} peer-reviewed papers in top journals.",
+            "Ensured 100% adherence to academic standards and institutional ethics policies.",
+            "Utilized specialized pedagogical tools and LMS systems for student engagement.",
+            "Documented detailed research findings and grant proposals for high transparency.",
+            "Collaborated with departmental faculty to ensure curriculum alignment and innovation.",
+            "Managed research lab operations and coordinated with specialized equipment vendors.",
+            "Performed thorough student assessment and identified potential learning gaps promptly.",
+            "Supported the training of teaching assistants on pedagogy and grading standards.",
+            "Maintained meticulous records of student progress and research data for audits.",
+            "Resolved academic bottlenecks, improving student graduation rates by {{metric}}%."
+          ],
+          "senior": [
+            "Directed departmental research strategy for global top-tier academic institutions.",
+            "Implemented innovative pedagogical models that improved student learning outcomes by {{metric}}%.",
+            "Led high-impact research teams and managed multi-million dollar research grants.",
+            "Mentored senior faculty on advanced research methodology, leadership, and ethics.",
+            "Spearheaded the integration of AI-assisted learning and global research networks.",
+            "Negotiated strategic partnerships with international universities and corporate research labs.",
+            "Architected robust institutional diversity and inclusion plans for global campuses.",
+            "Reduced research-to-publication time by {{metric}}% through improved lab management.",
+            "Achieved Nobel or similar honors for excellence in research and discovery.",
+            "Directed high-stakes institutional transformations and academic accreditation projects.",
+            "Influenced national education policy through leadership in academic societies."
+          ]
+        }
+      }
+    }
+  },
+  "pilot": {
+    "aliases": [
+      "pilot",
+      "airline pilot",
+      "commercial pilot"
+    ],
+    "specializations": {
+      "general": {
+        "tags": [
+          "navigation",
+          "aviation safety",
+          "leadership"
+        ],
+        "bullets": {
+          "junior": [
+            "Managed safe flight operations for regional routes with a 100% on-time record.",
+            "Resolved complex in-flight navigation challenges with high precision and speed.",
+            "Ensured 100% compliance with FAA/EASA regulations and company safety standards.",
+            "Utilized specialized flight deck systems and FMS with high technical skill.",
+            "Documented detailed flight logs and maintenance reports for high transparency.",
+            "Collaborated with ground crew and air traffic control for seamless flight operations.",
+            "Managed pre-flight inspections and coordinated with specialized maintenance vendors.",
+            "Performed thorough weather analysis and identified potential flight path risks promptly.",
+            "Supported the training of first officers on technical and safety procedures.",
+            "Maintained a high level of physical fitness and readiness for emergency interventions.",
+            "Resolved flight delays, improving regional fuel efficiency by {{metric}}%."
+          ],
+          "senior": [
+            "Directed flight operations for global airline fleets with {{metric}}+ aircraft.",
+            "Implemented fuel-efficient flight planning that reduced annual carbon footprint by {{metric}}%.",
+            "Led senior flight crews and managed multi-million dollar operations budgets.",
+            "Mentored senior captains on advanced aviation systems, leadership, and safety.",
+            "Spearheaded the integration of advanced flight deck automation and HUD systems.",
+            "Negotiated strategic maintenance and fuel contracts with global airport groups.",
+            "Architected robust airline emergency response and safety management systems (SMS).",
+            "Reduced flight-related incidents by {{metric}}% through proactive risk mitigation strategy.",
+            "Achieved 'Captain of the Year' or similar honors for excellence in aviation leadership.",
+            "Directed high-stakes accident investigations and safety audits for global carriers.",
+            "Influenced aviation policy through leadership in international pilot associations."
+          ]
+        }
+      }
+    },
+    "civil_engineer": {
+      "aliases": [
+        "civil_engineer",
+        "structural engineer",
+        "site engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "structural",
+            "infrastructure",
+            "cad"
+          ],
+          "bullets": {
+            "junior": [
+              "Designed and analyzed structural components for infrastructure projects worth ${{metric}}M+.",
+              "Resolved complex engineering challenges and ensured 100% adherence to project specifications.",
+              "Ensured 100% compliance with local building codes and environmental regulations on-site.",
+              "Utilized specialized engineering software (AutoCAD, SAP2000, Civil 3D) with high precision.",
+              "Documented detailed technical reports and structural calculations for high transparency.",
+              "Collaborated with project managers to ensure timely completion of engineering milestones.",
+              "Managed project design files and coordinated with specialized material and soil vendors.",
+              "Performed thorough site inspections and identified potential structural risks promptly.",
+              "Supported the training of junior engineers on technical and safety standards.",
+              "Maintained meticulous records of project progress and material quality for audits.",
+              "Resolved design bottlenecks, improving project delivery speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed engineering strategy for large-scale civil infrastructure and urban developments.",
+              "Implemented sustainable engineering practices that reduced project carbon footprint by {{metric}}%.",
+              "Led high-impact engineering teams and managed multi-million dollar project budgets.",
+              "Mentored senior engineers on advanced structural analysis, leadership, and urban planning.",
+              "Spearheaded the integration of BIM and IoT-based structural monitoring systems.",
+              "Negotiated strategic partnerships with global construction and engineering firms.",
+              "Architected robust disaster recovery and environmental resilience plans for cities.",
+              "Reduced engineering-related field errors by {{metric}}% through improved design and training.",
+              "Achieved PE (Professional Engineer) status and influenced regional engineering standards.",
+              "Directed high-stakes forensic investigations into structural system failures.",
+              "Influenced infrastructure policy through leadership in national engineering associations."
+            ]
+          }
+        }
+      }
+    },
+    "mechanical_engineer": {
+      "aliases": [
+        "mechanical_engineer",
+        "design engineer",
+        "systems engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "mechanical systems",
+            "thermodynamics",
+            "cad"
+          ],
+          "bullets": {
+            "junior": [
+              "Designed and optimized mechanical components for industrial projects worth ${{metric}}M+.",
+              "Troubleshot complex mechanical faults and resolved system integrity issues with precision.",
+              "Ensured 100% compliance with ISO standards and regional mechanical regulations.",
+              "Utilized specialized engineering software (SolidWorks, ANSYS, MATLAB) with high precision.",
+              "Documented detailed technical specifications and design reports for high transparency.",
+              "Collaborated with manufacturing teams to ensure seamless product integration and quality.",
+              "Managed mechanical supply inventory and coordinated with specialized component vendors.",
+              "Performed thorough system testing and identified potential mechanical risks promptly.",
+              "Supported the training of junior engineers on technical and safety standards.",
+              "Maintained meticulous records of design iterations and test data for audits.",
+              "Resolved manufacturing bottlenecks, improving production speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed mechanical systems strategy for global manufacturing and industrial plants.",
+              "Implemented energy-efficient mechanical designs that reduced operational costs by {{metric}}%.",
+              "Led high-impact mechanical teams and managed multi-million dollar design budgets.",
+              "Mentored senior engineers on advanced thermodynamics, robotics, and leadership.",
+              "Spearheaded the integration of Additive Manufacturing and AI-driven design optimization.",
+              "Negotiated strategic partnerships with global mechanical component and tech providers.",
+              "Architected robust mechanical maintenance plans that improved equipment life by {{metric}}%.",
+              "Reduced product-related defects by {{metric}}% through improved design and training.",
+              "Achieved CEng/PE status and influenced regional mechanical engineering standards.",
+              "Directed high-stakes failure analysis and forensic engineering for complex systems.",
+              "Influenced industrial policy through leadership in national mechanical associations."
+            ]
+          }
+        }
+      }
+    },
+    "electrical_engineer": {
+      "aliases": [
+        "electrical_engineer",
+        "power engineer",
+        "circuit design engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "electrical systems",
+            "power electronics",
+            "troubleshooting"
+          ],
+          "bullets": {
+            "junior": [
+              "Designed and tested electrical systems for industrial projects worth ${{metric}}M+.",
+              "Troubleshot complex electrical circuits and resolved hardware malfunctions with precision.",
+              "Ensured 100% compliance with IEEE standards and regional electrical regulations.",
+              "Utilized specialized engineering software (MATLAB, Altium, PSpice) with high precision.",
+              "Documented detailed circuit diagrams and technical reports for high transparency.",
+              "Collaborated with systems engineers to ensure seamless electrical integration.",
+              "Managed electrical component inventory and coordinated with specialized vendors.",
+              "Performed thorough site inspections and identified potential electrical risks promptly.",
+              "Supported the training of junior engineers on technical and safety standards.",
+              "Maintained meticulous records of system tests and maintenance for audits.",
+              "Resolved power distribution issues, improving system uptime by {{metric}}%."
+            ],
+            "senior": [
+              "Directed electrical systems strategy for global power grids and utility scale projects.",
+              "Implemented smart-grid technologies that improved energy distribution efficiency by {{metric}}%.",
+              "Led high-impact electrical teams and managed multi-million dollar technology budgets.",
+              "Mentored senior engineers on advanced power electronics, leadership, and grid stability.",
+              "Spearheaded the transition to renewable energy systems and EV charging infrastructure.",
+              "Negotiated strategic energy contracts with regional utility and corporate facility groups.",
+              "Architected robust electrical disaster recovery and backup power (UPS/Microgrid) solutions.",
+              "Reduced electrical incidents by {{metric}}% through proactive risk mitigation strategy.",
+              "Achieved PE/Senior Member status and influenced regional electrical standards.",
+              "Directed high-stakes forensic investigations into major power system failures.",
+              "Influenced energy policy through leadership in national electrical and power associations."
+            ]
+          }
+        }
+      }
+    },
+    "doctor": {
+      "aliases": [
+        "doctor",
+        "physician",
+        "medical practitioner"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "healthcare",
+            "diagnosis",
+            "patient care"
+          ],
+          "bullets": {
+            "junior": [
+              "Provided comprehensive medical care and diagnostics for {{metric}}+ patients weekly.",
+              "Troubleshot complex clinical symptoms and resolved diagnostic uncertainties with high precision.",
+              "Ensured 100% compliance with HIPAA regulations and regional healthcare standards.",
+              "Utilized specialized EMR/EHR systems (Epic, Cerner) with high technical skill.",
+              "Documented detailed clinical notes and treatment plans for high transparency.",
+              "Collaborated with multidisciplinary healthcare teams to ensure seamless patient transitions.",
+              "Managed medical supply inventory and coordinated with specialized pharmaceutical vendors.",
+              "Performed thorough patient assessments and identified potential clinical risks promptly.",
+              "Supported the training of medical residents and interns on clinical standards.",
+              "Maintained meticulous records of patient outcomes and follow-up care for audits.",
+              "Resolved clinical bottlenecks, improving patient throughput by {{metric}}%."
+            ],
+            "senior": [
+              "Directed clinical strategy for high-volume hospitals or regional medical groups.",
+              "Implemented evidence-based clinical protocols that improved patient survival by {{metric}}%.",
+              "Led high-impact medical teams and managed multi-million dollar department budgets.",
+              "Mentored senior physicians on advanced diagnostics, leadership, and medical ethics.",
+              "Spearheaded the integration of AI-assisted diagnostic tools and telemedicine systems.",
+              "Negotiated strategic partnerships with global pharmaceutical and medical device firms.",
+              "Architected robust hospital patient safety and disaster response plans.",
+              "Reduced clinical errors by {{metric}}% through improved diagnostic training and QC.",
+              "Achieved Board Certification or equivalent honors for excellence in medical practice.",
+              "Directed high-stakes clinical research and academic medical education programs.",
+              "Influenced health policy through leadership in national medical associations."
+            ]
+          }
+        }
+      }
+    },
+    "nurse": {
+      "aliases": [
+        "nurse",
+        "registered nurse",
+        "clinical nurse"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "nursing care",
+            "patient advocacy",
+            "clinical operations"
+          ],
+          "bullets": {
+            "junior": [
+              "Delivered high-quality nursing care and monitoring for {{metric}}+ patients daily.",
+              "Managed complex medication administrations and resolved patient care issues with high precision.",
+              "Ensured 100% adherence to clinical safety protocols and regional nursing standards.",
+              "Utilized specialized patient monitoring and EMR systems with high technical skill.",
+              "Documented detailed nursing interventions and patient response logs for high transparency.",
+              "Collaborated with physicians and allied health staff for seamless project integration.",
+              "Managed unit inventory and coordinated with specialized medical supply vendors.",
+              "Performed thorough patient evaluations and identified potential health risks promptly.",
+              "Supported the training of new nursing staff on safety and equipment operation.",
+              "Maintained a highly organized and safe clinical environment, adhering to strict standards.",
+              "Resolved patient care bottlenecks, improving ward efficiency by {{metric}}%."
+            ],
+            "senior": [
+              "Directed nursing operations for large-scale hospital units or specialized clinics.",
+              "Implemented lean healthcare methodologies that reduced clinical waste by {{metric}}% annually.",
+              "Led nursing management teams and managed multi-million dollar staffing budgets.",
+              "Mentored senior nurses on leadership, risk assessment, and clinical optimization.",
+              "Spearheaded the integration of digital health and remote patient monitoring systems.",
+              "Negotiated strategic staffing contracts with regional healthcare and equipment providers.",
+              "Architected robust nursing disaster recovery and staff wellbeing plans.",
+              "Reduced clinical incidents by {{metric}}% through proactive risk mitigation strategy.",
+              "Achieved specialized certifications (CCRN, CEN) and influenced regional nursing policy.",
+              "Directed high-stakes clinical recovery efforts following major public health events.",
+              "Influenced nursing strategy through data-driven insights into unit performance."
+            ]
+          }
+        }
+      }
+    },
+    "accountant": {
+      "aliases": [
+        "accountant",
+        "cpa",
+        "financial controller"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "financial reporting",
+            "tax compliance",
+            "auditing"
+          ],
+          "bullets": {
+            "junior": [
+              "Managed comprehensive financial reporting and reconciliation for accounts worth ${{metric}}M+.",
+              "Resolved complex accounting discrepancies and ensured 100% accuracy in financial statements.",
+              "Ensured 100% compliance with GAAP/IFRS standards and regional tax regulations.",
+              "Utilized specialized accounting software (SAP, Oracle, QuickBooks) with high precision.",
+              "Documented detailed financial disclosures and audit trails for high transparency.",
+              "Collaborated with external auditors to ensure timely completion of financial audits.",
+              "Managed accounts payable/receivable and coordinated with specialized tax vendors.",
+              "Performed thorough financial analysis and identified potential fiscal risks promptly.",
+              "Supported the training of accounting interns on reporting and auditing standards.",
+              "Maintained meticulous records of financial transactions and tax filings for audits.",
+              "Resolved financial bottlenecks, improving month-end close speed by {{metric}}%."
+            ],
+            "senior": [
+              "Directed financial strategy for global corporations and managed multi-million dollar portfolios.",
+              "Implemented tax optimization strategies that reduced tax liability by {{metric}}% annually.",
+              "Led high-impact finance teams and managed multi-million dollar corporate budgets.",
+              "Mentored senior accountants on advanced financial modeling, leadership, and ethics.",
+              "Spearheaded the integration of ERP systems and AI-driven financial forecasting.",
+              "Negotiated strategic financing and investment agreements with global partners.",
+              "Architected robust corporate internal control systems (SOX compliance).",
+              "Reduced operational expenses by {{metric}}% through improved fiscal management and training.",
+              "Achieved CPA/CFA or equivalent honors for excellence in financial leadership.",
+              "Directed high-stakes internal audits and forensic financial investigations.",
+              "Influenced economic policy through leadership in national accounting associations."
+            ]
+          }
+        }
+      }
+    },
+    "chemical_engineer": {
+      "aliases": [
+        "chemical_engineer",
+        "process engineer",
+        "biochemical engineer"
+      ],
+      "specializations": {
+        "general": {
+          "tags": [
+            "process optimization",
+            "thermodynamics",
+            "safety"
+          ],
+          "bullets": {
+            "junior": [
+              "Optimized chemical processes for industrial projects worth ${{metric}}M+.",
+              "Troubleshot complex process variations and resolved chemical integrity issues with precision.",
+              "Ensured 100% compliance with EPA regulations and regional environmental standards.",
+              "Utilized specialized engineering software (ASPEN Plus, MATLAB) with high precision.",
+              "Documented detailed process flow diagrams (PFDs) and technical reports for high transparency.",
+              "Collaborated with production teams to ensure seamless chemical integration and quality.",
+              "Managed chemical inventory and coordinated with specialized raw material vendors.",
+              "Performed thorough site inspections and identified potential chemical risks promptly.",
+              "Supported the training of junior engineers on technical and safety standards.",
+              "Maintained meticulous records of process data and material quality for audits.",
+              "Resolved process bottlenecks, improving chemical production yield by {{metric}}%."
+            ],
+            "senior": [
+              "Directed chemical process strategy for global pharmaceutical and chemical plants.",
+              "Implemented sustainable chemical practices that reduced waste by {{metric}}% annually.",
+              "Led high-impact process engineering teams and managed multi-million dollar budgets.",
+              "Mentored senior engineers on advanced thermodynamics, reactor design, and leadership.",
+              "Spearheaded the integration of Green Chemistry and AI-driven process optimization.",
+              "Negotiated strategic material and equipment contracts with global chemical providers.",
+              "Architected robust chemical safety and disaster response plans for global facilities.",
+              "Reduced chemical-related incidents by {{metric}}% through proactive risk mitigation strategy.",
+              "Achieved AIChE/PE status and influenced regional chemical engineering standards.",
+              "Directed high-stakes forensic investigations into major chemical process failures.",
+              "Influenced environmental policy through leadership in national chemical associations."
+            ]
+          }
+        }
+      }
+    }
+  }
+}

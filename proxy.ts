@@ -5,6 +5,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'https://airesumebuilder-delta.vercel.app',
   'https://airesumebuilder.vercel.app',
   'https://airesumecraft.xyz',
+  'http://localhost:5174',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
