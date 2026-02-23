@@ -10,6 +10,7 @@ import 'react-datepicker/dist/react-datepicker.css'; // Import the necessary CSS
 import Datepicker from './Datepicker';
 import { useToast } from '@/context/PopupContext';
 import { FaCircle } from 'react-icons/fa6';
+import RecommendationUI from '../BuilderComponents/RecommendationUI';
 
 interface ExperienceStepProps {
   data: Experience[];
@@ -17,16 +18,22 @@ interface ExperienceStepProps {
 }
 
 const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
-  const [responsibility, setResponsibility] = useState<string>('');
+  const [draftResponsibilities, setDraftResponsibilities] = useState<Record<number, string>>({});
+  const [activeRecommendationIndex, setActiveRecommendationIndex] = useState<number | null>(null);
   const toast = useToast();
+
+  const setRecommendationFocus = (index: number, focused: boolean) => {
+    setActiveRecommendationIndex(focused ? index : null);
+  };
   const addResponsibility = (index: number) => {
-    if (!responsibility) {
+    const currentDraft = draftResponsibilities[index] || '';
+    if (!currentDraft) {
       return toast.showToast('Make sure to add the responsibility', 'warning', 3000);
     }
     const newData = [...data];
-    newData[index].responsibilities = [...(newData[index].responsibilities || []), responsibility];
+    newData[index].responsibilities = [...(newData[index].responsibilities || []), currentDraft];
     onChange(newData);
-    setResponsibility('');
+    setDraftResponsibilities(prev => ({ ...prev, [index]: '' }));
   };
 
   const removeResponsibility = (index: number, responsibilityIndex: number) => {
@@ -87,7 +94,6 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
                   onChange={e => updateExperience(index, 'title', e.target.value)}
                   placeholder="Title"
                 />
-
               </div>
 
               <Input
@@ -154,13 +160,16 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
                     ))}
                 </div>
                 <div className="flex gap-2 items-center">
+                  {experience.responsibilities && experience.responsibilities.length + 1 + '.'}
                   <input
                     type="text"
                     name="responsibility"
-                    value={responsibility}
+                    value={draftResponsibilities[index] || ''}
                     placeholder="Add responsibility"
-                    onChange={e => setResponsibility(e.target.value)}
-                    className="w-full outline-none focus:ring-1 focus:ring-green-600 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative z-10"
+                    onFocus={() => { setRecommendationFocus(index, true) }}
+                    onBlur={() => setTimeout(() => setRecommendationFocus(index, false), 200)}
+                    onChange={e => setDraftResponsibilities(prev => ({ ...prev, [index]: e.target.value }))}
+                    className="w-full ring outline-none focus:ring-1 focus:ring-green-600 transition-all ease-in-out duration-300 px-[8px] py-[4px] text-[14px] rounded-md relative z-10"
                   />
                   <button
                     type="button"
@@ -170,6 +179,20 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onChange }) => {
                     Add
                   </button>
                 </div>
+
+                <RecommendationUI
+                  title={experience.title}
+                  isInputActive={activeRecommendationIndex === index}
+                  responsibilitiesCount={experience.responsibilities?.length || 0}
+                  inputValue={draftResponsibilities[index] || ''}
+                  existingResponsibilities={experience.responsibilities || []}
+                  onAddBullet={(bullet) => {
+                    const newData = [...data];
+                    newData[index].responsibilities = [...(newData[index].responsibilities || []), bullet];
+                    onChange(newData);
+                    toast.showToast('Recommendation added!', 'success', 2000);
+                  }}
+                />
               </form>
               <div className="w-full flex items-center justify-between pt-2">
                 {index === data.length - 1 && (
