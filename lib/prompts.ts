@@ -146,5 +146,54 @@ ${rawText}
 OUTPUT:`;
 }
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt };
+const smartRecommendationPrompt = (title: string, seniority: string, specialization: string, existingBullets: string[]) => {
+  return `Act as a professional resume consultant. Generate 10 unique, high-impact resume bullet points for:
+Title: ${title}
+Seniority: ${seniority}
+Context/Specialization: ${specialization}
+
+Exclude these existing points: ${JSON.stringify(existingBullets)}
+
+STRICT RULES:
+1. DO NOT include placeholders like {{metric}}. Integrate realistic, varied metrics (percentages, dollar amounts, time savings) directly into the text.
+2. Each bullet should follow the Action Verb + Task + Result format.
+3. Bullets must be unique from the excluded list.
+4. RETURN ONLY VALID JSON. NO MARKDOWN.
+
+SCHEMA:
+{
+  "recommendations": ["string", ...]
+}
+
+OUTPUT:`;
+}
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt };
+
+const inspectIntentPrompt = (title: string, seniority: string, specialization: string, intent: string, existingBullets: string[]) => {
+  return `SYSTEM: You are an expert engineering reviewer and resume consultant.
+TASK: Inspect the user's intent (a proposed resume bullet or responsibility) in the context of the ROLE, existing bullets, and likely implementation work required to achieve that responsibility. Provide:
+- A short list of actionable tasks required to implement or validate the intent (e.g., "Add unit tests for X", "Integrate service Y using Z API", "Confirm ownership of feature A with stakeholder").
+- A brief note assessing whether this responsibility is already covered by the existing bullets or is new work.
+
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+
+SCHEMA:
+{
+  "tasks": ["string"],
+  "notes": "string",
+  "recommendations": ["string"]
+}
+
+CONTEXT:
+Title: ${title}
+Seniority: ${seniority}
+Specialization: ${specialization}
+Intent (user proposed responsibility): ${intent}
+Existing bullets: ${JSON.stringify(existingBullets)}
+
+OUTPUT:`;
+}
+
+export { inspectIntentPrompt };
 

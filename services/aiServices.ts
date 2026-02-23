@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Content, GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
-import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt } from "@/lib/prompts";
+import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, smartRecommendationPrompt } from "@/lib/prompts";
+import { inspectIntentPrompt } from "@/lib/prompts";
 import { parseResponse } from "@/lib/jsonParse";
 import { OpenRouter } from '@openrouter/sdk';
 
@@ -202,6 +203,35 @@ export class AIService {
         } catch (error) {
             console.error("Error generating cover letter:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
             throw new Error("Failed to generate cover letter");
+        }
+    }
+
+    static async getSmartRecommendations(title: string, seniority: string, specialization: string, existingBullets: string[]) {
+        const prompt = smartRecommendationPrompt(title, seniority, specialization, existingBullets);
+        try {
+            const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
+            const raw = response;
+            const parsed = parseResponse(raw as string) as any;
+            return (parsed?.recommendations || []) as string[];
+        } catch (error) {
+            console.error("Error getting smart recommendations:", error);
+            return [];
+        }
+    }
+
+    static async inspectIntent(title: string, seniority: string, specialization: string, intent: string, existingBullets: string[]) {
+        const prompt = inspectIntentPrompt(title, seniority, specialization, intent, existingBullets);
+        try {
+            const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
+            const raw = response as string;
+            const parsed = parseResponse(raw) as any;
+            const tasks = Array.isArray(parsed?.tasks) ? parsed.tasks.filter((t: any) => typeof t === 'string') : [];
+            const notes = typeof parsed?.notes === 'string' ? parsed.notes : null;
+            const recommendations = Array.isArray(parsed?.recommendations) ? parsed.recommendations.filter((r: any) => typeof r === 'string') : [];
+            return { tasks, notes, recommendations };
+        } catch (error) {
+            console.error('Error inspecting intent in AIService:', error);
+            return { tasks: [], notes: null, recommendations: [] };
         }
     }
 }
