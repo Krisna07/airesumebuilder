@@ -17,6 +17,10 @@ const Navbar = () => {
   const [activeTab, setActivetab] = useState<string>("")
   // avoid reading `window` during SSR — sync theme on mount
   const [isDark, setIsDark] = useState(false)
+  // const [tabIndex, setTabIndex] = useState<number>(0)
+  // const containerRef = useRef<HTMLDivElement | null>(null)
+  // const buttonsRef = useRef<Array<HTMLButtonElement | null>>([])
+  // const sliderRef = useRef<HTMLDivElement | null>(null)
   // const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -76,6 +80,29 @@ const Navbar = () => {
       document.removeEventListener("scroll", handleScroll)
     }
   }, [menu])
+
+  // // position the sliding glass under the active tab
+  // useEffect(() => {
+  //   if (typeof window === 'undefined') return
+  //   const setPos = () => {
+  //     const container = containerRef.current
+  //     const slider = sliderRef.current
+  //     // const btn = buttonsRef.current[tabIndex]
+  //     // if (!container || !slider || !btn) return
+  //     // const contRect = container.getBoundingClientRect()
+  //     // const btnRect = btn.getBoundingClientRect()
+  //     // const moveX = btnRect.left - contRect.left
+  //     // apply transform and width
+  //     // slider.style.transform = `translateX(${moveX}px)`
+  //     // slider.style.width = `${btnRect.width}px`
+  //   }
+
+  //   // initial set and on resize
+  //   setPos()
+  //   const onResize = () => setPos()
+  //   window.addEventListener('resize', onResize)
+  //   return () => window.removeEventListener('resize', onResize)
+  // }, [tabIndex])
 
   const userImage = user?.image
   const [showVerify, setShowVerify] = useState(false)
@@ -141,6 +168,37 @@ const Navbar = () => {
               className={`w-5 h-5 rounded-full z-10 bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-7" : "translate-x-0"}`}
             />
           </button>
+
+          {/* Mobile compact tab bar with sliding glass
+          <div className="sm:hidden flex items-center ml-2">
+            <div ref={containerRef} className="menu-container">
+              <div
+                id="liquid-glass"
+                ref={sliderRef}
+                className="liquidGlass-wrapper slider"
+                aria-hidden="true"
+              >
+                <div className="liquidGlass-effect slider" />
+                <div className="liquidGlass-tint slider" />
+                <div className="liquidGlass-shine slider" />
+              </div>
+
+              <nav className="menu-items" role="tablist" aria-label="Experience level">
+                {['Junior', 'Senior', 'Expert'].map((label, i) => (
+                  <button
+                    key={label}
+                    ref={(el) => { buttonsRef.current[i] = el }}
+                    className={`menu-btn ${tabIndex === i ? 'active' : ''}`}
+                    role="tab"
+                    aria-selected={tabIndex === i}
+                    onClick={() => setTabIndex(i)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div> */}
 
           {/* User Menu */}
           <div ref={menuRef} className="relative">
