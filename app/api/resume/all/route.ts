@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/prisma'
 
+function safeParseJson<T>(value: unknown, fallback: T): T {
+    if (value == null) return fallback;
+    if (typeof value === 'string') {
+        try {
+            return JSON.parse(value) as T;
+        } catch {
+            return fallback;
+        }
+    }
+    return value as T;
+}
+
 export async function GET(req: NextRequest) {
 
     try {
@@ -23,20 +35,12 @@ export async function GET(req: NextRequest) {
                 id: resume.id,
                 title: resume.title,
                 template: resume.template,
-                profile: resume.profile ? JSON.parse(resume.profile as string) : {},
-                skills: resume.skills ? JSON.parse(resume.skills as string) : [],
-                experiences: resume.experiences ? JSON.parse(resume.experiences as string) : [],
-                educations: resume.educations ? JSON.parse(resume.educations as string) : [],
-                customSections: resume.customSections ?
-                    (() => {
-                        try {
-                            const parsed = JSON.parse(resume.customSections as string);
-                            return Array.isArray(parsed) ? parsed : [];
-                        } catch (e) {
-                            console.warn('Failed to parse customSections:', e);
-                            return [];
-                        }
-                    })() : [],
+                profile: safeParseJson(resume.profile, {}),
+                skills: safeParseJson(resume.skills, []),
+                experiences: safeParseJson(resume.experiences, []),
+                educations: safeParseJson(resume.educations, []),
+                customSections: safeParseJson(resume.customSections, []),
+                styleConfig: safeParseJson((resume as Record<string, unknown>).styleConfig, null),
                 updated: resume.updatedAt,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
                 matchingScore: (resume as any).matchingScore ?? null,

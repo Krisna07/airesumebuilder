@@ -5,13 +5,15 @@ interface FormLayoutProps {
   heading: string;
   subheading?: string;
   id?: string;
+  action?: ReactNode;
 }
 
 const FormLayout: React.FC<FormLayoutProps> = ({
   children,
   heading,
   subheading,
-  id
+  id,
+  action,
 }) => {
   return (
     <section
@@ -20,11 +22,16 @@ const FormLayout: React.FC<FormLayoutProps> = ({
       role="group"
       aria-label={heading}
     >
-      <div className="px-4 sm:px-6 pt-4 pb-3 border-b  sticky top-0 z-20 mx-2">
-        <h2 className="text-lg sm:text-xl font-semibold tracking-tight">{heading}</h2>
-        {subheading && (
-          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{subheading}</p>
-        )}
+      <div className="px-4 sm:px-6 pt-4 pb-3 border-b sticky top-0 z-20 mx-2">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight">{heading}</h2>
+            {subheading && (
+              <p className="text-sm text-gray-600 mt-1 leading-relaxed">{subheading}</p>
+            )}
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
+        </div>
       </div>
       <div className="px-4 sm:px-6 py-4 space-y-4 relative z-10 ">
         {children}

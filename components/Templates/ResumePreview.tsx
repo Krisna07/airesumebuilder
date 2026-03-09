@@ -10,6 +10,8 @@ type ResumePreviewProps = {
   template: string;
   /** Optional: target height for the preview container (default: 80vh) */
   height?: string | number;
+  /** Optional: max visual scale cap to keep preview smaller even with wide space */
+  maxScale?: number;
   regenerating?:boolean;
   className?: string; // Add className prop
 };
@@ -21,6 +23,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   resumeData,
   template,
   height = '60vh',
+  maxScale = 1,
   regenerating,
   className,
 }) => {
@@ -47,7 +50,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         parseFloat(getComputedStyle(el).paddingLeft || '0') +
         parseFloat(getComputedStyle(el).paddingRight || '0');
       const available = el.clientWidth - paddingX;
-      const next = Math.min(1, Math.max(0.2, available / PAGE_WIDTH_PX));
+      const next = Math.min(maxScale, Math.max(0.2, available / PAGE_WIDTH_PX));
       setScale(next);
     };
 
@@ -62,7 +65,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
       ro.disconnect();
       window.removeEventListener('resize', updateScale);
     };
-  }, []);
+  }, [maxScale]);
 
   const srcDoc = useMemo(() => {
     if (!data) return '';

@@ -18,6 +18,8 @@ import JobDescription from "./JobDescription"
 import { useResumeSync } from "@/hooks/useResumeSync"
 import { ResumeCache } from "@/lib/resumeCache"
 import { SyncIndicator } from "../Ui/SyncIndicator"
+import { useGenerateSection, RegenerateSectionKey } from "@/hooks/useAI"
+import SectionRegenerateButton from "../BuilderComponents/SectionRegenerateButton"
 
 interface MultiStepFormProps {
   resumeContent: ResumeData
@@ -50,6 +52,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   })
   const [currentStep, setCurrentStep] = useState(1)
   const { showToast } = useToast()
+  const generateSectionMutation = useGenerateSection()
 
   const displayTemplates = useMemo(() => (userId ? Templates : Templates.slice(0, 3)), [userId])
 
@@ -132,35 +135,74 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     setCurrentStep(step)
   }, [])
 
+  const handleRegenerateSection = useCallback(async (sectionKey: RegenerateSectionKey) => {
+    if (!userId) {
+      showToast('Please sign in to use AI regeneration', 'warning', 2500);
+      return;
+    }
+
+    try {
+      const result = await generateSectionMutation.mutateAsync({
+        sectionKey,
+        resumeData: formData,
+      });
+
+      const patch = result.data || {};
+      if (!Object.keys(patch).length) {
+        showToast('No update generated for this section', 'warning', 2500);
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        ...patch,
+        profile: patch.profile ? { ...prev.profile, ...patch.profile } : prev.profile,
+      }));
+
+      showToast('Section regenerated', 'success', 2000);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to regenerate section', 'error', 3000);
+    }
+  }, [formData, generateSectionMutation, showToast, userId])
+
+  const getSectionAction = useCallback((sectionKey: RegenerateSectionKey) => (
+    <SectionRegenerateButton
+      onClick={() => handleRegenerateSection(sectionKey)}
+      loading={generateSectionMutation.isPending}
+      disabled={!userId}
+      label="Regenerate"
+    />
+  ), [generateSectionMutation.isPending, handleRegenerateSection, userId])
+
   const renderStep = useMemo(() => {
     switch (currentStep) {
       case 1:
         return (
-          <FormLayout heading="Let's start with your details" subheading="Provide essential information to proceed.">
+          <FormLayout heading="Let's start with your details" subheading="Provide essential information to proceed." action={getSectionAction('summary')}>
             <UserInfoStep data={formData?.profile} onChange={updateProfile} />
           </FormLayout>
         )
       case 2:
         return (
-          <FormLayout heading="Let's add your skills" subheading="List and group your core skills.">
+          <FormLayout heading="Let's add your skills" subheading="List and group your core skills." action={getSectionAction('skills')}>
             <SkillsStep data={formData.skills} updateSkills={updateSkills} />
           </FormLayout>
         )
       case 3:
         return (
-          <FormLayout heading="Add your experience" subheading="Detail your professional work history.">
+          <FormLayout heading="Add your experience" subheading="Detail your professional work history." action={getSectionAction('experience')}>
             <ExperienceStep data={formData.experiences} onChange={updateExperiences} />
           </FormLayout>
         )
       case 4:
         return (
-          <FormLayout heading="Add your education" subheading="Provide your academic qualifications.">
+          <FormLayout heading="Add your education" subheading="Provide your academic qualifications." action={getSectionAction('education')}>
             <EducationStep data={formData.educations} onChange={updateEducations} />
           </FormLayout>
         )
       case 5:
         return (
-          <FormLayout heading="Add custom sections" subheading="Add projects, awards, publications, or certifications.">
+          <FormLayout heading="Add custom sections" subheading="Add projects, awards, publications, or certifications." action={getSectionAction('customSections')}>
             <CustomSectionBuilder data={formData.customSections} onChange={updateCustomSections} />
           </FormLayout>
         )
@@ -235,6 +277,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     displayTemplates,
     selectedTemplate,
     handleTemplateSelect,
+    getSectionAction,
     resumeId,
     userId,
     resumeContent,
