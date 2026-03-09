@@ -6,15 +6,12 @@ import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/type
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
-import { Bot, Download, Edit, Plus, Trash, Loader2, BotIcon, X, FileUser, FileSliders, Copy } from 'lucide-react';
+import { Bot, Download, Edit, Plus, Trash, Loader2, BotIcon, X, FileUser, FileSliders, Copy, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/Ui/Button';
 import ConfirmDialog from '@/components/Ui/ConfirmDialog';
 import Templates from '@/components/Templates/templates';
-import JobAnalysisReport from '@/components/Ui/JobAnalysisReport';
-import { FaMagnifyingGlass } from 'react-icons/fa6';
 import ReportsPanel from './ReportsPanel';
-import TemplatesPanel from './TemplatesPanel';
 import MenuPanel from './MenuPanel';
 import JobDescription from '@/components/Forms/JobDescription';
 import { useJobDescriptions } from '@/hooks/useJobDescriptions';
@@ -22,6 +19,9 @@ import { useGetResume } from '@/hooks/useResume';
 import { JobDescriptionService } from '@/services/jdServices';
 import { ResumeCache } from '@/lib/resumeCache';
 import LiquidNav from './LiqidNav';
+import StylePanel from './StylePanel';
+import { ResumeStyle } from '@/types/types';
+import { DEFAULT_RESUME_STYLE } from '@/lib/defaultStyle';
 
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
@@ -56,14 +56,17 @@ const PreviewPage = () => {
   const [reports, showReports] = useState<boolean>(false)
   const [analyzing, setAnalyzing] = useState<boolean>(false)
   const [showTemplates, setShowTemplates] = useState<boolean>(false)
+  const [showStyles, setShowStyles] = useState<boolean>(false)
+  const [showDesktopAnalysis, setShowDesktopAnalysis] = useState<boolean>(false)
   const [generatingCoverLetter, setRegeneratingCoverLetter] = useState(false)
   const [coverLetter, setCoverLetter] = useState<any>()
   const [showCoverLetter, setShowCoverLetter] = useState(false)
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const menuRef = useRef<HTMLDivElement | null>(null);
   const reportsRef = useRef<HTMLDivElement | null>(null);
-  const templatesRef = useRef<HTMLDivElement | null>(null);
+  const stylesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
+  const styleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isGuestResume = slug === 'guest-resume';
   const response = useJobDescriptions(user ? user.id : '', slug)
@@ -112,6 +115,14 @@ const PreviewPage = () => {
     // watch only primitive flags and stable callbacks to avoid effect instability
   }, [resumeResponse.isFetched, resumeResponse.isError, resumeResponse.isSuccess, user, loadLocalResume, showToast, resumeResponse.data, resumeResponse.error?.message])
 
+  useEffect(() => {
+    return () => {
+      if (styleSaveTimerRef.current) {
+        clearTimeout(styleSaveTimerRef.current);
+      }
+    };
+  }, []);
+
   // Load local coverletter once on mount
   useEffect(() => {
     const localCoverletter = typeof window !== 'undefined' ? localStorage.getItem('coverLetter') : null;
@@ -137,7 +148,8 @@ const PreviewPage = () => {
       if (reports && reportsRef.current && target && !reportsRef.current.contains(target)) {
         showReports(false);
       }
-      if (showTemplates && templatesRef.current && target && !templatesRef.current.contains(target)) {
+      if ((showStyles || showTemplates) && stylesRef.current && target && !stylesRef.current.contains(target)) {
+        setShowStyles(false);
         setShowTemplates(false);
       }
     };
@@ -145,7 +157,7 @@ const PreviewPage = () => {
     const handleScroll = () => {
       showMenu(false);
       setShowTemplates(false);
-
+      setShowStyles(false);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -154,7 +166,7 @@ const PreviewPage = () => {
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('scroll', handleScroll);
     };
-  }, [menu, reports, showTemplates, showToast]);
+  }, [menu, reports, showTemplates, showStyles, showToast]);
 
 
   // Process job descriptions when the query completes successfully
@@ -212,6 +224,52 @@ const PreviewPage = () => {
     } else {
       setPendingUpdate(false);
     }
+  };
+
+  const scheduleStyleSave = (updatedData: ResumeData) => {
+    if (!user || typeof window === 'undefined') return;
+    if (styleSaveTimerRef.current) {
+      clearTimeout(styleSaveTimerRef.current);
+    }
+
+    styleSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await ResumeService.save(user.id, slug, updatedData.template, updatedData);
+        ResumeCache.markSynced(slug);
+      } catch (e) {
+        console.error('Failed to save style to backend:', e);
+      }
+    }, 350);
+  };
+
+  const handleStyleChange = (newStyleParams: Partial<ResumeStyle>) => {
+    setResumeData((prev) => {
+      if (!prev) return prev;
+      const currentStyle = {
+        ...DEFAULT_RESUME_STYLE,
+        ...(prev.styleConfig || {}),
+        sectionTitleStyle: {
+          ...DEFAULT_RESUME_STYLE.sectionTitleStyle,
+          ...(prev.styleConfig?.sectionTitleStyle || {}),
+        },
+      };
+
+      const updatedData = {
+        ...prev,
+        styleConfig: {
+          ...currentStyle,
+          ...newStyleParams,
+          sectionTitleStyle: {
+            ...currentStyle.sectionTitleStyle,
+            ...newStyleParams.sectionTitleStyle,
+          }
+        } as ResumeStyle
+      };
+
+      ResumeCache.set(slug, updatedData, true);
+      scheduleStyleSave(updatedData);
+      return updatedData;
+    });
   };
 
   const handleDownloadPDF = async () => {
@@ -509,7 +567,7 @@ const PreviewPage = () => {
       <div
         className={`relative  transition-all duration-300 ${fadeOut ? 'opacity-0 scale-[0.985]' : ''}`}
       >
-        <div ref={topBarRef} className=' min-[500px]:hidden w-full fixed z-100 bottom-0  flex items-center  justify-between'>
+        <div ref={topBarRef} className='min-[500px]:hidden fixed inset-x-0 bottom-0 z-100 flex items-center justify-between'>
           {/* <div className='w-full flex items-start justify-between relative shadow dark:bg-gray-800 bg-gray-200  p-4'>
             <BarChart2Icon onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
               e.stopPropagation();
@@ -538,11 +596,10 @@ const PreviewPage = () => {
           <LiquidNav
             reports={reports}
             showReports={showReports}
-            showTemplates={showTemplates}
-            setShowTemplates={setShowTemplates}
+            showStyles={showStyles}
+            setShowStyles={setShowStyles}
             menu={menu}
             showMenu={showMenu}
-
           />
 
           {reports && (
@@ -566,15 +623,30 @@ const PreviewPage = () => {
             // </div>
           )}
 
-          {showTemplates && <div className='w-full absolute bottom-12 p-4 panel-from-center'>
-            <TemplatesPanel
-              displayTemplate={displayTemplate}
-              selectedTemplate={selectedTemplate}
-              handleTemplateChange={handleTemplateChange}
-              user={user}
-              templatesRef={templatesRef}
+          {showTemplates && resumeData && <div className='w-full absolute bottom-12 p-4 panel-from-center'>
+            <StylePanel
+              resumeData={resumeData}
+              templateId={selectedTemplate}
+              handleStyleChange={handleStyleChange}
+              stylesRef={stylesRef}
+              templateOptions={displayTemplate}
+              onTemplateChange={handleTemplateChange}
+              userSignedIn={Boolean(user)}
             />
           </div>}
+
+          {showStyles && resumeData && <div className='w-full absolute bottom-12 p-4 panel-from-center'>
+            <StylePanel
+              resumeData={resumeData}
+              templateId={selectedTemplate}
+              handleStyleChange={handleStyleChange}
+              stylesRef={stylesRef}
+              templateOptions={displayTemplate}
+              onTemplateChange={handleTemplateChange}
+              userSignedIn={Boolean(user)}
+            />
+          </div>}
+
           {menu && <div className='w-full absolute bottom-12 p-4 panel-from-right'>
             <MenuPanel
               menu={menu}
@@ -584,7 +656,7 @@ const PreviewPage = () => {
             />
           </div>}
         </div>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-6 mt-2">
+        <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 grid gap-4 mt-2">
           {/* Actions */}
           <div className="w-full flex max-sm:justify-between justify-center  gap-1 gap-y-2 md:gap-3 min-[500px]:flex-wrap text-[14px]">
             <button
@@ -626,121 +698,154 @@ const PreviewPage = () => {
             >
               <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
             </button>
+
+            <button
+              onClick={() => {
+                showReports(false);
+                setShowTemplates(false);
+                showMenu(false);
+                setShowStyles((prev) => !prev);
+              }}
+              className="hidden min-[500px]:max-[800px]:flex px-4 py-1 bg-teal-100 text-teal-800 rounded-lg transition-colors font-medium shadow-md items-center gap-2 hover:bg-teal-200"
+            >
+              <Edit size={16} /> {showStyles ? 'Hide Style Editor' : 'Edit Style & Order'}
+            </button>
           </div>
+
+          {showStyles && resumeData && (
+            <div className="hidden min-[500px]:max-[800px]:block w-full">
+              <StylePanel
+                resumeData={resumeData}
+                templateId={selectedTemplate}
+                handleStyleChange={handleStyleChange}
+                stylesRef={stylesRef}
+                templateOptions={displayTemplate}
+                onTemplateChange={handleTemplateChange}
+                userSignedIn={Boolean(user)}
+              />
+            </div>
+          )}
+
           {coverLetter &&
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
           {jobDetails && jobDetails?.length > 0 &&
-            <div className='max-[500px]:hidden max-h-[450px] box-border hide-scrollbar flex gap-4 w-full overflow-auto scroll-smooth scroll-m-3 rounded shadow-[0_0_2px_0_gray]  py-4 px-4'>
-              <div className='w-full h-full'>
-                <h3 className='font-semibold px-2'>Analysis</h3>
-                <div className='w-full h-full flex flex-wrap items-start justify-between '>
-                  {analysisData && analysisData.length > 0 && analysisData.map((analysis: any, count: number) => {
-                    const isSelected = selectedAnalysis?._analysisId === (analysis as any)._analysisId;
-                    return <div
-                      onClick={() => setSelectedAnalysis(analysis)} key={count}
-                      className={`w-[48%] h-fit p-2 grid gap-2 items-center  m-1  relative ${isSelected ? 'ring-2 ring-blue-300/50 rounded-2xl' : ''}
-                    ${isSelected && (generatingCoverLetter || generating || analyzing) ? 'animate-pulse' : ''}`}>
-                      <Trash className='absolute top-4 right-4 backdrop-blur-xs hover:scale-110' color={'orange'} size={16} onClick={() => deletAnalysisReport(analysis._analysisId)} />
-                      <JobAnalysisReport analysis={{ ...analysis, company: analysis._company }} />
+            <div className='max-[500px]:hidden w-full rounded-xl border border-slate-700/60 bg-slate-900/60'>
+              <div className='flex items-center justify-between px-4 py-3 border-b border-slate-700'>
+                <div>
+                  <h3 className='font-semibold text-slate-100'>Analysis</h3>
+                  <p className='text-xs text-slate-400'>{analysisData?.length ?? 0} report(s)</p>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setShowDesktopAnalysis((prev) => !prev)}
+                  className='inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-200 hover:bg-slate-800'
+                >
+                  {showDesktopAnalysis ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showDesktopAnalysis ? 'Hide' : 'Show'}
+                </button>
+              </div>
 
-                      <div className='flex flex-wrap items-center gap-2'>
-                        <Button variant='secondary' size='small' className='md:w-fit w-full whitespace-nowrap' onClick={() => handleReAnalysis(analysis)}><FaMagnifyingGlass /> {isSelected && analyzing ? 'Analysing' : 'Re-Analyse'}</Button>
-                        <Button disabled={generating || generatingCoverLetter} variant='primary' className={`md:w-fit w-full whitespace-nowrap ${isSelected && (generatingCoverLetter || generating) ? 'animate-pulse' : ''}`} size='small' onClick={() => handleRegerate(resumeData, analysis)} ><BotIcon size={14} />{isSelected && generating ? 'Optimising Resume' : 'Optimise Resume'}</Button>
-                        <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit w-full whitespace-nowrap ${isSelected && generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => generateCoverLetter(analysis)} ><FileUser size={14} />{isSelected && generatingCoverLetter ? 'Generating Cover Letter' : 'Generate Cover Letter'}</Button>
-                      </div>
-                    </div>
-                  })
-                  }
-                  <div className={`h-full ${analysisData ? analysisData.length % 2 == 0 ? 'w-full' : 'w-[48%]' : 'w-full'} overflow-y-scroll hide-scrollbar pb-4`}>
-                    <div className='h-fit'>
+              {showDesktopAnalysis && (
+                <div className='p-3 space-y-3'>
+                  <div className='max-h-[260px] overflow-auto space-y-2 pr-1'>
+                    {analysisData && analysisData.length > 0 && analysisData.map((analysis: any) => {
+                      const isSelected = selectedAnalysis?._analysisId === analysis._analysisId;
+                      const score = Math.max(0, Math.min(100, Math.round(Number(analysis.matchingPercentage ?? 0))));
+                      return (
+                        <div
+                          key={analysis._analysisId}
+                          onClick={() => setSelectedAnalysis(analysis)}
+                          className={`rounded-lg border p-2 cursor-pointer ${isSelected ? 'border-teal-500 bg-slate-800' : 'border-slate-700 bg-slate-800/40 hover:border-slate-500'}`}
+                        >
+                          <div className='flex items-start justify-between gap-2'>
+                            <div className='min-w-0'>
+                              <div className='text-sm font-semibold text-slate-100 truncate'>{analysis._title || analysis.role || 'Analysis report'}</div>
+                              <div className='text-xs text-slate-400 truncate'>{analysis._company || analysis.company || 'Unknown company'}</div>
+                            </div>
+                            <span className='text-xs font-semibold text-teal-300 bg-teal-900/40 px-2 py-0.5 rounded'>{score}%</span>
+                          </div>
+
+                          <div className='mt-2 flex flex-wrap items-center gap-2'>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReAnalysis(analysis);
+                              }}
+                              className='inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 hover:bg-slate-700'
+                            >
+                              <Search size={12} /> {isSelected && analyzing ? 'Analysing' : 'Analyse'}
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRegerate(resumeData, analysis);
+                              }}
+                              disabled={generating || generatingCoverLetter}
+                              className='inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-teal-600 text-white hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                            >
+                              <BotIcon size={12} /> {isSelected && generating ? 'Optimising' : 'Optimise'}
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                generateCoverLetter(analysis);
+                              }}
+                              disabled={generating || generatingCoverLetter}
+                              className='inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                            >
+                              <FileUser size={12} /> Cover Letter
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deletAnalysisReport(analysis._analysisId);
+                              }}
+                              className='inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-red-500/40 text-red-300 hover:bg-red-900/30'
+                            >
+                              <Trash size={12} /> Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className='pt-2 border-t border-slate-700'>
                     <JobDescription resumeId={resumeData.id} hideAnalysis={true} hideInput={true} hideTitle={true} handleRegenerate={handleRegerate} resumeData={resumeData} />
-                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           }
           <div
-            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200  shadow-sm"
+            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 shadow-sm"
             id="resumeViewport"
           >
             {/* Optional inner wrapper to constrain width / center */}
-            <div className="w-full min-[800px]:grid-cols-[80%_20%] grid items-start gap-2 ">
-              <div className="max-[800px]:flex max-[500px]:hidden hidden w-fit space-y-2 ">
-                <div className="w-full px-4  gap-4 ">
-                  <div className='font-bold py-2'>Preview Template</div>
-                  <div className='flex gap-2'>
-                    {displayTemplate.map(template => (
-                      <button
-                        key={template.id}
-                        onClick={() => handleTemplateChange(template.id)}
-                        className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id
-                          ? 'border-blue-500 bg-blue-50 shadow-lg'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3 justify-left">
-                          <h3
-                            className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
-                          >
-                            {template.name}
-                          </h3>
-                        </div>
-                      </button>
-                    ))}</div>
-                </div>
-                {!user && (
-                  <div className="w-full flex flex-col gap-2 items-center justify-center">
-                    <p>
-                      Please{' '}
-                      <a href="/auth/signin" className="text-blue-600 underline">
-                        sign in
-                      </a>{' '}
-                      to access more templates
-                    </p>
-                  </div>
-                )}
-              </div>
+            <div className="w-full min-[800px]:grid-cols-[minmax(0,68%)_minmax(320px,32%)] grid items-start gap-3 p-2">
               <ResumePreview
                 resumeData={resumeData}
                 template={selectedTemplate}
                 regenerating={generating}
+                maxScale={0.88}
+                className="w-full"
               />
-              <div className="max-[800px]:hidden max-[500px]:hidden max-w-fit space-y-2 ">
-                <div className="w-full grid  gap-4 ">
-                  <div className='font-bold py-2'>Preview Template</div>
-                  <div className='grid min-[1000px]:grid-cols-2 gap-2'>
-                    {displayTemplate.map(template => (
-                      <button
-                        key={template.id}
-                        onClick={() => handleTemplateChange(template.id)}
-                        className={`md:p-3 px-1 rounded-lg border-2 transition-all duration-200 text-left ${selectedTemplate === template.id
-                          ? 'border-blue-500 bg-blue-50 shadow-lg'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3 justify-left">
-                          <h3
-                            className={`text-[14px]  ${selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-800'}`}
-                          >
-                            {template.name}
-                          </h3>
-                        </div>
-                      </button>
-                    ))}</div>
+              <div className="max-[500px]:hidden min-[800px]:block hidden w-full max-w-md space-y-3 sticky top-3 self-start max-h-[calc(100vh-4.5rem)] overflow-y-auto pr-1">
+                <div className="w-full pt-2">
+                  <StylePanel
+                    resumeData={resumeData}
+                    templateId={selectedTemplate}
+                    handleStyleChange={handleStyleChange}
+                    templateOptions={displayTemplate}
+                    onTemplateChange={handleTemplateChange}
+                    userSignedIn={Boolean(user)}
+                  />
                 </div>
-                {!user && (
-                  <div className="w-full flex flex-col gap-2 items-center justify-center">
-                    <p>
-                      Please{' '}
-                      <a href="/auth/signin" className="text-blue-600 underline">
-                        sign in
-                      </a>{' '}
-                      to access more templates
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
             {pendingUpdate && (

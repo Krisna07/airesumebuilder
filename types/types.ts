@@ -15,11 +15,55 @@ export interface ResumeData {
   experiences: Experience[];
   educations: Education[];
   customSections: CustomSectionData[];
+  styleConfig?: ResumeStyle;
   matchingScore?: number;
   analyzedAt?: string | Date;
   description?: string;
   createdAt?: string | Date;
 }
+
+// ─── Style Editor Types ────────────────────────────────────────────────────
+
+export type SectionTitleType = 'plain' | 'underline' | 'overline' | 'ribbon' | 'left-bar';
+export type FontWeight = 400 | 500 | 600 | 700 | 800 | 900;
+export type TextTransform = 'none' | 'uppercase' | 'capitalize';
+export type TextAlign = 'left' | 'center' | 'right';
+export type BodyTextAlign = 'left' | 'justify' | 'center';
+export type SectionSide = 'left' | 'right' | 'full';
+
+export interface SectionTitleStyle {
+  type: SectionTitleType;
+  icon: string;           // emoji / unicode char — PDF-safe, no SVG
+  iconEnabled: boolean;
+  fontSize: number;
+  fontWeight: FontWeight;
+  fontStyle: 'normal' | 'italic';
+  textTransform: TextTransform;
+  align: TextAlign;
+}
+
+export interface SectionOrder {
+  key: string;   // 'summary' | 'experience' | 'education' | 'skills' | custom section id
+  side?: SectionSide;
+  label?: string;
+  enabled?: boolean;
+}
+
+export interface ResumeStyle {
+  accentColor: string;       // hex e.g. '#0ea5e9'
+  lineColor: string;         // hex for dividers/borders
+  headingFont: string;       // e.g. 'Inter'
+  bodyFont: string;
+  bodyFontSize: number;      // px, 10–14
+  lineHeight: number;        // 1.2–1.8
+  sectionGap: number;        // px between sections
+  itemGap: number;           // px between items within a section
+  sectionTitleStyle: SectionTitleStyle;
+  sectionOrder: SectionOrder[];
+  bodyTextAlign: BodyTextAlign;
+  skillsGrouped: boolean;
+}
+
 
 export interface skills {
   type?: string;

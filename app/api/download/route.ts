@@ -31,13 +31,14 @@ export async function POST(req: NextRequest) {
         // 2. Determine Environment
         const isProd = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 
+        // Match the preview component's PAGE_WIDTH_PX (794) and PAGE_HEIGHT_PX (1123)
         const viewport = {
             deviceScaleFactor: 1,
             hasTouch: false,
-            height: 1080,
-            isLandscape: true,
+            height: 1123,
+            isLandscape: false,
             isMobile: false,
-            width: 1920,
+            width: 794,
         };
 
         // 3. Launch Browser (dynamic imports avoid bundling heavy binaries unnecessarily)

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
-import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, smartRecommendationPrompt, extractJobDetailsPrompt } from "@/lib/prompts";
+import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, smartRecommendationPrompt, extractJobDetailsPrompt, generateSectionPrompt } from "@/lib/prompts";
 import { inspectIntentPrompt } from "@/lib/prompts";
 import { parseResponse } from "@/lib/jsonParse";
 import { OpenRouter } from '@openrouter/sdk';
@@ -108,6 +108,17 @@ async function callOpenRouterAI(prompt: string, retries = 3): Promise<string> {
     }
 }
 export class AIService {
+
+    static async generateSection(
+        sectionKey: 'summary' | 'experience' | 'education' | 'skills' | 'customSections' | string,
+        resumeData: ResumeData,
+        jobDescription?: string
+    ): Promise<Partial<ResumeData>> {
+        const prompt = generateSectionPrompt(sectionKey, resumeData, jobDescription);
+        const response = await callAIWithRetry(prompt);
+        const parsed = parseResponse(response) as Partial<ResumeData>;
+        return parsed;
+    }
 
     static async generateResume(
         userdata?: ResumeData,

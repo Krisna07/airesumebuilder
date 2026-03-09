@@ -1,34 +1,48 @@
-import React from 'react';
-import { BarChart2Icon, BookTemplateIcon, SettingsIcon } from 'lucide-react';
+import React, { useRef } from 'react';
+import { BarChart2Icon, SettingsIcon, Palette } from 'lucide-react';
 
 interface LiquidNavProps {
   reports: boolean;
   showReports: (value: boolean) => void;
-  showTemplates: boolean;
-  setShowTemplates: (value: boolean) => void;
+  showStyles: boolean;
+  setShowStyles: (value: boolean) => void;
   menu: boolean;
   showMenu: (value: boolean) => void;
 }
 
-const LiquidNav = ({ reports, showReports, showTemplates, setShowTemplates, menu, showMenu }: LiquidNavProps) => {
-  
-  // Determine position and visibility
+const LiquidNav = ({ reports, showReports, showStyles, setShowStyles, menu, showMenu }: LiquidNavProps) => {
+  // Determine active tab and center the glass indicator over it.
+  const activeIndex = reports ? 0 : showStyles ? 1 : menu ? 2 : -1;
+  const lastActiveIndexRef = useRef(1);
+  if (activeIndex >= 0) {
+    lastActiveIndexRef.current = activeIndex;
+  }
+
+  const navPaddingPx = 12; // Tailwind p-3
+  const tabCount = 3;
+  const contentWidthExpr = `100% - ${navPaddingPx * 2}px`;
+
   const getGlassStyle = () => {
-    if (reports) return { left: '16px', transform: 'translateX(0)' };
-    if (showTemplates) return { left: '50%', transform: 'translateX(-50%)' };
-    if (menu) return { left: 'calc(100% - 16px)', transform: 'translateX(-100%)' };
-    return { opacity: 0, scale: '0.8' }; // Hide if nothing is selected
+    const positionIndex = activeIndex >= 0 ? activeIndex : lastActiveIndexRef.current;
+
+    return {
+      // Keep last X position when closing; only fade/scale for smoother hide.
+      left: `calc(${navPaddingPx}px + ((${contentWidthExpr}) / ${tabCount}) * ${positionIndex + 0.5})`,
+      top: '50%',
+      transform: activeIndex >= 0 ? 'translate(-50%, -50%)' : 'translate(-50%, -50%) scale(0.85)',
+      opacity: activeIndex >= 0 ? 1 : 0,
+    };
   };
 
   return (
-    <div className='liquidGlass-wrapper backdrop-blur-[2px] z-20 w-full flex items-center justify-between relative shadow dark:bg-gray-800 bg-gray-200 p-4 overflow-hidden'>
+    <div className='liquidGlass-wrapper backdrop-blur-[2px] z-20 w-full grid grid-cols-3 place-items-center relative shadow dark:bg-gray-800 bg-gray-200 p-3 overflow-hidden'>
       
       {/* THE LIQUID GLASS INDICATOR */}
       <div 
         className="liquidGlass-wrapper rounded-full  absolute transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"
         style={{
-          width: '80px',
-          height: "80%",
+          width: '56px',
+          height: '72%',
           zIndex: 5,
           ...getGlassStyle()
         }}
@@ -39,46 +53,58 @@ const LiquidNav = ({ reports, showReports, showTemplates, setShowTemplates, menu
       </div>
 
       {/* ICON 1: Reports */}
-      <BarChart2Icon 
-        onMouseDown={(e) => e.stopPropagation()} 
+      <button
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           showMenu(false);
-          setShowTemplates(false);
+          setShowStyles(false);
           showReports(!reports);
-        }} 
-        className={`relative z-10 left-7 cursor-pointer transition-all duration-300 ${
-          reports ? 'text-teal-600 scale-110' : ' hover:text-gray-700 dark:text-gray-400'
-        }`} 
-      />
+        }}
+        className="relative z-10 h-9 w-9 grid place-items-center"
+        aria-label="Toggle reports"
+      >
+        <BarChart2Icon
+          className={`cursor-pointer transition-all duration-300 ${reports ? 'text-teal-600 scale-110' : 'hover:text-gray-700 dark:text-gray-400'
+            }`}
+        />
+      </button>
 
-      {/* ICON 2: Templates */}
-      <BookTemplateIcon
+      {/* ICON Style */}
+      <button
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           showReports(false);
           showMenu(false);
-          setShowTemplates(!showTemplates);
+          setShowStyles(!showStyles);
         }}
-        className={`relative z-10 cursor-pointer transition-all duration-300 ${
-          showTemplates ? 'text-teal-600 scale-110' : ' hover:text-gray-700 dark:text-gray-400'
-        }`}
-      />
+        className="relative z-10 h-9 w-9 grid place-items-center"
+        aria-label="Toggle style editor"
+      >
+        <Palette
+          className={`cursor-pointer transition-all duration-300 ${showStyles ? 'text-teal-600 scale-110' : 'hover:text-gray-700 dark:text-gray-400'
+            }`}
+        />
+      </button>
 
       {/* ICON 3: Settings */}
-      <SettingsIcon 
-        onMouseDown={(e) => e.stopPropagation()} 
+      <button
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           showReports(false);
-          setShowTemplates(false);
+          setShowStyles(false);
           showMenu(!menu);
-        }} 
-        className={`relative z-10 right-7 cursor-pointer transition-all duration-300 ${
-          menu ? 'text-teal-600 scale-110 rotate-90' : ' hover:text-gray-700 dark:text-gray-400'
-        }`} 
-      />
+        }}
+        className="relative z-10 h-9 w-9 grid place-items-center"
+        aria-label="Toggle menu"
+      >
+        <SettingsIcon
+          className={`cursor-pointer transition-all duration-300 ${menu ? 'text-teal-600 scale-110 rotate-90' : 'hover:text-gray-700 dark:text-gray-400'
+            }`}
+        />
+      </button>
 
       {/* SVG FILTER DEFINITION */}
       <svg className="absolute w-0 h-0 pointer-events-none">

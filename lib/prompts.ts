@@ -168,7 +168,33 @@ SCHEMA:
 OUTPUT:`;
 }
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt };
+const generateSectionPrompt = (section: string, resume: ResumeData, jd?: string) => {
+  return `SYSTEM: You are an expert resume writer.
+TASK: Regenerate ONLY the "${section}" section based on the resume context.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO EXTRA TEXT.
+
+SECTION REQUIREMENTS:
+- summary: return { "profile": { "summary": "..." } }
+- experience: return { "experiences": [{...}] }
+- education: return { "educations": [{...}] }
+- skills: return { "skills": [{ "type": "...", "skills": ["..."] }] }
+- customSections: return { "customSections": [{...}] }
+
+GUIDELINES:
+- Keep factual integrity; do not invent employers, degrees, or certifications.
+- Prefer concise, achievement-focused writing.
+- Use action verbs for bullet points.
+- Keep structure compatible with ResumeData.
+
+${jd ? `JOB_DESCRIPTION:\n${jd}` : ''}
+
+RESUME_CONTEXT:
+${JSON.stringify(resume)}
+
+OUTPUT:`;
+}
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt };
 
 const inspectIntentPrompt = (title: string, seniority: string, specialization: string, intent: string, existingBullets: string[]) => {
   return `SYSTEM: You are an expert engineering reviewer and resume consultant.
