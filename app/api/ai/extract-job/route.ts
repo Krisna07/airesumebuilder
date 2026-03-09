@@ -1,25 +1,12 @@
+import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import { extractJobDetailsPrompt } from '@/lib/prompts';
 import { requireUserSession, consumeUsage, mapSubscriptionError } from '@/lib/subscription-server';
 import { parseResponse } from '@/lib/jsonParse';
 
 // Import the private AI function - should be moved to AIService class ideally
-import { GoogleGenAI, Content, GenerateContentResponse } from '@google/genai';
-
-const api = process.env.GEMINI_API_KEY;
-const genAI = api ? new GoogleGenAI({ apiKey: api }) : null;
-const aiModel = process.env.GENAI_MODEL || 'gemini-2.5-flash-lite';
-
 const callAI = async (prompt: string) => {
-  if (!genAI) {
-    throw new Error('AI client not initialized');
-  }
-  const response: GenerateContentResponse = await genAI.models.generateContent({ model: aiModel, contents: prompt });
-  const content: Content | undefined = response?.candidates?.[0]?.content;
-  if (!content) throw new Error('No content returned from AI');
-  const raw = content.parts?.map(part => part.text).join('') || '';
-  if (!raw) throw new Error('Empty AI response');
-  return raw;
+  return await AIService.extractJobMetadata(prompt);
 };
 
 export async function POST(req: NextRequest) {
@@ -41,16 +28,8 @@ export async function POST(req: NextRequest) {
     // Generate AI extraction
     const prompt = extractJobDetailsPrompt(rawText);
     const result = await callAI(prompt);
-
-    if (!result) {
-      return NextResponse.json(
-        { error: 'Failed to extract job details' },
-        { status: 500 }
-      );
-    }
-
-    // Parse the AI response using shared parser
-    const extracted = parseResponse(result) as {
+    // AI now returns a parsed object
+    const extracted = result as {
       title: string;
       company: string;
       location: string;

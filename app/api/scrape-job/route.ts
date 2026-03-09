@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
@@ -136,9 +136,10 @@ const fetchHTML = async (rawUrl: string, useBrowser: boolean): Promise<{ html: s
         return { html: '', usedBrowser: false };
     }
 };
-let extractUrl = '';
+// removed global extractUrl to avoid race conditions
 
 const extractByDomain = ($: cheerio.CheerioAPI, domain: string, urlObj: URL) => {
+    let internalExtractUrl = urlObj.origin + urlObj.pathname + (/linkedin\.|indeed\./i.test(domain) ? urlObj.search : '');
     const lower = domain.toLowerCase();
     let title = '';
     let company = '';
@@ -165,32 +166,31 @@ const extractByDomain = ($: cheerio.CheerioAPI, domain: string, urlObj: URL) => 
         company = grab(['a.topcard__org-name-link', '.top-card-layout__second-subline a', '.topcard__flavor a']);
         location = grab(['.top-card-layout__third-subline', '.topcard__flavor--bullet']);
         description = grabHTML(['#job-details', '.show-more-less-html__markup', '.description__text']);
-        extractUrl = urlObj.origin + urlObj.pathname + urlObj.search;
+        internalExtractUrl = urlObj.origin + urlObj.pathname + urlObj.search;
 
     } else if (lower.includes('seek.')) {
         title = grab(['h1[data-automation=job-detail-title]', 'h1']);
         company = grab(['span[data-automation=advertiser-name]', 'a[data-automation=advertiser-name]']);
         location = grab(['span[data-automation=job-detail-location]']);
         description = grabHTML(['div[data-automation=jobAdDetails]', '[data-automation=jobAdDetails]']);
-        extractUrl = urlObj.origin + urlObj.pathname;
+        internalExtractUrl = urlObj.origin + urlObj.pathname;
     } else if (lower.includes('jora.') || lower.includes('job')) { // broad for jora
         title = grab(['h1', '.job-title']);
         company = grab(['.job-company', '.company', '.company-name']);
         location = grab(['.job-location', '.location']);
         description = grabHTML(['.job-description', '#job-details', '.description']);
-        extractUrl = urlObj.origin + urlObj.pathname;
     } else if (lower.includes('indeed.')) {
         title = grab(['h1.jobsearch-JobInfoHeader-title', 'h1']);
         company = grab(['div.jobsearch-InlineCompanyRating div:first-child', '.jobsearch-CompanyInfoWithoutHeaderImage div:nth-child(1)']);
         location = grab(['div.jobsearch-JobInfoHeader-subtitle div:last-child']);
         description = grabHTML(['#jobDescriptionText']);
-        extractUrl = urlObj.origin + urlObj.pathname + urlObj.search.split('&')[0]
+        internalExtractUrl = urlObj.origin + urlObj.pathname + urlObj.search.split('&')[0];
     } else if (lower.includes('glassdoor.')) {
         title = grab(['div[data-test=job-title]', 'h1']);
         company = grab(['div[data-test=employerName]']);
         location = grab(['div[data-test=location]']);
         description = grabHTML(['div.jobDescriptionContent', 'section[data-test=job-description]']);
-        extractUrl = urlObj.origin + urlObj.pathname;
+        internalExtractUrl = urlObj.origin + urlObj.pathname;
     } else {
         // Generic fallback
         title = grab(['h1', 'header h1', 'h1.title']);
@@ -212,7 +212,7 @@ const extractByDomain = ($: cheerio.CheerioAPI, domain: string, urlObj: URL) => 
         description = bodyText.slice(0, 25000); // cap
     }
 
-    return { title, company, location, description };
+    return { title, company, location, description, extractUrl: internalExtractUrl };
 };
 
 // Detect common anti-bot / Cloudflare challenge pages so we don't treat them as real job content
@@ -262,11 +262,28 @@ export async function POST(req: NextRequest) {
 
 
                 const $ = cheerio.load(html);
-                const meta = extractByDomain($, domain, urlObj);
+                let meta = extractByDomain($, domain, urlObj);
 
-                // Additional Seek-specific enhancement: parse embedded __NEXT_DATA__ for richer description if current extraction looks too small
+                // If metadata is incomplete, use AI to refine it from the description text
+                if (!meta.title || !meta.company || meta.title === 'Title Not Found') {
+                    try {
+                        const refined = await AIService.extractJobMetadata(meta.description || html.slice(0, 8000));
+                        if (refined) {
+                            meta = {
+                                ...meta,
+                                title: refined.title || meta.title || 'Unknown Title',
+                                company: refined.company || meta.company || 'Unknown Company',
+                                location: refined.location || meta.location || 'Not specified',
+                                description: refined.description || meta.description
+                            };
+                        }
+                    } catch (e) {
+                        console.warn('AI metadata refinement failed:', e);
+                    }
+                }
+
+                // Additional Seek-specific enhancement
                 if (domain.includes('seek.') && meta.description && meta.description.length < 120) {
-                    extractUrl = urlObj.origin + urlObj.pathname;
                     try {
                         const nextDataRaw = $('script#__NEXT_DATA__').first().html();
                         if (nextDataRaw) {
@@ -320,7 +337,7 @@ export async function POST(req: NextRequest) {
                     }
                 }
                 results.push({
-                    url: extractUrl ?? url,
+                    url: meta.extractUrl || url,
                     domain,
                     success: true,
                     ...meta,

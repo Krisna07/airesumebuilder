@@ -65,8 +65,9 @@ const PreviewPage = () => {
   const templatesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
 
+  const isGuestResume = slug === 'guest-resume';
   const response = useJobDescriptions(user ? user.id : '', slug)
-  const resumeResponse = useGetResume(slug)
+  const resumeResponse = useGetResume(isGuestResume ? "" : slug)
 
   const loadLocalResume = React.useCallback(() => {
     const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;

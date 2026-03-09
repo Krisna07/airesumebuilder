@@ -103,21 +103,18 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({
             data: {
                 id: updatedResume.id,
-                data: {
-                    id: updatedResume.id,
-                    title: updatedResume.title,
-                    template: updatedResume.template,
-                    profile: typeof updatedResume.profile === "string" ? JSON.parse(updatedResume.profile) : {},
-                    experiences: typeof updatedResume.experiences === "string"  ? JSON.parse(updatedResume.experiences) : [],
-                    educations: typeof updatedResume.educations === "string"  ? JSON.parse(updatedResume.educations) : [],
-                    skills: typeof updatedResume.skills === "string"  ? JSON.parse(updatedResume.skills) : [],
-                    customSections: typeof updatedResume.customSections === "string" ? JSON.parse(updatedResume.customSections) : [],
-                    updated: updatedResume.updatedAt,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
-                    matchingScore: (updatedResume as any)?.matchingScore ?? null,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
-                    analyzedAt: (updatedResume as any)?.analyzedAt ?? null,
-                }
+                title: updatedResume.title,
+                template: updatedResume.template,
+                profile: typeof updatedResume.profile === "string" ? JSON.parse(updatedResume.profile) : {},
+                experiences: typeof updatedResume.experiences === "string" ? JSON.parse(updatedResume.experiences) : [],
+                educations: typeof updatedResume.educations === "string" ? JSON.parse(updatedResume.educations) : [],
+                skills: typeof updatedResume.skills === "string" ? JSON.parse(updatedResume.skills) : [],
+                customSections: typeof updatedResume.customSections === "string" ? JSON.parse(updatedResume.customSections) : [],
+                updated: updatedResume.updatedAt,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                matchingScore: (updatedResume as any)?.matchingScore ?? null,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields until prisma client regenerated
+                analyzedAt: (updatedResume as any)?.analyzedAt ?? null,
             }
         }, { status: 201 });
     } catch (err) {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Content, GenerateContentResponse, GoogleGenAI } from "@google/genai";
+import { GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
-import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, smartRecommendationPrompt } from "@/lib/prompts";
+import { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, smartRecommendationPrompt, extractJobDetailsPrompt } from "@/lib/prompts";
 import { inspectIntentPrompt } from "@/lib/prompts";
 import { parseResponse } from "@/lib/jsonParse";
 import { OpenRouter } from '@openrouter/sdk';
@@ -16,84 +16,95 @@ const openRouter = new OpenRouter({ apiKey: openRouterKey });
 
 const genAI = new GoogleGenAI({ apiKey: api });
 
-const aiModel = process.env.GENAI_MODEL || 'gemini-2.5-flash-lite';
-const fallBackModel = 'gemini-2.5-flash';
+const aiModel = 'gemini-3.1-flash-lite-preview';
+const fallBackModel = 'gemma-3-27b-it';
 
 function coerceArrayStrings(value: unknown): string[] {
     if (Array.isArray(value)) return value.filter((v) => typeof v === "string");
     return [];
 }
-const callAIWithRetry = async (prompt: string, retries = 3) => {
-    console.log("Calling Gemini AI with prompt:");
+async function callAIWithRetry(prompt: string, retries = 3): Promise<string> {
+    console.log(`Calling AI (Attempt ${4 - retries}, Model Waterfall)`);
 
     if (!genAI && !openRouter) {
-        throw new Error('AI clients are not initialized. This function must be run on the server with GEMINI_API_KEY or OPENROUTER_API_KEY set.');
+        throw new Error('AI clients are not initialized. Check GEMINI_API_KEY or OPENROUTER_API_KEY.');
     }
-    try {
-        let modelToUse = aiModel;
-        if (retries < 3) {
-            modelToUse = fallBackModel; // switch to fallback model on retry
-        }
-        if (retries < 2) {
-            modelToUse = 'gemini-3-flash'; // switch to extended context model on second retry
-        }
-        if (!genAI) throw new Error('Gemini client not available');
-        const response: GenerateContentResponse = await genAI.models.generateContent({ model: modelToUse, contents: prompt });
 
-        // if(!response.candidates || response.candidates.length ===0){
-        //     throw new Error('No candidates returned from AI model');
-        // }{
-        const content: Content | undefined = (response && response?.candidates) ? response?.candidates[0]?.content : undefined;
-        if (!content) {
-            throw new Error('No content returned from AI model');
+    try {
+        if (retries === 0) {
+            return await callOpenRouterAI(prompt);
         }
-        const raw: string | undefined = content.parts ? content.parts.map(part => part.text).join('') : undefined;
+
+        let modelToUse = aiModel;
+        if (retries === 2) modelToUse = fallBackModel;
+        if (retries === 1) modelToUse = 'gemini-3.1-flash';
+
+        if (!genAI) throw new Error('Gemini client not available');
+
+        const response: GenerateContentResponse = await genAI.models.generateContent({
+            model: modelToUse,
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
+
+        const candidate = response?.candidates?.[0];
+        const content = candidate?.content;
+        const raw = content?.parts?.map((part: any) => part.text).join('') || '';
+
         if (!raw) {
-            throw new Error('Ai cannot gennerate your response try again later');
+            throw new Error('Empty response from Gemini');
         }
+
         return raw;
 
-    } catch (error) {
+    } catch (error: any) {
         if (retries > 0) {
-            console.warn(`AI call failed, retrying... (${retries} attempts left)`, error);
+            console.warn(`Gemini call failed (attempt ${4 - retries}), switching/retrying...`, error?.message || error);
             return callAIWithRetry(prompt, retries - 1);
         }
         throw error;
     }
-};
+}
 
-
-const callOpenRouterAI = async (prompt: string, retries = 3) => {
-    console.log("Calling OpenRouter AI with prompt:");
+async function callOpenRouterAI(prompt: string, retries = 3): Promise<string> {
+    console.log(`Calling OpenRouter AI (Attempt ${4 - retries})`);
     if (!openRouter) {
-        throw new Error('OpenRouter client is not initialized. This function must be run on the server with OPENROUTER_API_KEY set.');
+        throw new Error('OpenRouter client is not initialized.');
     }
+
     try {
-        let modelToUse = 'mistralai/mistral-7b-instruct:free';
-        if (retries == 2) {
-            modelToUse = 'nvidia/nemotron-3-nano-30b-a3b:free';
-        }
-        if (retries == 1) {
-            modelToUse = 'openai/gpt-oss-20b:free';
-        }
-        if (!openRouter) throw new Error('OpenRouter client not available');
+        const modelSequence = [
+            'google/gemini-3.1-flash-lite-001:free',
+            'mistralai/mistral-small-24b-instruct-2501:free',
+            'meta-llama/llama-3.3-70b-instruct:free'
+        ];
+
+        const modelToUse = modelSequence[3 - retries] || modelSequence[0];
+
         const response = await openRouter.chat.send({
             model: modelToUse,
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt,
-                },
-            ],
+            messages: [{ role: 'user', content: prompt }],
             stream: false,
         });
-        return response.choices[0].message.content
 
-    } catch (error) {
-        if (retries > 0) {
-            console.warn(`OpenRouter AI call failed, retrying... (${retries} attempts left)`, error);
+        const choice = response?.choices?.[0];
+        const content = choice?.message?.content;
+
+        if (!content) {
+            throw new Error('Empty response from OpenRouter');
+        }
+
+        if (typeof content !== 'string') {
+            return JSON.stringify(content);
+        }
+
+        return content;
+
+    } catch (error: any) {
+        if (retries > 1) {
+            console.warn(`OpenRouter call failed, retrying...`, error?.message || error);
             return callOpenRouterAI(prompt, retries - 1);
         }
+        throw new Error(`AI service exhausted all providers: ${error?.message || 'Unknown error'}`);
     }
 }
 export class AIService {
@@ -114,14 +125,34 @@ export class AIService {
         );
 
         try {
-            const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
+            const response = await callAIWithRetry(prompt);
             const raw = response;
             const parsed = parseResponse(raw as string);
             console.log(parsed)
             return parsed as ResumeData;
         } catch (error) {
+
             console.error("Error generating resume:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
             throw new Error("Failed to generate resume");
+
+        }
+    }
+
+    static async extractJobMetadata(rawText: string) {
+        const prompt = extractJobDetailsPrompt(rawText);
+        try {
+            const response = await callAIWithRetry(prompt);
+            const parsed = parseResponse(response);
+            return parsed as {
+                title: string;
+                company: string;
+                location: string;
+                domain: string;
+                description: string;
+            };
+        } catch (error) {
+            console.error("Error extracting job metadata:", error);
+            throw new Error("Failed to extract job metadata");
         }
     }
 
@@ -129,7 +160,7 @@ export class AIService {
         // Build prompt using the specialized analyze prompt (caps tokens by slicing arrays internally)
         const prompt = analyzeResumeToJobFitPrompt(resumeData, jobDescription);
         try {
-            const response = await callOpenRouterAI(prompt);
+            const response = await callAIWithRetry(prompt);
             const raw: any = response
             const parsedRaw = parseResponse(raw);
             const parsed = (parsedRaw ?? {}) as Partial<AnalysisResult>;
@@ -164,9 +195,7 @@ export class AIService {
     URL: ${url}
     OUTPUT:`;
         try {
-            if (!genAI) throw new Error('Gemini client not initialized on server');
-            const response = await genAI.models.generateContent({ model: aiModel, contents: prompt });
-            const raw = await response.text;
+            const raw = await callAIWithRetry(prompt);
             return parseResponse(raw);
         } catch (error) {
             console.error("Error extracting URL data:", error);
@@ -188,7 +217,7 @@ export class AIService {
             );
 
             if (!openRouter) throw new Error('OpenRouter client not initialized on server');
-            const response = await callOpenRouterAI(prompt);
+            const response = await callAIWithRetry(prompt);
             const raw: any = response;
             const parsed = parseResponse(raw);
             const result = {
@@ -209,7 +238,7 @@ export class AIService {
     static async getSmartRecommendations(title: string, seniority: string, specialization: string, existingBullets: string[]) {
         const prompt = smartRecommendationPrompt(title, seniority, specialization, existingBullets);
         try {
-            const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
+            const response = await callAIWithRetry(prompt);
             const raw = response;
             const parsed = parseResponse(raw as string) as any;
             return (parsed?.recommendations || []) as string[];
@@ -222,7 +251,7 @@ export class AIService {
     static async inspectIntent(title: string, seniority: string, specialization: string, intent: string, existingBullets: string[]) {
         const prompt = inspectIntentPrompt(title, seniority, specialization, intent, existingBullets);
         try {
-            const response = openRouterKey ? await callOpenRouterAI(prompt) : await callAIWithRetry(prompt);
+            const response = await callAIWithRetry(prompt);
             const raw = response as string;
             const parsed = parseResponse(raw) as any;
             const tasks = Array.isArray(parsed?.tasks) ? parsed.tasks.filter((t: any) => typeof t === 'string') : [];
