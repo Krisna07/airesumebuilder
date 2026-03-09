@@ -24,7 +24,7 @@ const BuilderPage: React.FC = () => {
     data: apiResume,
     isLoading,
     error,
-  } = useGetResume(slug)
+  } = useGetResume(isGuestResume ? "" : slug)
 
   const resumeData = useMemo<ResumeData | null>(() => {
     if (isGuestResume) {
