@@ -7,6 +7,21 @@ import type { JWT } from 'next-auth/jwt'
 import type { Account } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 
+async function getUserIsAdmin(userId: string): Promise<boolean> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ isAdmin: boolean | null }>>`
+      SELECT "isAdmin"
+      FROM "User"
+      WHERE id = ${userId}
+      LIMIT 1
+    `
+
+    return Boolean(rows[0]?.isAdmin)
+  } catch {
+    return false
+  }
+}
+
 const handleLogin = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
@@ -134,13 +149,34 @@ export const authOptions = {
         token.isVerified = Boolean(user.isVerified)
       }
 
+      // Recover token.id for older sessions that were minted before user.id was stored in JWT.
+      if (!token.id && token.email) {
+        try {
+          const dbUserByEmail = await prisma.user.findUnique({
+            where: { email: token.email as string },
+            select: { id: true },
+          })
+          if (dbUserByEmail?.id) {
+            token.id = dbUserByEmail.id
+          }
+        } catch (_err) {
+          // No-op: token falls back to existing behavior.
+        }
+      }
+
       // Attach subscription plan to token (fallback to FREE if none)
       if (token.id && typeof token.plan === 'undefined') {
         try {
-          const sub = await prisma.subscription.findUnique({
-            where: { userId: token.id as string },
-            select: { plan: true },
-          })
+          const [sub, isAdmin] = await Promise.all([
+            prisma.subscription.findUnique({
+              where: { userId: token.id as string },
+              select: { plan: true },
+            }),
+            getUserIsAdmin(token.id as string),
+          ])
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          token.isAdmin = isAdmin
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           token.plan = sub?.plan ?? 'FREE'
@@ -149,6 +185,9 @@ export const authOptions = {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           token.plan = token.plan ?? 'FREE'
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          token.isAdmin = Boolean(token.isAdmin)
         }
       }
       return token
@@ -167,6 +206,7 @@ export const authOptions = {
             session.user.email = dbUser?.email ?? session.user.email
             session.user.image = dbUser?.image ?? session.user.image
             session.user.isVerified = dbUser?.isVerified ?? false
+            session.user.isAdmin = await getUserIsAdmin(token.id as string)
 
             const dbSub = await prisma.subscription.findUnique({
               where: { userId: token.id as string },
@@ -181,6 +221,9 @@ export const authOptions = {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             session.user.plan = token.plan ?? 'FREE'
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            session.user.isAdmin = Boolean(token.isAdmin)
           }
         } catch (_err) {
           console.error('Error fetching user/session data:', _err)
@@ -191,6 +234,9 @@ export const authOptions = {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           session.user.plan = token.plan ?? 'FREE'
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          session.user.isAdmin = Boolean(token.isAdmin)
         }
       }
       return session

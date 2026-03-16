@@ -194,7 +194,101 @@ ${JSON.stringify(resume)}
 OUTPUT:`;
 }
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt };
+const generateSeoBlogPrompt = (title: string, author = 'ResumeCraft Team') => {
+  return `
+SYSTEM: You are a Senior Blog Writer and SEO Keyword Strategist.
+TASK: Write an SEO-optimized blog post for the given title.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+
+TITLE:
+${title}
+
+AUTHOR:
+${author}
+
+CONTENT REQUIREMENTS:
+1. Write exactly 3 body paragraphs.
+2. Add 1 quote section immediately after paragraph 1.
+3. Keep tone professional, conversational, and easy to read.
+4. Use natural keyword placement related to the title (no keyword stuffing).
+5. Keep content concise, useful, and specific.
+6. Ensure text is optimized for readability and search visibility.
+
+OUTPUT SCHEMA (JSON):
+{
+  "title": "string",
+  "excerpt": "string (20-35 words summary)",
+  "slug": { "current": "string" },
+  "imagePrompt": "string (detailed prompt for hero image generation)",
+  "sections": [
+    { "id": "sec_1", "type": "paragraph", "content": "string" },
+    { "id": "sec_2", "type": "quote", "content": "string", "citation": "string" },
+    { "id": "sec_3", "type": "paragraph", "content": "string" },
+    { "id": "sec_4", "type": "paragraph", "content": "string" }
+  ],
+  "status": "published",
+  "author": "string"
+}
+
+VALIDATION RULES:
+- "sections" must contain exactly 4 sections in this exact order: paragraph, quote, paragraph, paragraph.
+- The quote must be relevant to the topic and attributed in "citation".
+- Do not include an image section; image will be generated separately using "imagePrompt".
+- "status" must be "published" unless explicitly requested otherwise.
+
+OUTPUT:
+`;
+}
+
+const generateBlogTitlePlanPrompt = (input: {
+  resumeContext: unknown
+  existingTitles: string[]
+  blockedTitles?: string[]
+  attempt?: number
+}) => {
+  const blocked = input.blockedTitles || []
+  const attempt = input.attempt || 1
+
+  return `
+SYSTEM: You are a Senior Content Strategist for a resume and career platform.
+TASK: Propose ONE fresh, SEO-friendly blog title based on the resume context.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+
+OBJECTIVE:
+- Generate a high-intent blog title that is practical, searchable, and aligned to the resume context.
+- Do NOT reuse, repeat, or slightly rephrase existing or blocked titles.
+
+INPUTS:
+Resume Context:
+${JSON.stringify(input.resumeContext)}
+
+Existing Titles (must avoid):
+${JSON.stringify(input.existingTitles)}
+
+Blocked Titles From Previous Attempts (must avoid):
+${JSON.stringify(blocked)}
+
+Attempt Number: ${attempt}
+
+REQUIREMENTS:
+1. Return one title only.
+2. Title must be 45-85 characters.
+3. Keep title specific, actionable, and SEO-friendly.
+4. Avoid clickbait and generic wording.
+5. Must be distinct from existing and blocked titles.
+
+OUTPUT SCHEMA:
+{
+  "title": "string",
+  "targetKeywords": ["string"],
+  "rationale": "string"
+}
+
+OUTPUT:
+`;
+}
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt, generateSeoBlogPrompt, generateBlogTitlePlanPrompt };
 
 const inspectIntentPrompt = (title: string, seniority: string, specialization: string, intent: string, existingBullets: string[]) => {
   return `SYSTEM: You are an expert engineering reviewer and resume consultant.

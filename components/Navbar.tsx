@@ -149,6 +149,15 @@ const Navbar = () => {
             >
               Builder
             </Link>
+            <Link
+              href="/blogs"
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("blogs")
+                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                }`}
+            >
+              Blogs
+            </Link>
           </div>
 
           {/* Theme Toggle */}

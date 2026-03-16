@@ -15,6 +15,7 @@ model User {
   provider  String?  // 'credentials', 'google', 'github'
   providerId String? // Provider's user ID
   isVerified Boolean?
+  isAdmin   Boolean  @default(false)
   verifications Verification[]
   subscription Subscription?
     usageHistory UsageHistory?
