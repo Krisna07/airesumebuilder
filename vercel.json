@@ -15,5 +15,11 @@
     "app/api/ai/generate-resume/route.ts": {
         "maxDuration": 30
     }
-}
+},
+"crons": [
+    {
+        "path": "/api/cron/blog",
+        "schedule": "0 * * * *"
+    }
+]
 }
