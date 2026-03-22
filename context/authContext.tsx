@@ -15,6 +15,7 @@ interface User {
   image?: string | null
   isVerified?: boolean
   plan?: 'FREE' | 'SUPPORTER' | 'ULTIMATE'
+  isAdmin?: boolean
 }
 
 interface AuthContextType {
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const subscriptionRef = useRef<Subscription | null>(null)
   const sessionUser = session?.user
+
   const toast = useToast()
   const register = async (user: RegisterData) => {
     const response = await UserService.createUser(user)
@@ -71,7 +73,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           email: refreshed.user.email ?? null,
           image: refreshed.user.image ?? undefined,
           isVerified: refreshed.user.isVerified || false,
-          plan: refreshed.user.plan ?? 'FREE'
+          plan: refreshed.user.plan ?? 'FREE',
+          isAdmin: refreshed.user.isAdmin ?? false
         })
       }
       window.location.href = '/builder'
@@ -180,7 +183,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           email: sessionUser.email,
           image: sessionUser.image,
           isVerified: sessionUser.isVerified || false,
-          plan: sessionUser.plan ?? 'FREE'
+          plan: sessionUser.plan ?? 'FREE',
+          isAdmin: sessionUser.isAdmin ?? false
         })
       }
     }
