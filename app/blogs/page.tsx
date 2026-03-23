@@ -22,7 +22,7 @@ export default async function BlogsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((post) => (
-            <Link href={`/blogs/slug/${post.slug}`} key={post.id} className="rounded-xl select-none border border-slate-200 dark:border-slate-700 group overflow-hidden hover:shadow-lg dark:hover:shadow-[0px_2px_8px_0_white] transition-all ease-in-out duration-300 ">
+            <Link href={`/blogs/${post.slug}`} key={post.id} className="rounded-xl select-none border border-slate-200 dark:border-slate-700 group overflow-hidden hover:shadow-lg dark:hover:shadow-[0px_2px_8px_0_white] transition-all ease-in-out duration-300 ">
               <article>
                 <div className='overflow-hidden bg-green-200'>
                   {post.coverImageId ? (

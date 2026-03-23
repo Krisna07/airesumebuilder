@@ -3,6 +3,7 @@
 # Next.js build output
 /.next
 /out
+/.github
 
 # Dependencies
 /node_modules
