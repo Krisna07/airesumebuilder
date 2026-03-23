@@ -6,7 +6,6 @@ import { RegisterData, UserService } from '@/services/userService'
 import { useToast } from './PopupContext'
 import type { IncrementKey, Subscription } from '@/types/subscription'
 
-
 interface User {
   id: string
   email: string | null
