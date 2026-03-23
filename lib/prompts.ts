@@ -207,12 +207,14 @@ AUTHOR:
 ${author}
 
 CONTENT REQUIREMENTS:
-1. Write exactly 3 body paragraphs.
-2. Add 1 quote section immediately after paragraph 1.
-3. Keep tone professional, conversational, and easy to read.
-4. Use natural keyword placement related to the title (no keyword stuffing).
-5. Keep content concise, useful, and specific.
-6. Ensure text is optimized for readability and search visibility.
+1. Make sure the title is correct, check typos and fix it if needed.
+2. Write more than 3 body paragraphs.
+3. Analayse title and add a quote if requied this is optional.
+4. Keep tone professional, conversational, and easy to read.
+5. Use natural keyword placement related to the title (no keyword stuffing).
+6. Keep content concise, useful, and specific.
+7. Ensure text is optimized for readability and search visibility.
+
 
 OUTPUT SCHEMA (JSON):
 {

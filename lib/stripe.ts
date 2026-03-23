@@ -7,5 +7,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2026-02-25.clover',
+  // cast to satisfy Stripe types — the app expects this api version string
+  apiVersion: '2026-02-25.clover' as unknown as Stripe.StripeConfig['apiVersion'],
 })
