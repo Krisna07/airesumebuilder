@@ -17,6 +17,8 @@ interface SanityBlogDoc {
   excerpt: string
   slug?: { current?: string }
   coverImageId?: string
+  authorImageUrl?: string
+  authorImageId?: string
   sections: BlogPost['sections']
   status: BlogPost['status']
   author: string
@@ -78,6 +80,8 @@ function mapToPost(doc: SanityBlogDoc | null): BlogPost | null {
     title: doc.title,
     excerpt: doc.excerpt,
     coverImageId: doc.coverImageId,
+    authorImageUrl: doc.authorImageUrl,
+    authorImageId: doc.authorImageId,
     sections: doc.sections || [],
     status: doc.status,
     author: doc.author,
@@ -113,6 +117,8 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
     title: input.title,
     excerpt: input.excerpt,
     coverImageId: input.coverImageId,
+    authorImageUrl: input.authorImageUrl,
+    authorImageId: input.authorImageId,
     sections: input.sections,
     status: input.status ?? 'published',
     author: input.author,
@@ -130,6 +136,8 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
     excerpt: post.excerpt,
     slug: { current: post.slug },
     coverImageId: post.coverImageId,
+    authorImageUrl: post.authorImageUrl,
+    authorImageId: post.authorImageId,
     sections: toSanitySections(post.sections),
     status: post.status,
     author: post.author,
@@ -145,7 +153,7 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
 
 export async function getBlogById(id: string) {
   const doc = await sanityClient.fetch<SanityBlogDoc | null>(
-    '*[_type == "blog" && _id == $id][0]{_id,title,excerpt,slug,coverImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && _id == $id][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
     { id }
   )
 
@@ -154,7 +162,7 @@ export async function getBlogById(id: string) {
 
 export async function getBlogBySlug(slug: string) {
   const doc = await sanityClient.fetch<SanityBlogDoc | null>(
-    '*[_type == "blog" && slug.current == $slug][0]{_id,title,excerpt,slug,coverImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && slug.current == $slug][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
     { slug }
   )
 
@@ -167,7 +175,7 @@ export async function listPublishedBlogs({ limit = 20, offset = 0 }: BlogPaginat
   const end = safeOffset + safeLimit
 
   const docs = await sanityClient.fetch<SanityBlogDoc[]>(
-    '*[_type == "blog" && status == "published"] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && status == "published"] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
     { start: safeOffset, end }
   )
 
@@ -181,6 +189,22 @@ export async function listPublishedBlogs({ limit = 20, offset = 0 }: BlogPaginat
     offset: safeOffset,
     limit: safeLimit,
   }
+}
+
+export async function listRelatedByAuthor(author: string, excludeId?: string, limit = 3) {
+  const docs = await sanityClient.fetch<SanityBlogDoc[]>(
+    excludeId
+      ? '*[_type == "blog" && status == "published" && author == $author && _id != $excludeId] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,createdAt,publishedAt}'
+      : '*[_type == "blog" && status == "published" && author == $author] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,createdAt,publishedAt}',
+    excludeId ? { author, excludeId, start: 0, end: limit } : { author, start: 0, end: limit }
+  )
+
+  const items = docs
+    .map((doc) => mapToPost(doc))
+    .filter((post): post is BlogPost => Boolean(post))
+    .map(toListItem)
+
+  return items.slice(0, limit)
 }
 
 export async function updateBlog(id: string, input: UpdateBlogInput) {
@@ -198,6 +222,8 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
     excerpt: input.excerpt ?? existing.excerpt,
     slug: normalizedSlug,
     coverImageId: input.coverImageId ?? existing.coverImageId,
+    authorImageUrl: input.authorImageUrl ?? existing.authorImageUrl,
+    authorImageId: input.authorImageId ?? existing.authorImageId,
     sections: input.sections ?? existing.sections,
     author: input.author ?? existing.author,
     status: nextStatus,
@@ -213,6 +239,8 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
       excerpt: updated.excerpt,
       slug: { current: updated.slug },
       coverImageId: updated.coverImageId,
+      authorImageUrl: updated.authorImageUrl,
+      authorImageId: updated.authorImageId,
       sections: toSanitySections(updated.sections),
       status: updated.status,
       author: updated.author,
@@ -272,6 +300,17 @@ export async function getImage(imageId: string) {
       url: asset.url,
     } satisfies BlogImageMeta,
     bytes,
+  }
+}
+
+export async function deleteImage(imageId: string) {
+  try {
+    // Sanity asset IDs are stored as-is (eg. "image-..."), delete directly
+    await sanityClient.delete(imageId)
+    return true
+  } catch (error) {
+    console.error('deleteImage failed', error)
+    return false
   }
 }
 

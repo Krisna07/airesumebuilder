@@ -1,12 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import { nanoid } from 'nanoid'
 import type { BlogSection, BlogStatus } from '@/types/blog'
 import BlogSectionRenderer from '@/components/blog/BlogSectionRenderer'
+import AuthorImagePicker from '@/components/blog/AuthorImagePicker'
+import BlogPreviewModal from '@/components/blog/BlogPreviewModal'
 import { useAuth } from '@/context/authContext'
 import { ImageIcon, Loader } from 'lucide-react'
 import { useToast } from '@/context/PopupContext'
@@ -22,6 +25,8 @@ interface AiBlogPreview {
   author: string
   coverImageId: string
   coverImageUrl?: string
+  authorImageId?: string
+  authorImageUrl?: string
 }
 
 interface EditorStats {
@@ -139,6 +144,11 @@ export default function BlogEditor() {
   const [slug, setSlug] = useState('')
   const [status, setStatus] = useState<BlogStatus>('published')
   const [coverImageId, setCoverImageId] = useState('')
+  const [authorImageId, setAuthorImageId] = useState('')
+  const [authorImageUrl, setAuthorImageUrl] = useState<string | undefined>(undefined)
+  const [draftBlogId, setDraftBlogId] = useState<string | null>(null)
+  const uploadedImageIdsRef = useRef<Set<string>>(new Set())
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [editorStats, setEditorStats] = useState<EditorStats>({ paragraphCount: 0, imageCount: 0 })
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState('')
@@ -153,6 +163,8 @@ export default function BlogEditor() {
   const inlineImagePickerRef = useRef<HTMLInputElement | null>(null)
   const { user } = useAuth()
   const { showToast } = useToast()
+  const searchParams = useSearchParams()
+  const editId = searchParams?.get('editId')
 
   useEffect(() => {
     showToast(message)
@@ -172,7 +184,17 @@ export default function BlogEditor() {
       throw new Error(payload?.error || 'Image upload failed')
     }
 
-    return payload.data.imageId as string
+    // track uploaded image for potential cleanup
+    if (payload?.data?.imageId) {
+      uploadedImageIdsRef.current.add(payload.data.imageId)
+    }
+
+    // if server created/returned a draft blog id, remember it
+    if (payload?.data?.blogId) {
+      setDraftBlogId(payload.data.blogId)
+    }
+
+    return { imageId: payload.data.imageId as string, url: payload.data.url as string, blogId: payload.data.blogId as string | undefined }
   }, [])
 
   const editor = useEditor({
@@ -212,15 +234,15 @@ export default function BlogEditor() {
       try {
         setUploadingImage(true)
         setMessage('Uploading image...')
-        const imageId = await uploadImage(file)
+        const meta = await uploadImage(file)
 
         editor
           .chain()
           .focus()
           .setImage({
-            src: `/api/blog-images/${imageId}`,
+            src: `/api/blog-images/${meta.imageId}`,
             alt: file.name,
-            title: imageId,
+            title: meta.imageId,
           })
           .run()
 
@@ -275,8 +297,10 @@ export default function BlogEditor() {
     try {
       setUploadingImage(true)
       setMessage('Uploading cover image')
-      const imageId = await uploadImage(file)
-      setCoverImageId(imageId)
+      const meta = await uploadImage(file)
+      setCoverImageId(meta.imageId)
+      // track id
+      if (meta.imageId) uploadedImageIdsRef.current.add(meta.imageId)
       setMessage('Cover image uploaded.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Cover upload failed')
@@ -285,7 +309,7 @@ export default function BlogEditor() {
     }
   }
 
-  const submit = async () => {
+  const submit = async (desiredStatus?: BlogStatus) => {
     if (!validation.canSave) {
       setMessage('Author, one image, and at least two paragraph blocks are required.')
       return
@@ -302,30 +326,68 @@ export default function BlogEditor() {
 
       const sections = editorDocToSections(editor.getJSON())
 
-      const response = await fetch('/api/createBlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          author,
-          excerpt,
-          slug: slug || undefined,
-          status,
-          coverImageId: coverImageId || undefined,
-          sections,
-        }),
-      })
+      let payload: any
 
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || 'Failed to save blog')
+      if (draftBlogId) {
+        // update existing draft
+        const res = await fetch(`/api/blogs/${draftBlogId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            author: author ? author : user?.name,
+            excerpt,
+            slug: slug || undefined,
+            status: desiredStatus ?? status,
+            coverImageId: coverImageId || undefined,
+            authorImageId: authorImageId || undefined,
+            authorImageUrl: authorImageUrl || user?.image || undefined,
+            sections,
+          }),
+        })
+
+        payload = await res.json()
+
+        if (!res.ok || !payload?.success) {
+          throw new Error(payload?.error || 'Failed to update draft')
+        }
+
+        setSaveState('success')
+        setMessage('Draft updated successfully. Redirecting...')
+        const blogSlug = payload.data.slug
+        uploadedImageIdsRef.current.clear()
+        setDraftBlogId(null)
+        window.location.href = `/blogs/${blogSlug}`
+      } else {
+        const response = await fetch('/api/createBlog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            author,
+            excerpt,
+            slug: slug || undefined,
+            status: desiredStatus ?? status,
+            coverImageId: coverImageId || undefined,
+            authorImageId: authorImageId || undefined,
+            authorImageUrl: authorImageUrl || user?.image || undefined,
+            sections,
+          }),
+        })
+
+        payload = await response.json()
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || 'Failed to save blog')
+        }
+
+        setSaveState('success')
+        setMessage('Blog published successfully. Redirecting...')
+
+        const blogSlug = payload.data.slug
+        // clear tracked uploads (they are now used by the blog)
+        uploadedImageIdsRef.current.clear()
+        window.location.href = `/blogs/${blogSlug}`
       }
-
-      setSaveState('success')
-      setMessage('Blog published successfully. Redirecting...')
-
-      const blogSlug = payload.data.slug
-      window.location.href = `/blogs/${blogSlug}`
     } catch (error) {
       setSaveState('error')
       setMessage(error instanceof Error ? error.message : 'Failed to save blog')
@@ -383,6 +445,8 @@ export default function BlogEditor() {
           slug: aiPreview.slug,
           status: aiPreview.status,
           coverImageId: aiPreview.coverImageId,
+          authorImageUrl: aiPreview.authorImageUrl,
+          authorImageId: aiPreview.authorImageId,
           sections: aiPreview.sections,
         }),
       })
@@ -400,6 +464,135 @@ export default function BlogEditor() {
       setAiMessage(error instanceof Error ? error.message : 'Failed to publish blog')
     }
   }
+
+  // remove uploaded images that were not persisted when editor unmounts
+  useEffect(() => {
+    return () => {
+      const ids = Array.from(uploadedImageIdsRef.current)
+      if (!ids.length) return
+
+      // If we have a draft blog id, the images are expected to be attached
+      // to that draft and should not be removed here.
+      if (draftBlogId) return
+
+      // fire-and-forget delete requests (admin-only endpoint)
+      for (const id of ids) {
+        void fetch(`/api/blog-images/${id}`, { method: 'DELETE' })
+      }
+    }
+  }, [draftBlogId])
+
+  const handleAuthorUpload = async (file: File) => {
+    const meta = await uploadImage(file)
+    if (meta?.imageId) {
+      setAuthorImageId(meta.imageId)
+      setAuthorImageUrl(meta.url)
+      uploadedImageIdsRef.current.add(meta.imageId)
+    }
+    return meta
+  }
+
+  // load blog for editing when `editId` param is present
+  useEffect(() => {
+    if (!editId) return
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        setMessage('Loading draft...')
+        const res = await fetch(`/api/blogs/${editId}`)
+        const payload = await res.json()
+        if (!res.ok || !payload?.success) {
+          throw new Error(payload?.error || 'Failed to load blog')
+        }
+
+        const post = payload.data
+        if (cancelled) return
+
+        setTitle(post.title ?? '')
+        setAuthor(post.author ?? '')
+        setExcerpt(post.excerpt ?? '')
+        setSlug(post.slug ?? '')
+        setCoverImageId(post.coverImageId ?? '')
+        setAuthorImageId(post.authorImageId ?? '')
+        setAuthorImageUrl(post.authorImageUrl ?? undefined)
+        setStatus(post.status ?? 'draft')
+        setDraftBlogId(post.id)
+
+        // populate editor content from sections when editor is ready
+        if (editor && Array.isArray(post.sections)) {
+          const doc: any = { type: 'doc', content: [] }
+          for (const s of post.sections) {
+            if (s.type === 'heading') {
+              doc.content.push({ type: 'heading', attrs: { level: s.level ?? 2 }, content: [{ type: 'text', text: s.content ?? '' }] })
+            } else if (s.type === 'paragraph') {
+              doc.content.push({ type: 'paragraph', content: [{ type: 'text', text: s.content ?? '' }] })
+            } else if (s.type === 'quote') {
+              doc.content.push({ type: 'blockquote', content: [{ type: 'paragraph', content: [{ type: 'text', text: s.content ?? '' }] }] })
+            } else if (s.type === 'list') {
+              const items = (s.items ?? []).map((it: string) => ({ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: it }] }] }))
+              doc.content.push({ type: 'bulletList', content: items })
+            } else if (s.type === 'image') {
+              doc.content.push({ type: 'image', attrs: { src: `/api/blog-images/${s.imageId}`, alt: s.alt ?? '' } })
+            }
+          }
+
+          try {
+            editor.commands.setContent(doc)
+            setEditorStats(getEditorStats(editor.getJSON()))
+          } catch (err) {
+            // ignore editor set errors
+          }
+        }
+
+        setMessage('')
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : 'Failed to load blog')
+      }
+    }
+
+    void load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [editId, editor])
+
+  const handleAuthorRemove = async () => {
+    if (!authorImageId) return
+    try {
+      setUploadingImage(true)
+      const res = await fetch(`/api/blog-images/${authorImageId}`, { method: 'DELETE' })
+      const payload = await res.json()
+      if (res.ok && payload?.success) {
+        uploadedImageIdsRef.current.delete(authorImageId)
+        setAuthorImageId('')
+        setAuthorImageUrl(undefined)
+      } else {
+        setMessage(payload?.error || 'Failed to remove author image')
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to remove author image')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const openPreviewForStatus = (s: BlogStatus) => {
+    // ensure current editor sections are included in preview
+    setPreviewOpen(true)
+    setStatus(s)
+  }
+
+  const handleConfirmFromPreview = async (s: BlogStatus) => {
+    setPreviewOpen(false)
+    await submit(s)
+  }
+
+  const previewSections = useMemo(() => {
+    if (!editor) return [] as BlogSection[]
+    return editorDocToSections(editor.getJSON())
+  }, [editor, editorStats])
 
   return (
     <section className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
@@ -571,16 +764,21 @@ export default function BlogEditor() {
               placeholder="Blog title"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
             />
-            <label className='flex items-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group  p-2 gap-2'>
-              {/* {user?.image && <img src={user?.image} className='w-8 h-8 rounded-full bg-gray-200 p-1' />} */}
+            <div className="flex items-center gap-3">
+              <AuthorImagePicker
+                authorImageUrl={authorImageUrl}
+                userImage={user?.image}
+                uploading={uploadingImage}
+                onUpload={handleAuthorUpload}
+              />
               <input
                 value={author}
                 onChange={(event) => setAuthor(event.target.value)}
                 required
                 placeholder={user?.name ? user.name : 'Author Name'}
-                className="w-full outline-none"
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
               />
-            </label>
+            </div>
             <textarea
               value={excerpt}
               onChange={(event) => setExcerpt(event.target.value)}
@@ -785,17 +983,28 @@ export default function BlogEditor() {
             </div>
             <button
               type="button"
-              onClick={submit}
+              onClick={() => openPreviewForStatus(status)}
               disabled={!validation.canSave || saveState === 'saving' || uploadingImage}
               className="px-4 py-2 rounded-lg bg-teal-600 text-white disabled:opacity-50"
             >
-              {saveState === 'saving' ? 'Saving...' : 'Publish blog'}
+              {saveState === 'saving' ? 'Saving...' : 'Preview & Publish'}
             </button>
 
             {message ? <p className="text-sm text-slate-600 dark:text-slate-300">{message}</p> : null}
           </div>
         </>
       )}
+      <BlogPreviewModal
+        open={previewOpen}
+        title={title}
+        excerpt={excerpt}
+        author={author}
+        authorImageUrl={authorImageUrl || user?.image || undefined}
+        coverImageUrl={coverImageId ? `/api/blog-images/${coverImageId}` : undefined}
+        sections={previewSections}
+        onClose={() => setPreviewOpen(false)}
+        onConfirm={handleConfirmFromPreview}
+      />
     </section>
   )
 }

@@ -10,6 +10,7 @@ import { LocalResumeService } from '@/services/localResumeService';
 import { ResumeService } from '@/services/resumeServices';
 import { useState } from 'react';
 import { useToast } from '@/context/PopupContext';
+import Templates from '../Templates/templates';
 
 
 const TemplateSlider = () => {
@@ -19,36 +20,10 @@ const TemplateSlider = () => {
   const mockResume: any = {
     ...dummyResume
   }
-  const templates = [
-    {
-      id: "professional",
-      name: "Professional",
-      description: "Clean and corporate, perfect for traditional industries.",
-      tags: ["ATS-Friendly", "Corporate"],
-      color: "bg-slate-800",
-    },
-    {
-      id: "modern",
-      name: "Modern",
-      description: "Contemporary design with a creative edge.",
-      tags: ["Creative", "Stylish"],
-      color: "bg-teal-600",
-    },
-    {
-      id: "minimal",
-      name: "Minimal",
-      description: "Simple and elegant, lets your content shine.",
-      tags: ["Clean", "Simple"],
-      color: "bg-slate-600",
-    },
-    {
-      id: "executive",
-      name: "Executive",
-      description: "Sophisticated layout for senior positions.",
-      tags: ["Leadership", "Premium"],
-      color: "bg-slate-900",
-    }
-  ]
+
+
+  const templates = Templates.slice(0, 6)
+
   const { user } = useAuth()
   const { showToast } = useToast()
   const [creating, setCreating] = useState<boolean>(false)
@@ -123,7 +98,7 @@ const TemplateSlider = () => {
             {/* Tags */}
             < div className="flex flex-wrap items-center justify-center gap-2 mt-3" >
               {
-                template.tags.map((tag) => (
+                template?.tags?.map((tag) => (
                   <span
                     key={tag}
                     className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"

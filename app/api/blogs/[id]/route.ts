@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdminOrForbidden } from '@/lib/blogAuth'
 import { updateBlogSchema } from '@/lib/blogValidation'
 import { archiveBlog, updateBlog, touchBlogAuthSession } from '@/services/blogCmsService'
+import { getBlogById } from '@/services/blogCmsService'
 
 export const runtime = 'nodejs'
 
@@ -38,6 +39,22 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   } catch (error) {
     console.error('PATCH /api/blogs/[id] failed', error)
     return NextResponse.json({ success: false, error: 'Failed to update blog' }, { status: 500 })
+  }
+}
+
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const admin = await requireAdminOrForbidden()
+    if (!admin.ok) return admin.response
+
+    const { id } = await context.params
+    const post = await getBlogById(id)
+    if (!post) return NextResponse.json({ success: false, error: 'Blog not found' }, { status: 404 })
+
+    return NextResponse.json({ success: true, data: post })
+  } catch (error) {
+    console.error('GET /api/blogs/[id] failed', error)
+    return NextResponse.json({ success: false, error: 'Failed to fetch blog' }, { status: 500 })
   }
 }
 

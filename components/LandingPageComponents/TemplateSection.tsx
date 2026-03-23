@@ -14,8 +14,6 @@ const TemplatesSection = () => {
             Choose from our collection of ATS-optimized templates designed by HR professionals.
           </p>
         </div>
-
-
         <TemplateSlider />
       </div>
     </section>

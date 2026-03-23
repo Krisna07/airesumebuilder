@@ -49,6 +49,8 @@ export interface BlogPost {
   title: string
   excerpt: string
   author: string
+  authorImageUrl?: string
+  authorImageId?: string
   coverImageId?: string
   sections: BlogSection[]
   status: BlogStatus
@@ -66,6 +68,8 @@ export interface BlogListItem {
   excerpt: string
   author: string
   coverImageId?: string
+  authorImageUrl?: string
+  authorImageId?: string
   createdAt: string
   publishedAt?: string
 }
@@ -88,6 +92,8 @@ export interface CreateBlogInput {
   title: string
   excerpt: string
   author: string
+  authorImageUrl?: string
+  authorImageId?: string
   slug?: string
   coverImageId?: string
   sections: BlogSection[]
@@ -98,6 +104,8 @@ export interface UpdateBlogInput {
   title?: string
   excerpt?: string
   author?: string
+  authorImageUrl?: string
+  authorImageId?: string
   slug?: string
   coverImageId?: string
   sections?: BlogSection[]

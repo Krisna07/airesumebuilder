@@ -33,10 +33,40 @@ export async function POST(req: Request) {
 
     const bytes = Buffer.from(await file.arrayBuffer())
 
+    // allow uploads to be attached to a specific blog draft by passing `blogId` in the form
+    const maybeBlogId = String(form.get('blogId') ?? '').trim() || undefined
+
+    let targetBlogId = maybeBlogId
+
+    // If no blogId provided, create a minimal draft blog and attach uploads to it
+    if (!targetBlogId) {
+      // lazy-create a draft blog
+      const { createBlog } = await import('@/services/blogCmsService')
+      const draft = await createBlog(
+        {
+          title: 'Untitled',
+          excerpt: '',
+          author: admin.session.email || 'unknown',
+          sections: [],
+          status: 'draft',
+        },
+        {
+          userId: admin.session.userId,
+          email: admin.session.email,
+        }
+      )
+
+      targetBlogId = draft.id
+    }
+
+    // sanitize filename and prefix with blog id so assets are grouped by blog
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const filename = `${targetBlogId}_${safeName}`
+
     const meta = await saveImage({
       bytes,
       mimeType: file.type,
-      filename: file.name,
+      filename,
       actor: {
         userId: admin.session.userId,
         email: admin.session.email,
@@ -50,6 +80,7 @@ export async function POST(req: Request) {
         url: `/api/blog-images/${meta.id}`,
         mimeType: meta.mimeType,
         sourceUrl: meta.url,
+        blogId: targetBlogId,
       },
     })
   } catch (error) {

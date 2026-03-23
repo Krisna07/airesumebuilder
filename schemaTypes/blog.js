@@ -102,6 +102,18 @@ export const blogSchema = defineType({
     defineField({name: 'title', title: 'Title', type: 'string', validation: (Rule) => Rule.required().min(3).max(180)}),
     defineField({name: 'excerpt', title: 'Excerpt', type: 'text', rows: 3, validation: (Rule) => Rule.required().min(10)}),
     defineField({name: 'author', title: 'Author', type: 'string', validation: (Rule) => Rule.required().min(2).max(120)}),
+    defineField({
+      name: 'authorImageId',
+      title: 'Author Image Asset Id',
+      type: 'string',
+      description: 'Sanity image asset id for the author image (optional).',
+    }),
+    defineField({
+      name: 'authorImageUrl',
+      title: 'Author Image URL',
+      type: 'string',
+      description: 'Public URL to the author image. This should always be stored for display.',
+    }),
     defineField({name: 'slug', title: 'Slug', type: 'slug', options: {source: 'title', maxLength: 240}, validation: (Rule) => Rule.required()}),
     defineField({
       name: 'coverImageId',
