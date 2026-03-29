@@ -160,6 +160,8 @@ export default function BlogEditor() {
   const [aiPreview, setAiPreview] = useState<AiBlogPreview | null>(null)
   const [aiPublishState, setAiPublishState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
   const [aiMessage, setAiMessage] = useState('')
+  const [autoRunning, setAutoRunning] = useState(false)
+  const [autoMsg, setAutoMsg] = useState('')
   const inlineImagePickerRef = useRef<HTMLInputElement | null>(null)
   const { user } = useAuth()
   const { showToast } = useToast()
@@ -600,7 +602,49 @@ export default function BlogEditor() {
       <header className="space-y-2">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">Write a blog</h1>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div className="flex items-center gap-3">
+            {user?.isAdmin ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (autoRunning) return
+                  if (!confirm('Run automation to generate & publish a blog now?')) return
+                  try {
+                    setAutoRunning(true)
+                    setAutoMsg('Running automation...')
+                    const resp = await fetch('/api/admin/trigger-blog', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ title: title || undefined }),
+                    })
+                    const payload = await resp.json()
+                    if (!resp.ok || !payload?.success) {
+                      throw new Error(payload?.error || 'Automation failed')
+                    }
+                    const result = payload.data
+                    if (result?.state === 'created' && result?.slug) {
+                      window.location.href = `/blogs/${result.slug}`
+                      return
+                    }
+                    const msg = result?.reason || 'Automation completed; no blog created.'
+                    setAutoMsg(msg)
+                    showToast(msg)
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Automation failed'
+                    setAutoMsg(msg)
+                    setMessage(msg)
+                  } finally {
+                    setAutoRunning(false)
+                  }
+                }}
+                disabled={autoRunning}
+                className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium disabled:opacity-50"
+              >
+                {autoRunning ? 'Running…' : 'Run automation'}
+              </button>
+            ) : null}
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI mode</span>
             <button
               type="button"
@@ -626,7 +670,8 @@ export default function BlogEditor() {
           {aiMode
             ? 'Enter a title and let AI write the full blog and generate a cover image.'
             : 'Write a blog with airesumecraft blog writter'}
-        </p>
+          </p>
+        </div>
       </header>
 
       {aiMode && (

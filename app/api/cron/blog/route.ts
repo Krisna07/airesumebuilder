@@ -36,7 +36,9 @@ async function handleCron(req: Request) {
 
   try {
     const url = new URL(req.url)
-    const dryRun = toBoolean(url.searchParams.get('dryRun'))
+    // Prefer explicit query param when provided; otherwise fall back to env var.
+    const envDryRun = toBoolean(process.env.DRYRUN || process.env.DRY_RUN || process.env.BLOG_CRON_DRYRUN || 'false')
+    const dryRun = url.searchParams.has('dryRun') ? toBoolean(url.searchParams.get('dryRun')) : envDryRun
     const title = url.searchParams.get('title') || undefined
 
     const result = await runHourlyBlogAutomation({
