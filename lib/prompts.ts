@@ -197,7 +197,7 @@ OUTPUT:`;
 const generateSeoBlogPrompt = (title: string, author = 'ResumeCraft Team') => {
   return `
 SYSTEM: You are a Senior Blog Writer and SEO Keyword Strategist.
-TASK: Write an SEO-optimized blog post for the given title.
+TASK: Write a highly detailed, SEO-optimized long-form blog post for the given title.
 STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
 
 TITLE:
@@ -207,40 +207,49 @@ AUTHOR:
 ${author}
 
 CONTENT REQUIREMENTS:
-1. Make sure the title is correct, check typos and fix it if needed.
-2. Write more than 3 body paragraphs.
-3. Analayse title and add a quote if requied this is optional.
-4. Keep tone professional, conversational, and easy to read.
-5. Use natural keyword placement related to the title (no keyword stuffing).
-6. Keep content concise, useful, and specific.
-7. Ensure text is optimized for readability and search visibility.
-
+1. Fix and optimize the title if needed (grammar, clarity, SEO intent).
+2. The blog MUST be at least 1500 words in total.
+3. Expand content depth with detailed explanations, examples, and practical insights.
+4. Write in a professional, conversational, and engaging tone.
+5. Naturally include primary and secondary SEO keywords related to the title (avoid keyword stuffing).
+6. Ensure strong readability (short paragraphs, clear flow, simple language).
+7. Include value-driven insights, actionable tips, and real-world relevance.
+8. Add a relevant quote (mandatory) after the first paragraph.
+9. Structure content logically with a strong introduction, body, and conclusion.
+10. Optimize for search intent (informational + actionable).
 
 OUTPUT SCHEMA (JSON):
 {
   "title": "string",
-  "excerpt": "string (20-35 words summary)",
-  "slug": { "current": "string" },
-  "imagePrompt": "string (detailed prompt for hero image generation)",
+  "excerpt": "string (20-35 words summary, compelling and SEO-friendly)",
+  "slug": { "current": "string (lowercase, hyphen-separated, SEO-friendly)" },
+  "imagePrompt": "string (detailed prompt for hero image generation, modern, professional, relevant to topic)",
   "sections": [
-    { "id": "sec_1", "type": "paragraph", "content": "string" },
+    { "id": "sec_1", "type": "paragraph", "content": "string (long introduction paragraph, 250+ words)" },
     { "id": "sec_2", "type": "quote", "content": "string", "citation": "string" },
-    { "id": "sec_3", "type": "paragraph", "content": "string" },
-    { "id": "sec_4", "type": "paragraph", "content": "string" }
+    { "id": "sec_3", "type": "paragraph", "content": "string (detailed body content, 600+ words)" },
+    { "id": "sec_4", "type": "paragraph", "content": "string (conclusion + actionable insights, 400+ words)" }
   ],
   "status": "published",
   "author": "string"
 }
 
 VALIDATION RULES:
-- "sections" must contain exactly 4 sections in this exact order: paragraph, quote, paragraph, paragraph.
-- The quote must be relevant to the topic and attributed in "citation".
-- Do not include an image section; image will be generated separately using "imagePrompt".
-- "status" must be "published" unless explicitly requested otherwise.
+- TOTAL WORD COUNT MUST BE >= 1500 WORDS.
+- "sections" must contain exactly 4 sections in this exact order:
+  1. paragraph (introduction)
+  2. quote
+  3. paragraph (main content)
+  4. paragraph (conclusion)
+- Each paragraph section must be long-form and detailed (no short content).
+- The quote must be relevant, meaningful, and properly attributed.
+- Do NOT include markdown, HTML, or extra formatting.
+- Do NOT include an image section; only provide "imagePrompt".
+- "status" must be "published" unless explicitly specified otherwise.
 
 OUTPUT:
 `;
-}
+};
 
 const generateBlogTitlePlanPrompt = (input: {
   resumeContext: unknown
