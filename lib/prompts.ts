@@ -194,54 +194,55 @@ ${JSON.stringify(resume)}
 OUTPUT:`;
 }
 
+
+const appSummary = 'airesumecraft.xyz is a high-performance career architecture platform designed to transform the traditional job search into a data-driven strategy. Built with a minimalist, high-contrast aesthetic, the app serves as a centralized hub where users can construct a Master Profile and instantly deploy multiple, role-specific resume variations. At its core, the platform leverages a sophisticated AI Tailor and ATS Analyzer that semantically scores resumes against job descriptions, identifying critical keyword gaps to ensure candidates bypass automated filters. Beyond simple formatting, the Smart Rewriting engine gives users granular control over their professional voice, allowing them to flip between executive, concise, or achievement-led tones with a single click. The journey concludes with a Live Preview of modular templates and a seamless, Stripe-powered PDF export for a print-ready, high-fidelity finish. By integrating a full-stack Blog and Content Suite, the platform goes beyond the document, enabling professionals to build a lasting personal brand and authority alongside their optimized application materials.'
+
 const generateSeoBlogPrompt = (title: string, author = 'ResumeCraft Team') => {
   return `
 ### ROLE
-You are a Senior Content Strategist and Factual Researcher. You prioritize editorial integrity and primary source accuracy.
+You are a Lead Career Strategist and Product Guide at ResumeCraft.xyz. You don't just write articles; you build bridges between a candidate's current struggle and their target role using our platform.
+
+### THE STRATEGIC BRIDGE (APP WORKFLOW)
+The blog must be structured as a direct path to the app. You must guide the reader through these specific "Bridge Points":
+1. **The Foundation:** Moving from a "Static Resume" to a **Master Profile** on ResumeCraft.
+2. **The Intelligence Gap:** Using the **AI-powered ATS Analyzer** to see exactly what keywords a human recruiter (and their software) is missing.
+3. **The Adaptation:** Running the **One-click Job Tailor** to transform generic bullets into role-specific achievements.
+4. **The Tone Shift:** Applying **Smart Rewriting** (Executive/Achievement-led) to elevate the candidate's professional voice.
+5. **The Final Handshake:** Transitioning from the browser to the interview via a **Vercel-inspired, high-contrast PDF Export**.
 
 ### TASK
-Write a highly detailed, SEO-optimized long-form blog post.
-STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
-
-### DATA INPUTS
-- **TITLE:** ${title}
-- **AUTHOR:** ${author}
-
-### VERIFIED QUOTE PROTOCOL (CRITICAL)
-- **CONDITION:** Only include a quote if you can retrieve a **verified, factual, and real-world statement** from a known industry expert, researcher, or reputable organization relevant to the title.
-- **NEGATIVE CONSTRAINT:** DO NOT invent, hallucinate, or synthesize a quote. 
-- **FALLBACK:** If no verifiable, non-generic quote exists in your knowledge base for this specific topic, the "sec_2" content must be an empty string ("") or null.
+Write a 1,500+ word deep-dive titled "${title}". 
+Every "Insight" in the blog must be followed by an "Action" the reader can take right now at ResumeCraft.xyz.
+Here is the attached app summary for reference: ${appSummary}
 
 ### CONTENT REQUIREMENTS
-1. **Depth:** Total word count must exceed 1,500 words.
-2. **SEO:** Naturally integrate primary and LSI keywords.
-3. **Structure:** Logical flow from introduction to a "Roadmap" style conclusion.
+- **Section 1 (The Hook):** Define the 6-second recruiter window. Introduce ResumeCraft as the tool to win those seconds. [IMAGE: Clean dashboard view].
+- **Section 3 (The Bridge):** This is the core walkthrough. Describe the "Aha!" moment when the **ATS Score** goes from 40% to 95% using our AI tools. [SCREENSHOT: Match Rate Score].
+- **Section 4 (The Conversion):** Explain how consistent personal branding (using our **Blog Tools**) builds authority. End with a call to export the final PDF. [SCREENSHOT: PDF Template Selection].
 
-### OUTPUT SCHEMA (JSON)
+### VERIFIED QUOTE PROTOCOL
+- Search for a REAL, verifiable industry quote. If not found, leave "sec_2" empty (""). DO NOT HALLUCINATE.
+
+### OUTPUT SCHEMA (JSON ONLY)
 {
   "title": "string",
-  "excerpt": "string",
+  "excerpt": "string (Focus on the transformation from 'Applied' to 'Interviewing')",
   "slug": { "current": "string" },
-  "imagePrompt": "string",
+  "imagePrompt": "string (Professional, minimalist UI/UX aesthetic)",
   "sections": [
-    { "id": "sec_1", "type": "paragraph", "content": "string (Introduction, 250+ words)" },
-    { 
-      "id": "sec_2", 
-      "type": "quote", 
-      "content": "string (The verified quote text, or empty string if no fact-based quote is found)", 
-      "citation": "string (The name and title of the person/source being quoted)" 
-    },
-    { "id": "sec_3", "type": "paragraph", "content": "string (Deep-dive body content, 600+ words)" },
-    { "id": "sec_4", "type": "paragraph", "content": "string (Conclusion and actionable takeaways, 400+ words)" }
+    { "id": "sec_1", "type": "paragraph", "content": "string (250+ words)" },
+    { "id": "sec_2", "type": "quote", "content": "string", "citation": "string" },
+    { "id": "sec_3", "type": "paragraph", "content": "string (600+ words - The Bridge Walkthrough)" },
+    { "id": "sec_4", "type": "paragraph", "content": "string (400+ words - The Results & Export)" }
   ],
   "status": "published",
-  "author": "string"
+  "author": "${author}"
 }
 
-### VALIDATION RULES
-- **NO HALLUCINATIONS:** If you cannot find a real quote, leave "content" and "citation" in "sec_2" empty.
-- **WORD COUNT:** Ensure "sec_1", "sec_3", and "sec_4" provide exhaustive detail to meet the 1500-word target.
-- **CLEAN OUTPUT:** No markdown formatting or conversational filler.
+### STRICT CONSTRAINTS
+- NO PRE-AMBLE. NO MARKDOWN. 
+- TOTAL WORD COUNT MUST BE >= 1500.
+- Direct the user to specific UI elements (e.g., "Click the 'Tailor' button," "View your Match Score").
 
 OUTPUT:
 `;

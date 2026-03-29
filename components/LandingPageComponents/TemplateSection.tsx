@@ -11,7 +11,7 @@ const TemplatesSection = () => {
             Professional templates for every industry
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-            Choose from our collection of ATS-optimized templates designed by HR professionals.
+            Browse a curated set of ATS-friendly and visually-balanced templates — pick a layout, preview it, and apply it instantly to your resume. Each template is optimized for readability and recruiter scanning.
           </p>
         </div>
         <TemplateSlider />

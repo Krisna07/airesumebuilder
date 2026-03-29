@@ -14,7 +14,7 @@ type HeroProps = {
 
 const HeroSection: React.FC<HeroProps> = ({
   title = "Build your resume with AI — fast.",
-  subtitle = "Generate tailored, ATS-friendly resumes and cover letters in minutes. Pick a template, refine with AI, and export PDF.",
+  subtitle = "Turn your experience into interview-ready resumes and cover letters. Match jobs, get AI-crafted bullets, and export polished PDFs in minutes.",
   ctaLabel = "Start building",
   ctaHref = "/builder",
   secondaryLabel = "See templates",
@@ -54,14 +54,14 @@ const HeroSection: React.FC<HeroProps> = ({
         {/* CTAs */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href={ctaHref}>
-            <Button variant="primary" size="large" className="group px-8">
+            <Button variant="primary" size="medium" className="group px-8">
               {ctaLabel}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
 
           <Link href={'#templates'}>
-          <Button variant="secondary" size="large" className="px-8">
+            <Button variant="secondary" size="medium" className="px-8">
             {secondaryLabel}
             </Button>
           </Link>

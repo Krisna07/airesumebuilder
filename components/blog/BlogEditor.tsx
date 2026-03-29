@@ -75,62 +75,68 @@ function editorDocToSections(doc: JSONContent): BlogSection[] {
   const sections: BlogSection[] = []
   const nodes = doc.content ?? []
 
+  function pushParagraphIfText(accum: string[]) {
+    const text = accum.join(' ').trim()
+    if (text.length > 0) {
+      sections.push({ id: `sec_${nanoid(8)}`, type: 'paragraph', content: text })
+    }
+    accum.length = 0
+  }
+
   for (const node of nodes) {
+    // headings
     if (node.type === 'heading') {
       const levelValue = Number(node.attrs?.level)
       const level: 2 | 3 | 4 = levelValue === 3 || levelValue === 4 ? levelValue : 2
       const content = gatherText(node).trim()
-
-      if (content.length > 0) {
-        sections.push({ id: `sec_${nanoid(8)}`, type: 'heading', level, content })
-      }
-
+      if (content.length > 0) sections.push({ id: `sec_${nanoid(8)}`, type: 'heading', level, content })
       continue
     }
 
-    if (node.type === 'paragraph') {
-      const content = gatherText(node).trim()
-
-      if (content.length > 0) {
-        sections.push({ id: `sec_${nanoid(8)}`, type: 'paragraph', content })
-      }
-
-      continue
-    }
-
+    // blockquote
     if (node.type === 'blockquote') {
       const content = gatherText(node).trim()
-
-      if (content.length > 0) {
-        sections.push({ id: `sec_${nanoid(8)}`, type: 'quote', content })
-      }
-
+      if (content.length > 0) sections.push({ id: `sec_${nanoid(8)}`, type: 'quote', content })
       continue
     }
 
+    // lists
     if (node.type === 'bulletList' || node.type === 'orderedList') {
       const items = (node.content ?? [])
         .map((listItem) => gatherText(listItem).trim())
         .filter((item) => item.length > 0)
-
-      if (items.length > 0) {
-        sections.push({ id: `sec_${nanoid(8)}`, type: 'list', items })
-      }
-
+      if (items.length > 0) sections.push({ id: `sec_${nanoid(8)}`, type: 'list', items })
       continue
     }
 
+    // paragraphs and mixed content: preserve order of text and images
+    if (node.type === 'paragraph') {
+      const children = Array.isArray(node.content) ? node.content : []
+      const textAcc: string[] = []
+      for (const child of children) {
+        if (!child) continue
+        if (child.type === 'image') {
+          // flush accumulated text as a paragraph before image
+          pushParagraphIfText(textAcc)
+          const src = String(child.attrs?.src ?? '').trim()
+          if (!src) continue
+          sections.push({ id: `sec_${nanoid(8)}`, type: 'image', imageId: getImageIdFromSrc(src), alt: String(child.attrs?.alt ?? '').trim() || undefined, caption: '' })
+        } else {
+          const t = gatherText(child)
+          if (t.trim().length > 0) textAcc.push(t.trim())
+        }
+      }
+      // flush remaining text
+      pushParagraphIfText(textAcc)
+      continue
+    }
+
+    // top-level image nodes
     if (node.type === 'image') {
       const src = String(node.attrs?.src ?? '').trim()
       if (!src) continue
-
-      sections.push({
-        id: `sec_${nanoid(8)}`,
-        type: 'image',
-        imageId: getImageIdFromSrc(src),
-        alt: String(node.attrs?.alt ?? '').trim() || undefined,
-        caption: '',
-      })
+      sections.push({ id: `sec_${nanoid(8)}`, type: 'image', imageId: getImageIdFromSrc(src), alt: String(node.attrs?.alt ?? '').trim() || undefined, caption: '' })
+      continue
     }
   }
 
