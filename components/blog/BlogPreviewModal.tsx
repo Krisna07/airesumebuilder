@@ -21,11 +21,12 @@ export default function BlogPreviewModal({ open, title, excerpt, author, authorI
     <div className="fixed inset-0 z-50 flex items-start justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative max-w-3xl w-full bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-lg">
-        {coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverImageUrl} alt={title} className="w-full h-48 object-cover" />
-        ) : null}
-        <div className="p-5">
+        <div className="max-h-[85vh] overflow-auto">
+          {coverImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverImageUrl} alt={title} className="w-full h-48 object-cover" />
+          ) : null}
+          <div className="p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
               {authorImageUrl ? (
@@ -65,6 +66,7 @@ export default function BlogPreviewModal({ open, title, excerpt, author, authorI
             <button type="button" onClick={onClose} className="px-3 py-2 text-sm text-slate-600">
               Close
             </button>
+          </div>
           </div>
         </div>
       </div>

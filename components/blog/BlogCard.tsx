@@ -95,13 +95,24 @@ export default function BlogCard({ post }: Props) {
 
             {user?.isAdmin && (
                 <div className="p-3 border-t flex items-center gap-2 justify-end">
-                    <Link href={`/blogs/addblogs?editId=${post.id}`} className="px-3 py-1 rounded bg-slate-100 text-sm">
+                    <Link
+                        href={`/blogs/addblogs?editId=${post.id}`}
+                        className="px-3 py-1 rounded bg-slate-100 text-sm dark:bg-slate-700 dark:text-slate-100"
+                    >
                         Edit
                     </Link>
-                    <button onClick={togglePublish} disabled={loading} className="px-3 py-1 rounded bg-amber-100 text-sm">
+                    <button
+                        onClick={togglePublish}
+                        disabled={loading}
+                        className="px-3 py-1 rounded bg-amber-100 text-sm dark:bg-amber-700 dark:text-neutral-900"
+                    >
                         {post.publishedAt ? 'Unpublish' : 'Publish'}
                     </button>
-                    <button onClick={handleDelete} disabled={loading} className="px-3 py-1 rounded bg-red-100 text-sm text-red-700">
+                    <button
+                        onClick={handleDelete}
+                        disabled={loading}
+                        className="px-3 py-1 rounded bg-red-100 text-sm text-red-700 dark:bg-red-700 dark:text-white"
+                    >
                         Delete
                     </button>
                 </div>

@@ -59,6 +59,21 @@ const Page = () => {
   const formatPrice = (plan: Plan) =>
     plan.priceMonthly === 0 ? 'Free' : `$${plan.priceMonthly}/mo`
 
+  // Toggle visibility via NEXT_PUBLIC_SHOW_PRICING environment variable.
+  const showPricing = process.env.NEXT_PUBLIC_SHOW_PRICING === 'true'
+
+  if (!showPricing) {
+    return (
+      <section className="py-20 px-6 sm:px-8 lg:px-12 text-center">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-3xl font-extrabold">Pricing (Hidden)</h2>
+          <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">This page is not publicly linked yet. We're polishing plans and limits — stay tuned.</p>
+          <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">If you need early access or want to become a supporter, contact us at <a href="/contact" className="text-indigo-600 hover:underline">Contact</a>.</p>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section aria-labelledby="pricing-heading" className="py-12 px-6 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
@@ -73,9 +88,8 @@ const Page = () => {
           {PLANS.map((plan) => (
             <article
               key={plan.id}
-              className={`max-w-[300px] h-full relative rounded-lg border p-6 flex flex-col justify-between bg-white ${
-                plan.highlight ? 'ring-2 ring-indigo-500 border-transparent shadow-lg' : 'border-gray-200'
-              }`}
+              className={`max-w-[300px] h-full relative rounded-lg border p-6 flex flex-col justify-between bg-white dark:bg-slate-800 ${plan.highlight ? 'ring-2 ring-indigo-500 border-transparent shadow-lg' : 'border-gray-200 dark:border-slate-700'
+                }`}
               aria-labelledby={`plan-${plan.id}`}
             >
               {plan.highlight && (
@@ -89,7 +103,7 @@ const Page = () => {
               <div>
                 <h3 id={`plan-${plan.id}`} className="text-lg font-semibold">{plan.name}</h3>
                 <p className="mt-2 text-2xl font-bold">{formatPrice(plan)}</p>
-                <p className="mt-2 text-sm text-gray-600">{plan.description}</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{plan.description}</p>
 
                 <ul className="mt-4 space-y-2 text-sm">
                   {plan.features.map((f) => (
@@ -105,7 +119,7 @@ const Page = () => {
                 {plan.id === 'free' ? (
                   <Link
                     href="/signup"
-                    className="inline-flex w-full justify-center items-center px-4 py-2 rounded-md font-medium focus:outline-none bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100"
+                    className="inline-flex w-full justify-center items-center px-4 py-2 rounded-md font-medium focus:outline-none bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700"
                     aria-label={`Choose ${plan.name} plan`}
                   >
                     Get started
@@ -115,7 +129,7 @@ const Page = () => {
                     onClick={() => setSelectedProduct(plan.id as 'supporter' | 'ultimate')}
                     className={`inline-flex w-full justify-center items-center px-4 py-2 rounded-md font-medium focus:outline-none ${plan.highlight
                         ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        : 'bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100'
+                      : 'bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700'
                       }`}
                       aria-label={`Checkout ${plan.name}`}
                     >
