@@ -196,56 +196,52 @@ OUTPUT:`;
 
 const generateSeoBlogPrompt = (title: string, author = 'ResumeCraft Team') => {
   return `
-SYSTEM: You are a Senior Blog Writer and SEO Keyword Strategist.
-TASK: Write a highly detailed, SEO-optimized long-form blog post for the given title.
+### ROLE
+You are a Senior Content Strategist and Factual Researcher. You prioritize editorial integrity and primary source accuracy.
+
+### TASK
+Write a highly detailed, SEO-optimized long-form blog post.
 STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
 
-TITLE:
-${title}
+### DATA INPUTS
+- **TITLE:** ${title}
+- **AUTHOR:** ${author}
 
-AUTHOR:
-${author}
+### VERIFIED QUOTE PROTOCOL (CRITICAL)
+- **CONDITION:** Only include a quote if you can retrieve a **verified, factual, and real-world statement** from a known industry expert, researcher, or reputable organization relevant to the title.
+- **NEGATIVE CONSTRAINT:** DO NOT invent, hallucinate, or synthesize a quote. 
+- **FALLBACK:** If no verifiable, non-generic quote exists in your knowledge base for this specific topic, the "sec_2" content must be an empty string ("") or null.
 
-CONTENT REQUIREMENTS:
-1. Fix and optimize the title if needed (grammar, clarity, SEO intent).
-2. The blog MUST be at least 1500 words in total.
-3. Expand content depth with detailed explanations, examples, and practical insights.
-4. Write in a professional, conversational, and engaging tone.
-5. Naturally include primary and secondary SEO keywords related to the title (avoid keyword stuffing).
-6. Ensure strong readability (short paragraphs, clear flow, simple language).
-7. Include value-driven insights, actionable tips, and real-world relevance.
-8. Add a relevant quote (mandatory) after the first paragraph.
-9. Structure content logically with a strong introduction, body, and conclusion.
-10. Optimize for search intent (informational + actionable).
+### CONTENT REQUIREMENTS
+1. **Depth:** Total word count must exceed 1,500 words.
+2. **SEO:** Naturally integrate primary and LSI keywords.
+3. **Structure:** Logical flow from introduction to a "Roadmap" style conclusion.
 
-OUTPUT SCHEMA (JSON):
+### OUTPUT SCHEMA (JSON)
 {
   "title": "string",
-  "excerpt": "string (20-35 words summary, compelling and SEO-friendly)",
-  "slug": { "current": "string (lowercase, hyphen-separated, SEO-friendly)" },
-  "imagePrompt": "string (detailed prompt for hero image generation, modern, professional, relevant to topic)",
+  "excerpt": "string",
+  "slug": { "current": "string" },
+  "imagePrompt": "string",
   "sections": [
-    { "id": "sec_1", "type": "paragraph", "content": "string (long introduction paragraph, 250+ words)" },
-    { "id": "sec_2", "type": "quote", "content": "string", "citation": "string" },
-    { "id": "sec_3", "type": "paragraph", "content": "string (detailed body content, 600+ words)" },
-    { "id": "sec_4", "type": "paragraph", "content": "string (conclusion + actionable insights, 400+ words)" }
+    { "id": "sec_1", "type": "paragraph", "content": "string (Introduction, 250+ words)" },
+    { 
+      "id": "sec_2", 
+      "type": "quote", 
+      "content": "string (The verified quote text, or empty string if no fact-based quote is found)", 
+      "citation": "string (The name and title of the person/source being quoted)" 
+    },
+    { "id": "sec_3", "type": "paragraph", "content": "string (Deep-dive body content, 600+ words)" },
+    { "id": "sec_4", "type": "paragraph", "content": "string (Conclusion and actionable takeaways, 400+ words)" }
   ],
   "status": "published",
   "author": "string"
 }
 
-VALIDATION RULES:
-- TOTAL WORD COUNT MUST BE >= 1500 WORDS.
-- "sections" must contain exactly 4 sections in this exact order:
-  1. paragraph (introduction)
-  2. quote
-  3. paragraph (main content)
-  4. paragraph (conclusion)
-- Each paragraph section must be long-form and detailed (no short content).
-- The quote must be relevant, meaningful, and properly attributed.
-- Do NOT include markdown, HTML, or extra formatting.
-- Do NOT include an image section; only provide "imagePrompt".
-- "status" must be "published" unless explicitly specified otherwise.
+### VALIDATION RULES
+- **NO HALLUCINATIONS:** If you cannot find a real quote, leave "content" and "citation" in "sec_2" empty.
+- **WORD COUNT:** Ensure "sec_1", "sec_3", and "sec_4" provide exhaustive detail to meet the 1500-word target.
+- **CLEAN OUTPUT:** No markdown formatting or conversational filler.
 
 OUTPUT:
 `;
@@ -257,47 +253,41 @@ const generateBlogTitlePlanPrompt = (input: {
   blockedTitles?: string[]
   attempt?: number
 }) => {
-  const blocked = input.blockedTitles || []
-  const attempt = input.attempt || 1
+  const blocked = input.blockedTitles || [];
+  const attempt = input.attempt || 1;
 
   return `
-SYSTEM: You are a Senior Content Strategist for a resume and career platform.
-TASK: Propose ONE fresh, SEO-friendly blog title based on the resume context.
-STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+### ROLE
+You are a Senior Market Analyst and Search Intent Strategist specializing in the global labor market and recruitment trends.
 
-OBJECTIVE:
-- Generate a high-intent blog title that is practical, searchable, and aligned to the resume context.
-- Do NOT reuse, repeat, or slightly rephrase existing or blocked titles.
+### OBJECTIVE
+Propose ONE high-authority, SEO-optimized blog title derived from the candidate's specific professional context. The title must address real-world hiring pain points or emerging industry standards.
 
-INPUTS:
-Resume Context:
-${JSON.stringify(input.resumeContext)}
+### INPUT DATA
+- **RESUME CONTEXT (JSON):** ${JSON.stringify(input.resumeContext)}
+- **CONTENT HISTORY (DO NOT DUPLICATE):** ${JSON.stringify(input.existingTitles)}
+- **REJECTED ITERATIONS:** ${JSON.stringify(blocked)}
+- **ITERATION COUNT:** ${attempt}
 
-Existing Titles (must avoid):
-${JSON.stringify(input.existingTitles)}
+### STRATEGIC CONSTRAINTS
+1. **Market Alignment:** The title must reflect current hiring behaviors (e.g., "Skills-based hiring," "ATS optimization," or "Role-specific impact metrics").
+2. **Search Intent:** Prioritize "Informational" intent (how to solve a problem) or "Navigational" intent (how to reach a career milestone).
+3. **No Hallucinations:** Do not reference non-existent certifications, tools, or niche trends that aren't verified in the current professional landscape.
+4. **Length & Formatting:** 45-85 characters. Sentence case or Title Case. No clickbait superlatives (e.g., avoid "Shocking," "Secrets," or "Magic").
 
-Blocked Titles From Previous Attempts (must avoid):
-${JSON.stringify(blocked)}
+### STRICT OUTPUT RULE
+Return ONLY a valid JSON object. Do not include markdown fences (\`\`\`json) or any introductory text.
 
-Attempt Number: ${attempt}
-
-REQUIREMENTS:
-1. Return one title only.
-2. Title must be 45-85 characters.
-3. Keep title specific, actionable, and SEO-friendly.
-4. Avoid clickbait and generic wording.
-5. Must be distinct from existing and blocked titles.
-
-OUTPUT SCHEMA:
 {
   "title": "string",
-  "targetKeywords": ["string"],
-  "rationale": "string"
+  "targetKeywords": ["string", "string"],
+  "marketLogic": "string (A factual explanation of why this title aligns with current recruitment data or search trends)",
+  "intentCategory": "Career Growth | Technical Skill | Optimization | Industry Insight"
 }
 
 OUTPUT:
 `;
-}
+};
 
 export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt, generateSeoBlogPrompt, generateBlogTitlePlanPrompt };
 
