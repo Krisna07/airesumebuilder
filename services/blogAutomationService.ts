@@ -898,19 +898,6 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
   return createFallbackCoverImagePayload(imagePrompt, 'Image API response did not include image bytes')
 }
 
-async function isPotentialDuplicate(title: string, slugBase: string) {
-  const hours = Math.max(Number(process.env.BLOG_CRON_DEDUPE_WINDOW_HOURS || 48), 1)
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
-  const pattern = `${slugBase}*`
-
-  const count = await sanityClient.fetch<number>(
-    'count(*[_type == "blog" && (title == $title || slug.current match $pattern) && dateTime(createdAt) > dateTime($since)])',
-    { title, pattern, since }
-  )
-
-  return count > 0
-}
-
 export async function generateBlogDraftFromTitle(title: string) {
   const author = getDefaultAuthor()
   const prompt = generateSeoBlogPrompt(title, author)
@@ -964,19 +951,6 @@ export async function runHourlyBlogAutomation(options?: {
 
   const draft = await generateBlogDraftFromTitle(title)
   const slugBase = normalizeSlug(draft.slug || draft.title)
-
-  const duplicate = await isPotentialDuplicate(draft.title, slugBase)
-  if (duplicate) {
-    return {
-      success: true,
-      state: 'skipped',
-      reason: 'Potential duplicate in dedupe window',
-      title: draft.title,
-      slug: slugBase,
-      traceId,
-      durationMs: Date.now() - startedAt,
-    }
-  }
 
   if (options?.dryRun) {
     return {
