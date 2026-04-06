@@ -58,11 +58,31 @@ const TemplateSlider = () => {
 
 
   return (
+<<<<<<< HEAD
     <div className='w-full overflow-x-auto hide-scrollbar pb-2'>
       <div className='flex w-max gap-4 px-2 md:grid md:w-full md:grid-cols-3 md:gap-6 md:px-0'>
         {templates.map((template) => {
           const isHovered = hoveredTemplate === template.id
           const isCreating = creatingTemplate === template.name
+=======
+    <div className='w-full lg:grid flex md:grid-cols-3 p-2 gap-2 space-y-2 lg:overflow-hidden overflow-x-scroll hide-scrollbar rounded-xl'>
+      {templates.map((template) => (
+        <div
+          key={template.id}
+          className="group relative"
+          onMouseEnter={() => setHoveredTemplate(template.id)}
+          onMouseLeave={() => setHoveredTemplate(null)}
+        >
+          {/* Template Preview */}
+          <div
+            className={`rounded-xl p-2 bg-white shadow relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl h-80 sm:h-[360px] md:h-[360px] sm:w-[300px] w-[360px] md:w-[300px]`}
+          >
+            <ResumePreview
+              resumeData={mockResume}
+              template={template.name}
+              className='p-0! w-full h-full aspect-3/4! pointer-events-none rounded'
+            />
+>>>>>>> 529b3bb (feat: update layout metadata, enhance hero section, and improve how it works component; add robots.txt for SEO)
 
           return (
             <div

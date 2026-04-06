@@ -13,9 +13,9 @@ type HeroProps = {
 }
 
 const HeroSection: React.FC<HeroProps> = ({
-  title = "Build your resume with AI — fast.",
-  subtitle = "Turn your experience into interview-ready resumes and cover letters. Match jobs, get AI-crafted bullets, and export polished PDFs in minutes.",
-  ctaLabel = "Start building",
+  title = "Create a Winning Resume with AI — 100% Free.",
+  subtitle = "Build professional, ATS-optimized resumes in minutes. Let AI craft compelling bullet points while you focus on landing the job—all at absolutely no cost.",
+  ctaLabel = "Start Building Free",
   ctaHref = "/builder",
   secondaryLabel = "See templates",
 }) => {
@@ -68,8 +68,8 @@ const HeroSection: React.FC<HeroProps> = ({
         </div>
 
         {/* Trust indicators */}
-        <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
-          Free available ·  Export to PDF
+        <p className="mt-6 text-sm text-slate-500 dark:text-slate-400 font-medium">
+          ✓ 100% Free forever · ✓ Powered by advanced AI · ✓ Unlimited PDF exports
         </p>
 
         {/* Stats */}

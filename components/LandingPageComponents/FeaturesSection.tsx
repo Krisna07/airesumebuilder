@@ -3,8 +3,8 @@ import { Sparkles, FileCheck, Zap, Target, Download, Shield } from "lucide-react
 const features = [
   {
     icon: Sparkles,
-    title: "AI-Powered Writing",
-    description: "Let AI help you craft compelling bullet points and professional summaries that stand out.",
+    title: "Free AI-Powered Writing",
+    description: "Let our free AI generate compelling bullet points and professional summaries tailored to your target job.",
   },
   {
     icon: FileCheck,
@@ -23,8 +23,8 @@ const features = [
   },
   {
     icon: Download,
-    title: "Multiple Formats",
-    description: "Export your resume as PDF, Word, or plain text - whatever the employer needs.",
+    title: "Unlimited Free Downloads",
+    description: "Unlike other builders, export your resume as PDF or plain text as many times as you want without hitting paywalls.",
   },
   {
     icon: Shield,
@@ -40,10 +40,10 @@ const FeaturesSection = () => {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-            Everything you need to land your dream job
+            Premium AI features, absolutely free
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-            Powerful features designed to help you create the perfect resume, faster than ever.
+            Everything you need to build the perfect, ATS-friendly resume without spending a dime.
           </p>
         </div>
 
