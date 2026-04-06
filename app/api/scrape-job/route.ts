@@ -47,7 +47,7 @@ const normalizeUrl = (input: string): string => {
     } catch { return input; }
 };
 
-const axiosFetch = async (url: string, attempt = 1): Promise<string> => {
+const webFetch = async (url: string, attempt = 1): Promise<string> => {
     const ua = USER_AGENTS[(attempt - 1) % USER_AGENTS.length];
     const headers = {
         'user-agent': ua,
@@ -61,6 +61,7 @@ const axiosFetch = async (url: string, attempt = 1): Promise<string> => {
         'sec-fetch-user': '?1',
         'sec-fetch-dest': 'document'
     } as Record<string, string>;
+<<<<<<< HEAD
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
@@ -79,6 +80,20 @@ const axiosFetch = async (url: string, attempt = 1): Promise<string> => {
         return await response.text();
     } finally {
         clearTimeout(timeout);
+=======
+    
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+        const response = await fetch(url, { headers, signal: controller.signal });
+        clearTimeout(id);
+        const data = await response.text();
+        return data;
+    } catch (e) {
+        clearTimeout(id);
+        throw e;
+>>>>>>> 0dbf622 (feat: implement blog management system with validation, AI-assisted editing, and pre-publish checks)
     }
 };
 
@@ -87,7 +102,7 @@ const fetchHTML = async (rawUrl: string, useBrowser: boolean): Promise<{ html: s
     if (!useBrowser) {
         // Try up to 3 attempts rotating UA if 403/401/429
         for (let attempt = 1; attempt <= 3; attempt++) {
-            const html = await axiosFetch(url, attempt);
+            const html = await webFetch(url, attempt);
             if (/<!doctype/i.test(html) || html.length > 500) {
                 // crude check for real HTML
                 if (!/Access Denied|captcha/i.test(html)) return { html, usedBrowser: false };

@@ -22,6 +22,7 @@ export default function RootLayout({
     <html lang='en' data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

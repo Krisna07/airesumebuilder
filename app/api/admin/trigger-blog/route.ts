@@ -26,6 +26,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, data: result })
   } catch (err) {
     console.error('Trigger blog automation failed', err)
-    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Unexpected error' }, { status: 500 })
+    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Unexpected error' })
   }
 }
