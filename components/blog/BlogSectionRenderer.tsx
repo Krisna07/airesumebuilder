@@ -11,7 +11,12 @@ export default function BlogSectionRenderer({ section }: BlogSectionRendererProp
   }
 
   if (section.type === 'paragraph') {
-    return <p className="text-slate-700 dark:text-slate-300 leading-7 mb-4 whitespace-pre-wrap">{section.content}</p>
+    return (
+      <div
+        className="text-slate-700 dark:text-slate-300 leading-7 mb-4"
+        dangerouslySetInnerHTML={{ __html: section.content }}
+      />
+    )
   }
 
   if (section.type === 'quote') {
@@ -29,7 +34,7 @@ export default function BlogSectionRenderer({ section }: BlogSectionRendererProp
     return (
       <ul className="list-disc ml-6 mb-4 space-y-2 text-slate-700 dark:text-slate-300">
         {section.items.map((item, idx) => (
-          <li key={`${section.id}-item-${idx}`}>{item}</li>
+          <li key={`${section.id}-item-${idx}`} dangerouslySetInnerHTML={{ __html: item }} />
         ))}
       </ul>
     )
