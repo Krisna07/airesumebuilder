@@ -4,7 +4,30 @@ import { prisma } from '@/lib/prisma';
 // import { validate } from 'deep-email-validator'; // Properly destructure validate
 import { EmailService } from '@/utils/sendEmail';
 
-async function handleCreateUser(req: NextRequest) {
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function upsertVerification(userId: string, code: string, expiresAt: Date) {
+  const existingVerification = await prisma.verification.findFirst({ where: { userId } });
+
+  if (existingVerification) {
+    return prisma.verification.update({
+      where: { id: existingVerification.id },
+      data: { code, expiresAt },
+    });
+  }
+
+  return prisma.verification.create({
+    data: {
+      userId,
+      code,
+      expiresAt,
+    },
+  });
+}
+
+export async function PUT(req: NextRequest) {
   try {
     let user;
     const { email, name, image, provider, providerId, password } = await req.json();
@@ -43,16 +66,24 @@ async function handleCreateUser(req: NextRequest) {
     }
 
     // Credentials-based signup
-    if (!provider) {
+    if (provider === 'credentials') {
       if (!password) {
         return NextResponse.json({ error: 'Password is required for credentials signup.' }, { status: 400 });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
+      const code = generateVerificationCode();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
       if (existingUser) {
         if (existingUser.password) {
           return NextResponse.json({ error: 'User already exists.' }, { status: 409 });
+        }
+
+        const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
+        if (emailResponse && 'error' in emailResponse) {
+          console.error('Failed to send verification email:', emailResponse.error);
+          return NextResponse.json({ error: 'Failed to send verification email.' }, { status: 500 });
         }
 
         user = await prisma.user.update({
@@ -63,19 +94,36 @@ async function handleCreateUser(req: NextRequest) {
             provider: provider || 'credentials',
             providerId: providerId || null,
             password: hashedPassword,
+            isVerified: false,
           },
         });
+
+        await upsertVerification(user.id, code, expiresAt);
+
+        return NextResponse.json({
+          data: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            provider: user.provider,
+            providerId: user.providerId,
+            isVerified: false,
+          },
+        }, { status: 200 });
       } else {
         // Validate email
         // const validateEmail = await validate(email);
         // if (!validateEmail.valid) {
         //   return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
         // }
-        // Generate verification details and store in DB
-        const generateVerificationCode = () => Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
-        const code = generateVerificationCode();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
+        // Send welcome email with the code
+        const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
+        if (emailResponse && 'error' in emailResponse) {
+          console.error('Failed to send verification email:', emailResponse.error);
+          return NextResponse.json({ error: 'Failed to send verification email.' }, { status: 500 });
+        }
 
         user = await prisma.user.create({
           data: {
@@ -88,21 +136,9 @@ async function handleCreateUser(req: NextRequest) {
             isVerified: false,
           },
         });
-        // Create verification record in DB
-        await prisma.verification.create({
-          data: {
-            userId: user.id,
-            code,
-            expiresAt,
-          },
-        });
-        const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
 
-        // Send welcome email with the code
-        if (emailResponse && 'error' in emailResponse) {
-          console.error('Failed to send verification email:', emailResponse.error);
-          return NextResponse.json({ error: 'Failed to send verification email.' }, { status: 500 });
-        }
+        await upsertVerification(user.id, code, expiresAt);
+
         return NextResponse.json({
           data: {
             id: user.id,
@@ -117,7 +153,6 @@ async function handleCreateUser(req: NextRequest) {
       }
     }
 
-
     if (user) {
       return NextResponse.json({
         data: {
@@ -127,7 +162,7 @@ async function handleCreateUser(req: NextRequest) {
           image: user.image,
           provider: user.provider,
           providerId: user.providerId,
-          isVerified: !!user.password, // Mark as verified if password exists
+          isVerified: user.isVerified ?? false,
         },
       }, { status: 200 });
     } else {
@@ -137,14 +172,6 @@ async function handleCreateUser(req: NextRequest) {
     console.error('Error creating user:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
-}
-
-export async function POST(req: NextRequest) {
-  return handleCreateUser(req);
-}
-
-export async function PUT(req: NextRequest) {
-  return handleCreateUser(req);
 }
 
 

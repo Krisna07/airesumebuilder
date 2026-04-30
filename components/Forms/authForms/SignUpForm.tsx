@@ -62,14 +62,7 @@ const SignUpForm: React.FC = () => {
             </div>}
 
             <h2 className='text-2xl font-bold text-center'>Welcome to Resume Craft</h2>
-            <p className='w-[80%] text-[10px]'>
-                Sign up to create tailored resumes that match the roles you want.
-                Already have an account?{' '}
-                <a href='/auth/signin' className='underline text-blue-600'>
-                    Log in here
-                </a>
-                .
-            </p>
+
             <form onSubmit={handleSubmit} className='w-full  grid gap-4   p-4 font-semibold '>
                 <div className='grid gap-2 relative'>
                     <label className=''>Email *</label>
@@ -82,9 +75,16 @@ const SignUpForm: React.FC = () => {
                     <FaCircleExclamation className={` absolute bottom-3 right-2 ${isError ? 'opacity-100 text-red-500' : 'opacity-0 bg-none'} transition-all ease-in-out`} />
 
                 </div>
-                <label className='flex items-start gap-2'>
+                <p className='w-[80%]'>
+                    Already have an account?{' '}
+                    <a href='/auth/signin' className='underline text-blue-600'>
+                        Log in here
+                    </a>
+                    .
+                </p>
+                <label className='flex hidden items-start gap-2'>
                     <input type='checkbox' />
-                    <p className='text-[8px] text-gray-500 leading-[120%] '>
+                    <p className=' text-gray-500 leading-[120%] '>
                         By checking the box on right,
                         You confirm you agree to our{' '}
                         <a href='/terms' className='underline text-blue-600'>
