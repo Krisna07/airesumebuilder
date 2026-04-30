@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
+import { getToken } from 'next-auth/jwt';
 import { generateTemplateHTML } from "@/lib/template-utils";
+import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
 // Dynamic imports for puppeteer and chromium
 import fs from 'fs';
 
@@ -12,10 +14,25 @@ const chromiumVersion = process.env.CHROMIUM_VERSION || '141.0.0';
 const chromiumArch = process.arch === 'arm64' ? 'arm64' : 'x64';
 const remotePackUrl = `https://github.com/Sparticuz/chromium/releases/download/v${chromiumVersion}/chromium-v${chromiumVersion}-pack.${chromiumArch}.tar`;
 
+function jsonError(status: number, body: Record<string, unknown>) {
+    return new Response(JSON.stringify(body), {
+        status,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+}
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         let content = body.content;
+        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+        const userId = typeof token?.id === 'string'
+            ? token.id
+            : typeof token?.sub === 'string'
+                ? token.sub
+                : null;
 
         // If resumeData and template are provided, generate HTML from template
         if (body.resumeData && body.template) {
@@ -29,6 +46,23 @@ export async function POST(req: NextRequest) {
 
         if (!content) {
             throw new Error('No content provided for PDF generation');
+        }
+
+        try {
+            if (userId) {
+                const { assertQuota, mapSubscriptionError } = await import('@/lib/subscription-server');
+                try {
+                    await assertQuota(userId, 'download');
+                } catch (err) {
+                    const mapped = mapSubscriptionError(err);
+                    return jsonError(mapped.status, { error: mapped.message });
+                }
+            } else {
+                await assertGuestQuota('download');
+            }
+        } catch (err) {
+            const mapped = mapGuestUsageError(err);
+            return jsonError(mapped.status, { error: mapped.message });
         }
 
         let browser;
@@ -114,6 +148,13 @@ export async function POST(req: NextRequest) {
         const filename = body.resumeData?.profile?.fullname
             ? `${body.resumeData.profile.fullname.replace(/\s+/g, '_')}_Resume.pdf`
             : 'Resume.pdf';
+
+        if (userId) {
+            const { consumeUsage } = await import('@/lib/subscription-server');
+            await consumeUsage(userId, 'download');
+        } else {
+            await consumeGuestUsage('download');
+        }
 
         // Return PDF as response
         return new Response(Buffer.from(pdfBuffer), {

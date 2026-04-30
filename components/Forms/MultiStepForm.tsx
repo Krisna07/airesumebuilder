@@ -38,9 +38,11 @@ const STEPS_LABELS = [
 ] as const
 
 const FINAL_STEP_INDEX = STEPS_LABELS.length + 1
+const STEP_STORAGE_PREFIX = "resume_builder_step_"
 
 const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, userId }) => {
   const router = useRouter()
+  const stepStorageKey = `${STEP_STORAGE_PREFIX}${resumeId}`
   const [formData, setFormData] = useState<ResumeData>(() => {
     // Load from cache first for instant UI
     const cached = ResumeCache.get(resumeId);
@@ -51,6 +53,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     return cached?.data.template ?? resumeContent?.template ?? "";
   })
   const [currentStep, setCurrentStep] = useState(1)
+  const [hasRestoredStep, setHasRestoredStep] = useState(false)
   const { showToast } = useToast()
   const generateSectionMutation = useGenerateSection()
 
@@ -72,6 +75,33 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     const dataWithTemplate = { ...formData, template: selectedTemplate };
     queueSync(dataWithTemplate);
   }, [formData, selectedTemplate, queueSync]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    setHasRestoredStep(false)
+    const storedStep = window.sessionStorage.getItem(stepStorageKey)
+    if (!storedStep) {
+      setCurrentStep(1)
+      setHasRestoredStep(true)
+      return;
+    }
+
+    const parsedStep = Number.parseInt(storedStep, 10)
+    if (!Number.isNaN(parsedStep) && parsedStep >= 1 && parsedStep <= STEPS_LABELS.length) {
+      setCurrentStep(parsedStep)
+    } else {
+      setCurrentStep(1)
+    }
+
+    setHasRestoredStep(true)
+  }, [stepStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!hasRestoredStep) return;
+    window.sessionStorage.setItem(stepStorageKey, String(currentStep))
+  }, [currentStep, hasRestoredStep, stepStorageKey])
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -136,11 +166,6 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   }, [])
 
   const handleRegenerateSection = useCallback(async (sectionKey: RegenerateSectionKey) => {
-    if (!userId) {
-      showToast('Please sign in to use AI regeneration', 'warning', 2500);
-      return;
-    }
-
     try {
       const result = await generateSectionMutation.mutateAsync({
         sectionKey,
@@ -163,16 +188,15 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Failed to regenerate section', 'error', 3000);
     }
-  }, [formData, generateSectionMutation, showToast, userId])
+  }, [formData, generateSectionMutation, showToast])
 
   const getSectionAction = useCallback((sectionKey: RegenerateSectionKey) => (
     <SectionRegenerateButton
       onClick={() => handleRegenerateSection(sectionKey)}
       loading={generateSectionMutation.isPending}
-      disabled={!userId}
       label="Regenerate"
     />
-  ), [generateSectionMutation.isPending, handleRegenerateSection, userId])
+  ), [generateSectionMutation.isPending, handleRegenerateSection])
 
   const renderStep = useMemo(() => {
     switch (currentStep) {

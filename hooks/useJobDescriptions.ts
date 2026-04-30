@@ -4,6 +4,7 @@ import { JobDescriptionService } from '@/services/jdServices';
 export const useJobDescriptions = (userId: string, resumeId?: string) => {
   return useQuery({
     queryKey: ['allJd', userId, resumeId], // Unique key based on userId and resumeId
+    enabled: !!userId,
     queryFn: async () => {
       if (!userId) {
         throw new Error('User ID is required');
