@@ -1,10 +1,11 @@
 
+"use client"
+
 import dummyResume from './../../app/data/dummyResume.json'
 import ResumePreview from '../Templates/ResumePreview';
 import Button from '../Ui/Button';
 
 import { ArrowRight, Check } from 'lucide-react';
-;
 import { useAuth } from '@/context/authContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import { ResumeService } from '@/services/resumeServices';
@@ -15,6 +16,7 @@ import Templates from '../Templates/templates';
 
 const TemplateSlider = () => {
   const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null)
+  const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mockResume: any = {
@@ -26,14 +28,12 @@ const TemplateSlider = () => {
 
   const { user } = useAuth()
   const { showToast } = useToast()
-  const [creating, setCreating] = useState<boolean>(false)
   const handleCreateResume = async (template: string) => {
-    setCreating(true)
+    setCreatingTemplate(template)
     const loggedInUser = user
     if (!loggedInUser) {
       LocalResumeService.create(undefined, undefined, template)
       window.location.href = ('/builder/guest-resume')
-      setCreating(false)
       return
     }
 
@@ -52,66 +52,68 @@ const TemplateSlider = () => {
       console.error("Error creating resume:", err)
       showToast("Error creating resume", 'error')
     } finally {
-      setCreating(false)
+      setCreatingTemplate(null)
     }
   }
 
 
   return (
-    <div className='w-full md:grid flex md:grid-cols-3 p-2 gap-2 space-y-2 md:overflow-hidden overflow-x-scroll hide-scrollbar rounded-xl'>
-      {templates.map((template) => (
-        <div
-          key={template.id}
-          className="group relative"
-          onMouseEnter={() => setHoveredTemplate(template.id)}
-          onMouseLeave={() => setHoveredTemplate(null)}
-        >
-          {/* Template Preview */}
-          <div
-            className={`rounded-xl p-2 bg-white shadow relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl h-80 sm:h-[360px] md:h-[420px] sm:w-[300px] w-60 md:w-[360]`}
-          >
+    <div className='w-full overflow-x-auto hide-scrollbar pb-2'>
+      <div className='flex w-max gap-4 px-2 md:grid md:w-full md:grid-cols-3 md:gap-6 md:px-0'>
+        {templates.map((template) => {
+          const isHovered = hoveredTemplate === template.id
+          const isCreating = creatingTemplate === template.name
 
-
-            <ResumePreview
-              resumeData={mockResume}
-              template={template.name}
-              className='p-0! w-full h-full aspect-3/4! pointer-events-none rounded'
-            />
-
+          return (
             <div
-              className={`absolute inset-0 bg-teal-600/20 flex items-center justify-center transition-opacity duration-300 ${hoveredTemplate === template.id || creating ? "opacity-100" : "opacity-0"}`}
+              key={template.id}
+              className="group relative w-60 shrink-0 sm:w-[300px] md:w-auto md:min-w-0"
+              onMouseEnter={() => setHoveredTemplate(template.id)}
+              onMouseLeave={() => setHoveredTemplate(null)}
             >
-              <div onClick={() => handleCreateResume(template.name)}>
-                <Button variant="primary" size="small" >
-                  {creating ? "Creating" : ' Use Template'}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+              <div
+                className="relative h-80 overflow-hidden rounded-xl bg-white p-2 shadow transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl sm:h-[360px] md:h-[420px]"
+              >
+                <ResumePreview
+                  resumeData={mockResume}
+                  template={template.name}
+                  className='pointer-events-none h-full w-full rounded p-0! aspect-3/4!'
+                />
+
+                <div
+                  className={`absolute inset-0 flex items-center justify-center rounded-xl bg-teal-600/20 transition-opacity duration-300 ${isHovered || isCreating ? "opacity-100" : "opacity-0"}`}
+                >
+                  <Button
+                    variant="primary"
+                    size="small"
+                    onClick={() => handleCreateResume(template.name)}
+                  >
+                    {isCreating ? "Creating" : 'Use Template'}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4 text-center">
+                <h3 className="font-semibold text-slate-900 dark:text-white">{template.name}</h3>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{template.description}</p>
+
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  {template?.tags?.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                    >
+                      <Check className="w-3 h-3" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Template Info */}
-          < div className="mt-4" >
-            <h3 className="font-semibold text-slate-900 dark:text-white">{template.name}</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{template.description}</p>
-
-            {/* Tags */}
-            < div className="flex flex-wrap items-center justify-center gap-2 mt-3" >
-              {
-                template?.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
-                  >
-                    <Check className="w-3 h-3" />
-                    {tag}
-                  </span>
-                ))
-              }
-            </div>
-          </div >
-        </div >))
-      }
+          )
+        })}
+      </div>
     </div>
   );
 };

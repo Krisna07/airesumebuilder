@@ -6,6 +6,7 @@ import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/type
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
+import { LocalResumeService } from '@/services/localResumeService';
 import { Bot, Download, Edit, Plus, Trash, Loader2, BotIcon, X, FileUser, FileSliders, Copy, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/Ui/Button';
@@ -26,24 +27,20 @@ import { DEFAULT_RESUME_STYLE } from '@/lib/defaultStyle';
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
 
+type GuestUsageSnapshot = {
+  download: { used: number; remaining: number; limit: number };
+  regen: { used: number; remaining: number; limit: number };
+  lastResetDate: string;
+};
+
 const PreviewPage = () => {
   const params = useParams();
   const slug = (params?.slug ?? "") as string;
   const { user, getSubscription } = useAuth();
   const { showToast } = useToast();
-  const [resumeData, setResumeData] = useState<ResumeData | undefined>(() => {
-    // Load from cache FIRST for instant preview
-    const cached = ResumeCache.get(slug);
-    return cached?.data;
-  });
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(() => {
-    const cached = ResumeCache.get(slug);
-    return cached?.data.template ?? 'modern';
-  });
-  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>(() => {
-    const cached = ResumeCache.get(slug);
-    return cached?.data ? 'ready' : 'loading';
-  });
+  const [resumeData, setResumeData] = useState<ResumeData | undefined>();
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'incomplete' | 'not-found' | 'error'>('loading');
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -62,6 +59,7 @@ const PreviewPage = () => {
   const [coverLetter, setCoverLetter] = useState<any>()
   const [showCoverLetter, setShowCoverLetter] = useState(false)
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
+  const [guestUsage, setGuestUsage] = useState<GuestUsageSnapshot | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null);
   const reportsRef = useRef<HTMLDivElement | null>(null);
   const stylesRef = useRef<HTMLDivElement | null>(null);
@@ -69,8 +67,44 @@ const PreviewPage = () => {
   const styleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isGuestResume = slug === 'guest-resume';
+  const usesRemoteResume = Boolean(user && !isGuestResume);
   const response = useJobDescriptions(user ? user.id : '', slug)
   const resumeResponse = useGetResume(isGuestResume ? "" : slug)
+
+  const loadGuestUsage = React.useCallback(async () => {
+    if (user) return;
+
+    try {
+      const usageResponse = await fetch('/api/guest-usage', {
+        credentials: 'include',
+      });
+      if (!usageResponse.ok) return;
+      const data = await usageResponse.json();
+      setGuestUsage(data);
+    } catch (error) {
+      console.warn('Failed to load guest usage', error);
+    }
+  }, [user]);
+
+  const refreshUsageState = React.useCallback(async () => {
+    if (user) {
+      await getSubscription(false);
+      return;
+    }
+
+    await loadGuestUsage();
+  }, [getSubscription, loadGuestUsage, user]);
+
+  const hydrateFromCache = React.useCallback(() => {
+    const cached = ResumeCache.get(slug);
+    if (!cached?.data) return false;
+
+    setResumeData(cached.data);
+    setSelectedTemplate(cached.data.template ?? 'modern');
+    const hasMinimum = !!(cached.data.profile?.fullname && cached.data.profile?.email);
+    setStatus(hasMinimum ? 'ready' : 'incomplete');
+    return true;
+  }, [slug]);
 
   const loadLocalResume = React.useCallback(() => {
     const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;
@@ -78,6 +112,7 @@ const PreviewPage = () => {
       try {
         const parsed = JSON.parse(localResume);
         setResumeData(parsed);
+        setSelectedTemplate(parsed?.template ?? 'modern');
         const hasMinimum = !!(parsed?.profile?.fullname && parsed?.profile?.email);
         setStatus(hasMinimum ? 'ready' : 'incomplete');
       } catch {
@@ -88,6 +123,10 @@ const PreviewPage = () => {
     }
     return;
   }, [slug]);
+
+  useEffect(() => {
+    hydrateFromCache();
+  }, [hydrateFromCache]);
 
   useEffect(() => {
     if (!user) {
@@ -122,6 +161,12 @@ const PreviewPage = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      void loadGuestUsage();
+    }
+  }, [loadGuestUsage, user]);
 
   // Load local coverletter once on mount
   useEffect(() => {
@@ -277,10 +322,6 @@ const PreviewPage = () => {
       showToast('Resume data not available', 'error', 2000);
       return;
     }
-    if (!user) {
-      showToast('Please login to use this feature', 'warning', 3000);
-      return;
-    }
 
     // Use cached data if available (faster)
     const cached = ResumeCache.get(slug);
@@ -303,8 +344,6 @@ const PreviewPage = () => {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
-        setDownloading(false);
-        setRegenerating(false);
         return;
       }
 
@@ -324,13 +363,13 @@ const PreviewPage = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       showToast('PDF downloaded', 'success', 1500);
-      setDownloading(false);
-      setRegenerating(false);
-      // Avoid forced refresh; server updates usage
-      await getSubscription(false);
+      await refreshUsageState();
     } catch (error) {
       console.error('❌ PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
+    } finally {
+      setDownloading(false);
+      setRegenerating(false);
     }
   };
 
@@ -358,54 +397,62 @@ const PreviewPage = () => {
   };
 
   const handleRegerate = async (resumeData: ResumeData, analysis?: AnalysisResult, jobDescription?: any) => {
-    if (!user) {
-      return showToast('This feature is not availbale on guest version', 'info', 3000);
-    }
     setRegenerating(true);
     setPendingUpdate(true);
     showToast('Generating resume')
-    const response = await ResumeService.regenerate(resumeData, jobDescription, analysis);
-    const data = await response.json();
-    if (!response.ok) {
-      showToast('Error regenerating resume', 'error', 3000);
-      setRegenerating(false);
-      setPendingUpdate(false);
+    try {
+      const response = await ResumeService.regenerate(resumeData, jobDescription, analysis);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        showToast(data?.error || data?.details || 'Error regenerating resume', 'error', 3000);
+        return;
+      }
+
+      const nextResume: ResumeData = {
+        ...resumeData,
+        template: selectedTemplate,
+        profile: data.resume.profile,
+        skills: data.resume.skills,
+        experiences: data.resume.experiences,
+        educations: data.resume.educations,
+        customSections: data.resume.customSections,
+        styleConfig: data.resume.styleConfig ?? resumeData.styleConfig,
+      };
+
+      if (user) {
+        const updatedResume = await ResumeService.save(
+          resumeData.userId,
+          resumeData.id,
+          selectedTemplate,
+          nextResume,
+        );
+
+        if (!updatedResume.ok) {
+          return showToast(
+            'Error saving the resume, the data isnot saved to database',
+            'warning',
+            4000,
+          );
+        }
+
+        ResumeCache.markSynced(slug);
+      } else {
+        await LocalResumeService.update(slug, nextResume);
+      }
+
+      ResumeCache.set(slug, nextResume, false);
+      setResumeData(nextResume);
+      showToast('Resume has been regenerated Successfully', 'success', 3000);
+      await refreshUsageState();
       return;
-    }
-    const updatedResume = await ResumeService.save(
-      resumeData.userId,
-      resumeData.id,
-      resumeData.template,
-      data.resume,
-    );
-
-    if (!updatedResume.ok) {
+    } catch (error) {
+      console.error('Resume regeneration error:', error);
+      showToast('Error regenerating resume', 'error', 3000);
+    } finally {
       setRegenerating(false);
       setPendingUpdate(false);
-      return showToast(
-        'Error saving the resume, the data isnot saved to database',
-        'warning',
-        4000,
-      );
     }
-    setResumeData({
-      id: resumeData.id,
-      userId: resumeData.userId,
-      title: resumeData.title,
-      template: resumeData.template,
-      profile: data.resume.profile,
-      skills: data.resume.skills,
-      experiences: data.resume.experiences,
-      educations: data.resume.educations,
-      customSections: data.resume.customSections,
-    });
-
-    showToast(`Resume has been regenerated Successfully`, 'success', 3000);
-    setRegenerating(false);
-    setPendingUpdate(false);
-    // Avoid forced refresh; server updates usage
-    await getSubscription(false);
-    return;
   };
 
   const handleReAnalysis = async (analysis: any) => {
@@ -502,7 +549,7 @@ const PreviewPage = () => {
     }
   }
 
-  const loadingResume = resumeResponse.isLoading || resumeResponse.isFetching;
+  const loadingResume = usesRemoteResume && (resumeResponse.isLoading || resumeResponse.isFetching);
 
   // Unified rendering logic to prevent 'No Resume Data' flash
   if (loadingResume || (!resumeData && status === 'loading')) {
@@ -524,24 +571,7 @@ const PreviewPage = () => {
     );
   }
 
-  if (resumeResponse.isFetched && resumeResponse.isSuccess && !resumeData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Resume Data</h2>
-          <p className="text-gray-600 mb-6">Please complete your resume before previewing or create a new one.</p>
-          <button
-            onClick={() => (window.location.href = '/builder')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go to Builder
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (resumeResponse.isSuccess && status === 'incomplete') {
+  if (status === 'incomplete') {
     return (
       <div className="h-full bg-gray-50 flex items-center justify-center">
         <div className="text-center flex flex-col items-center justify-center p-2">
@@ -561,7 +591,7 @@ const PreviewPage = () => {
     );
   }
 
-  if (resumeResponse.isFetched && resumeResponse.isSuccess && resumeData) {
+  if (status === 'ready' && resumeData) {
     const displayTemplate = user ? Templates : Templates.slice(0, 3);
     return (
       <div
@@ -711,6 +741,14 @@ const PreviewPage = () => {
               <Edit size={16} /> {showStyles ? 'Hide Style Editor' : 'Edit Style & Order'}
             </button>
           </div>
+
+          {!user && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              {guestUsage
+                ? `Guest daily limits: ${guestUsage.download.remaining}/${guestUsage.download.limit} downloads left, ${guestUsage.regen.remaining}/${guestUsage.regen.limit} regenerations left.`
+                : 'Guest daily limits: 5 downloads and 5 regenerations.'}
+            </div>
+          )}
 
           {showStyles && resumeData && (
             <div className="hidden min-[500px]:max-[800px]:block w-full">
@@ -988,7 +1026,7 @@ const PreviewPage = () => {
   }
   // No data fallback only when status is not-found
 
-  if (resumeResponse.isError) {
+  if (usesRemoteResume && resumeResponse.isError) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-600 flex items-center justify-center">
         <div className="text-center">

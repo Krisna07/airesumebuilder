@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { AIService } from '@/services/aiServices';
 import { ResumeData } from '@/types/types';
-import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server';
+import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
 
 type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'customSections';
 
@@ -37,18 +38,27 @@ function buildSectionPatch(sectionKey: SectionKey, resumeData: ResumeData, gener
 
 export async function POST(req: NextRequest) {
   try {
-    let userId: string;
-    try {
-      ({ userId } = await requireUserSession());
-    } catch (err) {
-      const mapped = mapSubscriptionError(err);
-      return NextResponse.json({ error: mapped.message }, { status: mapped.status });
-    }
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const userId = typeof token?.id === 'string'
+      ? token.id
+      : typeof token?.sub === 'string'
+        ? token.sub
+        : null;
 
     try {
-      await assertQuota(userId, 'regen');
+      if (userId) {
+        const { assertQuota, mapSubscriptionError } = await import('@/lib/subscription-server');
+        try {
+          await assertQuota(userId, 'regen');
+        } catch (err) {
+          const mapped = mapSubscriptionError(err);
+          return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+        }
+      } else {
+        await assertGuestQuota('regen');
+      }
     } catch (err) {
-      const mapped = mapSubscriptionError(err);
+      const mapped = mapGuestUsageError(err);
       return NextResponse.json({ error: mapped.message }, { status: mapped.status });
     }
 
@@ -68,7 +78,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'AI response was invalid for the requested section' }, { status: 422 });
     }
 
-    await consumeUsage(userId, 'regen');
+    if (userId) {
+      const { consumeUsage } = await import('@/lib/subscription-server');
+      await consumeUsage(userId, 'regen');
+    } else {
+      await consumeGuestUsage('regen');
+    }
 
     return NextResponse.json({
       success: true,
