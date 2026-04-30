@@ -1,5 +1,4 @@
 import nodemailer from "nodemailer";
-import { validate } from "deep-email-validator";
 
 // Create a transporter using Ethereal test credentials.
 // For production, replace with your actual SMTP server details.
@@ -13,19 +12,8 @@ export const createTransporter = (auth: { user: string, pass: string }) => nodem
 
 
 export class EmailService {
-    static async ValidateEmail(email: string) {
-        return validate(email);
-    }
-
     static async sendVerificationCode(email: string, name: string, code: string) {
         const receiverEmail = email;
-
-        // Validate the email
-        const isEmailValid = await validate(receiverEmail);
-        if (!isEmailValid.valid) {
-            console.error("Invalid email address:", isEmailValid.reason);
-            return;
-        }
 
         const senderEmail = "authentication@airesumecraft.xyz";
 
@@ -81,11 +69,6 @@ The AireSumeCraft Team
     }
 
     static async sendPasswordReset(email: string, code: string) {
-        const isEmailValid = await validate(email);
-        if (!isEmailValid.valid) {
-            console.error("Invalid email address:", isEmailValid.reason);
-            return;
-        }
         const senderEmail = "authentication@airesumecraft.xyz";
         // Email content
         const subject = "Password Reset Request Code";
