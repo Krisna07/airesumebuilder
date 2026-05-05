@@ -44,12 +44,14 @@ export function matchRole(userInput: string) {
 
   let bestRoleMatch: string | null = null;
   let maxScore = 0;
+  let bestExactTokenMatches = 0;
 
   const roles = (recommendations as unknown as { roles: Record<string, RoleData> }).roles;
 
   for (const [roleKey, roleValue] of Object.entries(roles)) {
     const data = roleValue as RoleData;
     let score = 0;
+    let exactTokenMatches = 0;
 
     // 1. Check for exact alias match (High Priority)
     const hasExactMatch = data.aliases.some((alias: string) => 
@@ -72,6 +74,7 @@ export function matchRole(userInput: string) {
     for (const uToken of userTokens) {
       if (allAliasTokens.has(uToken)) {
         matchedTokens++;
+        exactTokenMatches++;
         score += 1;
       } else {
         // more tolerant matching: substring or startsWith for longer tokens
@@ -108,16 +111,26 @@ export function matchRole(userInput: string) {
     if (score > maxScore) {
       maxScore = score;
       bestRoleMatch = roleKey;
+      bestExactTokenMatches = exactTokenMatches;
     }
   }
 
-  // Only return a match if we have a significant score
-  if (maxScore > 0) return bestRoleMatch;
+  // Reject fuzzy-only matches to avoid drifting to unrelated tech/general roles.
+  // Require either:
+  // 1. Multiple exact token matches (at least 2), OR
+  // 2. High coverage (75%+ of input tokens matched exactly)
+  const exactTokenCoverage = bestExactTokenMatches / Math.max(1, userTokens.length);
+  const hasMultipleExactMatches = bestExactTokenMatches >= 2;
+  const hasHighCoverage = exactTokenCoverage >= 0.75;
+
+  if (maxScore > 0 && (hasMultipleExactMatches || hasHighCoverage)) {
+    return bestRoleMatch;
+  }
 
   // Debug: if no match found, log normalized tokens for inspection
   try {
     // eslint-disable-next-line no-console
-    console.debug('[roleMatcher] No match for input tokens:', userInput, '->', userTokens);
+    console.debug('[roleMatcher] No match for input tokens:', userInput, '->', userTokens, 'bestExactMatches:', bestExactTokenMatches);
   } catch (e) {}
   return null;
 }
