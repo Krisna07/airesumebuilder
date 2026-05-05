@@ -40,6 +40,12 @@ model Resume {
   updatedAt      DateTime        @updatedAt
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deleted        Boolean         @default(false)
+  regenStatus    String          @default("idle")
+  regenRequestedAt DateTime?
+  regenStartedAt DateTime?
+  regenFinishedAt DateTime?
+  regenError     String?
+  regenJobDescription Json?
   analysisResults AnalysisResult[]
 }
 

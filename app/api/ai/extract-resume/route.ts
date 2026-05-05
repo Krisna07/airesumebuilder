@@ -2,6 +2,9 @@ import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
     try {
         let userId: string

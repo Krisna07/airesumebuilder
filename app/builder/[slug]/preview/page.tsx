@@ -65,6 +65,10 @@ const PreviewPage = () => {
   const stylesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
   const styleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const regeneratePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const regenerateNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const regenerateLongRunningNotifiedRef = useRef(false);
+  const regenerateActiveRef = useRef(false);
 
   const isGuestResume = slug === 'guest-resume';
   const usesRemoteResume = Boolean(user && !isGuestResume);
@@ -159,8 +163,106 @@ const PreviewPage = () => {
       if (styleSaveTimerRef.current) {
         clearTimeout(styleSaveTimerRef.current);
       }
+      if (regeneratePollRef.current) {
+        clearTimeout(regeneratePollRef.current);
+      }
+      if (regenerateNoticeTimerRef.current) {
+        clearTimeout(regenerateNoticeTimerRef.current);
+      }
     };
   }, []);
+
+  const clearRegenerationTimers = React.useCallback(() => {
+    if (regeneratePollRef.current) {
+      clearTimeout(regeneratePollRef.current);
+      regeneratePollRef.current = null;
+    }
+    if (regenerateNoticeTimerRef.current) {
+      clearTimeout(regenerateNoticeTimerRef.current);
+      regenerateNoticeTimerRef.current = null;
+    }
+  }, []);
+
+  const finishRegenerationState = React.useCallback((resumeId?: string) => {
+    regenerateActiveRef.current = false;
+    regenerateLongRunningNotifiedRef.current = false;
+    clearRegenerationTimers();
+    setRegenerating(false);
+    setPendingUpdate(false);
+    if (typeof window !== 'undefined' && resumeId) {
+      localStorage.removeItem(`resume-regenerate:${resumeId}`);
+    }
+  }, [clearRegenerationTimers]);
+
+  const pollRegenerationStatus = React.useCallback(async (resumeId: string) => {
+    if (!resumeId || !user) return;
+    if (regenerateActiveRef.current) return;
+
+    regenerateActiveRef.current = true;
+    regenerateLongRunningNotifiedRef.current = false;
+    setRegenerating(true);
+    setPendingUpdate(true);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`resume-regenerate:${resumeId}`, new Date().toISOString());
+    }
+
+    regenerateNoticeTimerRef.current = setTimeout(() => {
+      if (!regenerateLongRunningNotifiedRef.current && regenerateActiveRef.current) {
+        regenerateLongRunningNotifiedRef.current = true;
+        showToast('Process is taking longer than expected. You can continue and check back later.', 'warning', 4500);
+      }
+    }, 60_000);
+
+    const tick = async () => {
+      try {
+        const response = await ResumeService.getRegenerateStatus(resumeId);
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          finishRegenerationState(resumeId);
+          showToast(data?.error || data?.details || 'Failed to fetch regeneration status', 'error', 3500);
+          return;
+        }
+
+        const status = String(data?.status || 'idle');
+
+        if (status === 'pending' || status === 'running') {
+          regeneratePollRef.current = setTimeout(tick, 5_000);
+          return;
+        }
+
+        if (status === 'failed') {
+          finishRegenerationState(resumeId);
+          showToast(data?.error || 'Regeneration failed. Please try again.', 'error', 4000);
+          return;
+        }
+
+        if (status === 'completed' && data?.resume) {
+          const nextResume = {
+            ...resumeData,
+            ...(data.resume as ResumeData),
+            template: selectedTemplate,
+          } as ResumeData;
+
+          ResumeCache.set(slug, nextResume, false);
+          ResumeCache.markSynced(slug);
+          setResumeData(nextResume);
+          finishRegenerationState(resumeId);
+          showToast('Resume regeneration completed', 'success', 2500);
+          await refreshUsageState();
+          return;
+        }
+
+        // idle or unknown states stop polling gracefully
+        finishRegenerationState(resumeId);
+      } catch {
+        regeneratePollRef.current = setTimeout(tick, 5_000);
+      }
+    };
+
+    void tick();
+  }, [finishRegenerationState, refreshUsageState, resumeData, selectedTemplate, showToast, slug, user]);
 
   useEffect(() => {
     if (!user) {
@@ -404,6 +506,12 @@ const PreviewPage = () => {
       const response = await ResumeService.regenerate(resumeData, jobDescription, analysis);
       const data = await response.json().catch(() => ({}));
 
+      if (response.status === 202 && data?.queued && resumeData?.id && user) {
+        showToast('Regeneration started. We will update once it is ready.', 'success', 2200);
+        await pollRegenerationStatus(resumeData.id);
+        return;
+      }
+
       if (!response.ok) {
         showToast(data?.error || data?.details || 'Error regenerating resume', 'error', 3000);
         return;
@@ -454,6 +562,17 @@ const PreviewPage = () => {
       setPendingUpdate(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || !resumeData?.id) return;
+    const pendingKey = `resume-regenerate:${resumeData.id}`;
+    const pendingMarker = typeof window !== 'undefined' ? localStorage.getItem(pendingKey) : null;
+    const status = String((resumeData as ResumeData).regenerationStatus || 'idle');
+
+    if (pendingMarker || status === 'pending' || status === 'running') {
+      void pollRegenerationStatus(resumeData.id);
+    }
+  }, [pollRegenerationStatus, resumeData, user]);
 
   const handleReAnalysis = async (analysis: any) => {
     setAnalyzing(true)
