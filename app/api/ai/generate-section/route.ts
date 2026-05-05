@@ -4,6 +4,9 @@ import { AIService } from '@/services/aiServices';
 import { ResumeData } from '@/types/types';
 import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'customSections';
 
 function normalizeSectionKey(key: string): SectionKey | null {

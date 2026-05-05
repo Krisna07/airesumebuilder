@@ -112,7 +112,7 @@ interface SectionOrderPanelProps {
   handleStyleChange: (updates: Partial<ResumeStyle>) => void;
 }
 
-const ALIGNMENT_TEMPLATES = new Set(['template01', 'template02']);
+const ALIGNMENT_TEMPLATES = new Set(['template01', 'template02', 'atlas']);
 
 export default function SectionOrderPanel({ resumeData, templateId, handleStyleChange }: SectionOrderPanelProps) {
   const style = resumeData.styleConfig ?? DEFAULT_RESUME_STYLE;

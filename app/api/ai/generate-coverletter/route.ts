@@ -5,6 +5,9 @@ import { NextResponse } from "next/server";
 import { prisma } from '@/lib/prisma'
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
     try{
         let userId: string

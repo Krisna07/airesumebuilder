@@ -4,6 +4,9 @@ import { extractJobDetailsPrompt } from '@/lib/prompts';
 import { requireUserSession, consumeUsage, mapSubscriptionError } from '@/lib/subscription-server';
 import { parseResponse } from '@/lib/jsonParse';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 // Import the private AI function - should be moved to AIService class ideally
 const callAI = async (prompt: string) => {
   return await AIService.extractJobMetadata(prompt);

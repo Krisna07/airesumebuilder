@@ -4,6 +4,9 @@ import { matchRole } from "@/lib/roleMatcher"
 import { generateRecommendations } from "@/lib/recommendationEngine"
 import { AIService } from "@/services/aiServices"
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()

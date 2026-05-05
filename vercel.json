@@ -13,10 +13,35 @@
         "maxDuration": 60
     },
     "app/api/ai/generate-resume/route.ts": {
-        "maxDuration": 30
+        "maxDuration": 60
+    },
+    "app/api/ai/generate-section/route.ts": {
+        "maxDuration": 60
+    },
+    "app/api/ai/analyze/route.ts": {
+        "maxDuration": 60
+    },
+    "app/api/ai/extract-resume-guest/route.ts": {
+        "maxDuration": 60
+    },
+    "app/api/ai/extract-job/route.ts": {
+        "maxDuration": 60
+    },
+    "app/api/ai/generate-coverletter/route.ts": {
+        "maxDuration": 60
+    },
+    "app/api/recommend/route.ts": {
+        "maxDuration": 60
+    },
+    "app/api/cron/resume-regenerate/route.ts": {
+        "maxDuration": 60
     }
 },
 "crons": [
+    {
+        "path": "/api/cron/resume-regenerate",
+        "schedule": "*/1 * * * *"
+    },
     {
         "path": "/api/cron/blog",
         "schedule": "0 0 * * *"

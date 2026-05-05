@@ -11,7 +11,8 @@ export function generateModernHTML(data: ResumeData, _style?: ResumeStyle): stri
   const modernStyles = `
     /* Modern clean aesthetic */
     body { font-size: 10px; color: #333; }
-    .header { background: ${_style?.accentColor ?? '#1e293b'}; color: white; padding: 18px 24px 16px; margin-bottom: 16px; }
+    .header { background: ${_style?.accentColor ?? '#1e293b'}; color: white; margin-bottom: 16px; }
+    .header-inner { padding: 18px 24px 16px; }
     .header h1 { font-size: 26px; font-weight: 300; letter-spacing: 1px; margin: 0; color: white; text-transform: uppercase; }
     .header .contact-info { color: rgba(255,255,255,0.7); justify-content: flex-start; margin-top: 8px; font-size: 10px; }
     .header .contact-item { color: rgba(255,255,255,0.85); }
@@ -128,9 +129,11 @@ export function generateModernHTML(data: ResumeData, _style?: ResumeStyle): stri
     </head>
     <body>
       <div class="container" style="padding-top: 0;">
-        <div class="header">
-          <h1>${escapeHtml(data.profile.fullname)}</h1>
-          <div class="contact-info">${renderContactInfo(data)}</div>
+        <div class="header full-bleed">
+          <div class="header-inner full-bleed-inner">
+            <h1>${escapeHtml(data.profile.fullname)}</h1>
+            <div class="contact-info">${renderContactInfo(data)}</div>
+          </div>
         </div>
         ${safeJoin(fullSections.map((section) => renderSection(section.key)))}
         ${hasAlignedColumns ? `
