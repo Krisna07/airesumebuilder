@@ -10,7 +10,7 @@ const Templates: Template[] = [
   {
     id: 'default',
     name: 'Standard',
-    description: 'Clean, high-density layout. Perfect for ATS systems.',
+    description: 'High-density single-column layout optimized for ATS parsing.',
     accent: 'from-sky-400 to-cyan-500',
     tags: ['ATS-Friendly', 'Clean']
 
@@ -18,14 +18,14 @@ const Templates: Template[] = [
   {
     id: 'classic',
     name: 'Classic',
-    description: 'Traditional academic layout. Simple and effective.',
+    description: 'Traditional timeline-style resume suited for academic and formal roles.',
     accent: 'from-slate-400 to-zinc-500',
     tags: ['ATS-Friendly', 'Clean', 'Traditional']
   },
   {
     id: 'modern',
     name: 'Modern',
-    description: 'Contemporary dark-header design for digital roles.',
+    description: 'Contemporary full-width hero header with a clean editorial body.',
     accent: 'from-indigo-400 to-violet-500',
     tags: ['Creative', 'Stylish', 'Dark']
   },
@@ -39,7 +39,7 @@ const Templates: Template[] = [
   {
     id: 'signal',
     name: 'Signal',
-    description: 'High-contrast, bold design for marketing & sales.',
+    description: 'High-contrast bold typography for marketing, sales, and impact-heavy resumes.',
     accent: 'from-neutral-800 to-neutral-900',
     tags: ['ATS-Friendly', 'Clean', 'Bold']
   },
@@ -53,16 +53,30 @@ const Templates: Template[] = [
   {
     id: 'template01',
     name: 'Sidebar',
-    description: 'Two-column layout separating skills from experience.',
+    description: 'Balanced two-column layout separating profile/skills from achievements.',
     accent: 'from-pink-400 to-rose-500',
     tags: ['ATS-Friendly', 'Clean', 'Sidebar']
   },
   {
     id: 'template02',
     name: 'Canvas',
-    description: 'Artistic whitespace usage for creative portfolios.',
+    description: 'Asymmetric split with generous whitespace for product and design profiles.',
     accent: 'from-yellow-400 to-amber-500',
     tags: ['ATS-Friendly', 'Clean', 'Creative']
+  },
+  {
+    id: 'atlas',
+    name: 'Atlas',
+    description: 'Structured left-rail layout with a strong skills panel and detailed timeline.',
+    accent: 'from-teal-400 to-cyan-500',
+    tags: ['ATS-Friendly', 'Structured', 'Two-Column']
+  },
+  {
+    id: 'horizon',
+    name: 'Horizon',
+    description: 'Full-bleed gradient hero with card-based sections for premium presentation.',
+    accent: 'from-blue-500 to-slate-700',
+    tags: ['Creative', 'Hero Header', 'Premium']
   }
 ];
 

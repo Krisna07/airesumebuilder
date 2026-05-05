@@ -9,6 +9,8 @@ import { generatetemplate01HTML } from './template-01';
 import { generatetemplate02HTML } from './template-02';
 import { generateExecutiveHTML } from './executive';
 import { generateSignalHTML } from './signal';
+import { generateAtlasHTML } from './atlas';
+import { generateHorizonHTML } from './horizon';
 
 /**
  * Generates the complete HTML string for a resume template.
@@ -49,6 +51,8 @@ export function generateTemplateHTML(
         case 'template02': html = generatetemplate02HTML(data, style); break;
         case 'executive': html = generateExecutiveHTML(data, style); break;
         case 'signal':    html = generateSignalHTML(data, style); break;
+        case 'atlas': html = generateAtlasHTML(data, style); break;
+        case 'horizon': html = generateHorizonHTML(data, style); break;
         case 'default':
         default:          html = generateDefaultHTML(data, style); break;
     }
