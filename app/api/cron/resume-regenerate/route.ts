@@ -21,11 +21,13 @@ function isAuthorized(req: Request) {
   const expectedSecret = process.env.RESUME_REGEN_CRON_SECRET || process.env.CRON_SECRET
   if (!expectedSecret) return false
 
+  const url = new URL(req.url)
   const header = req.headers.get('authorization')
   const bearer = header?.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : ''
   const headerSecret = req.headers.get('x-cron-secret') || ''
+  const querySecret = url.searchParams.get('secret') || ''
 
-  return bearer === expectedSecret || headerSecret === expectedSecret
+  return bearer === expectedSecret || headerSecret === expectedSecret || querySecret === expectedSecret
 }
 
 function safeParseJson<T>(value: unknown, fallback: T): T {
