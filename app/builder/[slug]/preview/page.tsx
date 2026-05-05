@@ -768,7 +768,7 @@ const PreviewPage = () => {
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>
           }
           {jobDetails && jobDetails?.length > 0 &&
-            <div className='max-[500px]:hidden w-full rounded-xl border border-slate-700/60'>
+            <div className='max-[500px]:hidden w-full rounded-xl border border-slate-700/60 overflow-hidden'>
               <div className='flex items-center justify-between px-4 py-3 border-b border-slate-700'>
                 <div>
                   <h3 className='font-semibold text-slate-100'>Analysis</h3>
