@@ -1,13 +1,25 @@
 export const baseStyles = `
+  :root {
+    --resume-page-width: 210mm;
+    --resume-content-width: 190mm;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: auto; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
     line-height: 1.5; color: #333; font-size: 12px;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-    max-width: 210mm; margin: 0 auto; background: white;
+    max-width: var(--resume-page-width); margin: 0 auto; background: white;
   }
-  .container { max-width: 190mm; margin: 0 auto; display: grid; gap: 8px; }
+  .container { max-width: var(--resume-content-width); margin: 0 auto; display: grid; gap: 8px; }
+  .full-bleed {
+    margin-left: calc((var(--resume-content-width) - var(--resume-page-width)) / 2);
+    margin-right: calc((var(--resume-content-width) - var(--resume-page-width)) / 2);
+  }
+  .full-bleed-inner {
+    max-width: var(--resume-content-width);
+    margin: 0 auto;
+  }
   .section-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; border-bottom: 0.5px solid #e5e7eb; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   .job-title { font-size: 13px; font-weight: 600; color: #1f2937; }
   .location-date { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #6b7280; margin-bottom: 4px; flex-wrap: wrap; gap: 6px; }

@@ -20,6 +20,8 @@ export interface ResumeData {
   analyzedAt?: string | Date;
   description?: string;
   createdAt?: string | Date;
+  regenerationStatus?: 'idle' | 'pending' | 'running' | 'completed' | 'failed' | string;
+  regenerationError?: string | null;
 }
 
 // ─── Style Editor Types ────────────────────────────────────────────────────

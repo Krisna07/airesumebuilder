@@ -136,6 +136,19 @@ export class ResumeService {
         }
 
     }
+
+    static async getRegenerateStatus(resumeId: string): Promise<Response> {
+        try {
+            const response = await fetch(`/api/ai/generate-resume?resumeId=${encodeURIComponent(resumeId)}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 export async function uploadResume(file: File, userId?: string) {

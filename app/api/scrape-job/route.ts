@@ -1,6 +1,5 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 // Optional dynamic import for puppeteer only if needed (LinkedIn dynamic pages)
@@ -62,9 +61,25 @@ const axiosFetch = async (url: string, attempt = 1): Promise<string> => {
         'sec-fetch-user': '?1',
         'sec-fetch-dest': 'document'
     } as Record<string, string>;
-    const { data } = await axios.get(url, { headers, timeout: 30000, validateStatus: s => s < 500 });
-    if (typeof data === 'string') return data;
-    return JSON.stringify(data);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    try {
+        const response = await fetch(url, {
+            headers,
+            signal: controller.signal,
+            redirect: 'follow',
+        });
+
+        if (response.status >= 500) {
+            throw new Error(`Upstream returned ${response.status}`);
+        }
+
+        return await response.text();
+    } finally {
+        clearTimeout(timeout);
+    }
 };
 
 const fetchHTML = async (rawUrl: string, useBrowser: boolean): Promise<{ html: string; usedBrowser: boolean; }> => {

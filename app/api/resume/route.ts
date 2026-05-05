@@ -24,6 +24,8 @@ function formatResumeResponse(resume: {
     customSections: unknown;
     updatedAt: Date;
     styleConfig?: unknown;
+    regenStatus?: unknown;
+    regenError?: unknown;
 } & Record<string, unknown>) {
     return {
         id: resume.id,
@@ -38,6 +40,8 @@ function formatResumeResponse(resume: {
         updated: resume.updatedAt,
         matchingScore: resume.matchingScore ?? null,
         analyzedAt: resume.analyzedAt ?? null,
+        regenerationStatus: typeof resume.regenStatus === 'string' ? resume.regenStatus : 'idle',
+        regenerationError: typeof resume.regenError === 'string' ? resume.regenError : null,
     };
 }
 
