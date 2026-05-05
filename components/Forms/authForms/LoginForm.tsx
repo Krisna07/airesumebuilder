@@ -2,6 +2,7 @@
 import Button from '@/components/Ui/Button';
 import { UserAuthLoading } from '@/components/Ui/LoadingScreen';
 import { useAuth } from '@/context/authContext'; import { useToast } from '@/context/PopupContext';
+import Link from 'next/link';
 import React, { useState } from 'react';
 import { FaGithub, FaGoogle } from 'react-icons/fa6';
 
@@ -52,9 +53,9 @@ const LoginForm: React.FC = () => {
             <h2 className='text-[2rem] font-bold'>Welcome back</h2>
             <p>
                 New to resume builder ?{' '}
-                <a href='/auth/newuser' className='underline text-blue-600'>
+                <Link href='/auth/newuser' className='underline text-blue-600'>
                     Join now
-                </a>{' '}
+                </Link>{' '}
             </p>
             <form onSubmit={handleSubmit} className='w-full max-w-[600px] grid gap-4 p-4 font-semibold '>
                 <div className='grid gap-2'>
@@ -65,7 +66,7 @@ const LoginForm: React.FC = () => {
                     <label className=''>Password</label>
                     <input type='password' name='password' value={form.password} onChange={handleChange} className='  p-2  outline-none ring-1 focus:ring-green-600 ring-gray-400  rounded-md' />
                     <div className="flex justify-end">
-                        <a href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline">Forgot password?</a>
+                        <Link href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline">Forgot password?</Link>
                     </div>
                 </div>
 

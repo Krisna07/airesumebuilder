@@ -1,1061 +1,829 @@
-'use client'
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { EditorContent, useEditor, type JSONContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Image from '@tiptap/extension-image'
-import { nanoid } from 'nanoid'
-import type { BlogSection, BlogStatus } from '@/types/blog'
-import BlogSectionRenderer from '@/components/blog/BlogSectionRenderer'
-import AuthorImagePicker from '@/components/blog/AuthorImagePicker'
-import BlogPreviewModal from '@/components/blog/BlogPreviewModal'
-import { useAuth } from '@/context/authContext'
-import { ImageIcon, Loader } from 'lucide-react'
-import { useToast } from '@/context/PopupContext'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { EditorContent, useEditor } from '@tiptap/react';
+import type { Editor as TiptapEditor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
+import EditorToolbar from './EditorToolbar';
+import BlogPreCheckModal from './BlogPreCheckModal';
+import BlogPreviewModal from './BlogPreviewModal';
+import { Sparkles, Settings, Image as ImageIcon, Eye, Rocket, Pencil, Upload, Loader2, X } from 'lucide-react';
+import type { BlogSection, BlogStatus } from '@/types/blog';
 
-type SaveState = 'idle' | 'saving' | 'success' | 'error'
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-interface AiBlogPreview {
-  title: string
-  excerpt: string
-  slug?: string
-  sections: BlogSection[]
-  status: BlogStatus
-  author: string
-  coverImageId: string
-  coverImageUrl?: string
-  authorImageId?: string
-  authorImageUrl?: string
-}
+function htmlToSections(html: string): BlogSection[] {
+  if (typeof document === 'undefined') return [];
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const sections: BlogSection[] = [];
+  let idx = 0;
+  const id = () => `sec_${Date.now()}_${idx++}`;
+  const imageIdFromSrc = (src?: string | null) => {
+    if (!src) return null;
+    const m = src.match(/\/api\/blog-images\/([^/?#]+)/i);
+    return m?.[1] || null;
+  };
 
-interface EditorStats {
-  paragraphCount: number
-  imageCount: number
-}
-
-function gatherText(node: JSONContent | undefined): string {
-  if (!node) return ''
-
-  if (typeof node.text === 'string') {
-    return node.text
-  }
-
-  if (!Array.isArray(node.content)) {
-    return ''
-  }
-
-  return node.content.map((child) => gatherText(child)).join('')
-}
-
-function getImageIdFromSrc(src: string): string {
-  const match = src.match(/\/api\/blog-images\/([^/?#]+)/)
-  return match?.[1] ?? src
-}
-
-function getEditorStats(doc: JSONContent): EditorStats {
-  const nodes = doc.content ?? []
-  let paragraphCount = 0
-  let imageCount = 0
-
-  for (const node of nodes) {
-    if (node.type === 'paragraph' && gatherText(node).trim().length > 0) {
-      paragraphCount += 1
-    }
-
-    if (node.type === 'image') {
-      imageCount += 1
-    }
-  }
-
-  return { paragraphCount, imageCount }
-}
-
-function editorDocToSections(doc: JSONContent): BlogSection[] {
-  const sections: BlogSection[] = []
-  const nodes = doc.content ?? []
-
-  function pushParagraphIfText(accum: string[]) {
-    const text = accum.join(' ').trim()
-    if (text.length > 0) {
-      sections.push({ id: `sec_${nanoid(8)}`, type: 'paragraph', content: text })
-    }
-    accum.length = 0
-  }
-
-  for (const node of nodes) {
-    // headings
-    if (node.type === 'heading') {
-      const levelValue = Number(node.attrs?.level)
-      const level: 2 | 3 | 4 = levelValue === 3 || levelValue === 4 ? levelValue : 2
-      const content = gatherText(node).trim()
-      if (content.length > 0) sections.push({ id: `sec_${nanoid(8)}`, type: 'heading', level, content })
-      continue
-    }
-
-    // blockquote
-    if (node.type === 'blockquote') {
-      const content = gatherText(node).trim()
-      if (content.length > 0) sections.push({ id: `sec_${nanoid(8)}`, type: 'quote', content })
-      continue
-    }
-
-    // lists
-    if (node.type === 'bulletList' || node.type === 'orderedList') {
-      const items = (node.content ?? [])
-        .map((listItem) => gatherText(listItem).trim())
-        .filter((item) => item.length > 0)
-      if (items.length > 0) sections.push({ id: `sec_${nanoid(8)}`, type: 'list', items })
-      continue
-    }
-
-    // paragraphs and mixed content: preserve order of text and images
-    if (node.type === 'paragraph') {
-      const children = Array.isArray(node.content) ? node.content : []
-      const textAcc: string[] = []
-      for (const child of children) {
-        if (!child) continue
-        if (child.type === 'image') {
-          // flush accumulated text as a paragraph before image
-          pushParagraphIfText(textAcc)
-          const src = String(child.attrs?.src ?? '').trim()
-          if (!src) continue
-          sections.push({ id: `sec_${nanoid(8)}`, type: 'image', imageId: getImageIdFromSrc(src), alt: String(child.attrs?.alt ?? '').trim() || undefined, caption: '' })
-        } else {
-          const t = gatherText(child)
-          if (t.trim().length > 0) textAcc.push(t.trim())
-        }
+  for (const node of Array.from(container.childNodes)) {
+    const el = node as HTMLElement;
+    if (!el.tagName) continue;
+    const tag = el.tagName.toLowerCase();
+    if (['h1', 'h2', 'h3', 'h4'].includes(tag)) {
+      const level = Math.max(2, Math.min(4, parseInt(tag[1], 10)));
+      sections.push({ id: id(), type: 'heading', level: level as 2 | 3 | 4, content: el.textContent || '' });
+    } else if (tag === 'img') {
+      const imageId = imageIdFromSrc(el.getAttribute('src'));
+      if (imageId) {
+        sections.push({
+          id: id(),
+          type: 'image',
+          imageId,
+          alt: el.getAttribute('alt') || undefined,
+        });
       }
-      // flush remaining text
-      pushParagraphIfText(textAcc)
-      continue
-    }
+    } else if (tag === 'p') {
+      const imageNodes = Array.from(el.querySelectorAll('img'));
+      const text = el.textContent?.trim();
 
-    // top-level image nodes
-    if (node.type === 'image') {
-      const src = String(node.attrs?.src ?? '').trim()
-      if (!src) continue
-      sections.push({ id: `sec_${nanoid(8)}`, type: 'image', imageId: getImageIdFromSrc(src), alt: String(node.attrs?.alt ?? '').trim() || undefined, caption: '' })
-      continue
+      // Tiptap often wraps standalone images in <p><img .../></p>
+      if (!text && imageNodes.length > 0) {
+        imageNodes.forEach((img) => {
+          const imageId = imageIdFromSrc(img.getAttribute('src'));
+          if (imageId) {
+            sections.push({
+              id: id(),
+              type: 'image',
+              imageId,
+              alt: img.getAttribute('alt') || undefined,
+            });
+          }
+        });
+        continue;
+      }
+
+      if (text) sections.push({ id: id(), type: 'paragraph', content: el.innerHTML });
+    } else if (tag === 'ul' || tag === 'ol') {
+      const items = Array.from(el.querySelectorAll('li')).map(li => li.textContent?.trim() || '').filter(Boolean);
+      if (items.length) sections.push({ id: id(), type: 'list', items });
+    } else if (tag === 'blockquote') {
+      const content = el.querySelector('p')?.textContent?.trim() || el.textContent?.trim() || '';
+      if (content) sections.push({ id: id(), type: 'quote', content });
     }
   }
-
-  return sections
+  return sections.length ? sections : [{ id: id(), type: 'paragraph', content: html }];
 }
+
+function sectionsToHtml(sections: BlogSection[]): string {
+  return sections.map(sec => {
+    if (sec.type === 'heading') return `<h${sec.level}>${sec.content}</h${sec.level}>`;
+    if (sec.type === 'paragraph') return `<p>${sec.content}</p>`;
+    if (sec.type === 'list') return `<ul>${sec.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+    if (sec.type === 'quote') return `<blockquote><p>${sec.content}</p>${sec.citation ? `<p>— ${sec.citation}</p>` : ''}</blockquote>`;
+    if (sec.type === 'image') return `<p><img src="/api/blog-images/${sec.imageId}" alt="${sec.alt || 'Blog image'}" /></p>`;
+    return '';
+  }).join('\n');
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function BlogEditor() {
-  const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
-  const [excerpt, setExcerpt] = useState('')
-  const [slug, setSlug] = useState('')
-  const [status, setStatus] = useState<BlogStatus>('published')
-  const [coverImageId, setCoverImageId] = useState('')
-  const [authorImageId, setAuthorImageId] = useState('')
-  const [authorImageUrl, setAuthorImageUrl] = useState<string | undefined>(undefined)
-  const [draftBlogId, setDraftBlogId] = useState<string | null>(null)
-  const uploadedImageIdsRef = useRef<Set<string>>(new Set())
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [editorStats, setEditorStats] = useState<EditorStats>({ paragraphCount: 0, imageCount: 0 })
-  const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [message, setMessage] = useState('')
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [draggingInlineImage, setDraggingInlineImage] = useState(false)
-  const [aiMode, setAiMode] = useState(false)
-  const [aiTitle, setAiTitle] = useState('')
-  const [aiGenerating, setAiGenerating] = useState(false)
-  const [aiPreview, setAiPreview] = useState<AiBlogPreview | null>(null)
-  const [aiPublishState, setAiPublishState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
-  const [aiMessage, setAiMessage] = useState('')
-  const [autoRunning, setAutoRunning] = useState(false)
-  const [autoMsg, setAutoMsg] = useState('')
-  const inlineImagePickerRef = useRef<HTMLInputElement | null>(null)
-  const { user } = useAuth()
-  const { showToast } = useToast()
-  const searchParams = useSearchParams()
-  const editId = searchParams?.get('editId')
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editId = searchParams?.get('editId') || null;
 
-  useEffect(() => {
-    showToast(message)
-  }, [message])
+  // Metadata
+  const [title, setTitle] = useState('');
+  const [excerpt, setExcerpt] = useState('');
+  const [author, setAuthor] = useState('ResumeCraft Team');
+  const [coverImageId, setCoverImageId] = useState<string | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
-  const uploadImage = useCallback(async (file: File) => {
-    const formData = new FormData()
-    formData.append('file', file)
+  // UI state
+  const [editLoading, setEditLoading] = useState(false);
+  const [streamState, setStreamState] = useState<'idle' | 'streaming' | 'done'>('idle');
+  const [streamPreview, setStreamPreview] = useState('');   // live HTML accumulator
+  const [imageStreaming, setImageStreaming] = useState(false);
+  const streamBuffer = useRef('');
+  const abortRef = useRef<AbortController | null>(null);
 
-    const response = await fetch('/api/blog-images', {
-      method: 'POST',
-      body: formData,
-    })
+  const [preCheckOpen, setPreCheckOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [autoToast, setAutoToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [quickPublishing, setQuickPublishing] = useState(false);
+  const [imageGenFailed, setImageGenFailed] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [inlineUploading, setInlineUploading] = useState(false);
 
-    const payload = await response.json()
-    if (!response.ok || !payload?.success) {
-      throw new Error(payload?.error || 'Image upload failed')
+  const inlineImageRef = useRef<HTMLInputElement | null>(null);
+  const coverImageRef = useRef<HTMLInputElement | null>(null);
+
+  const uploadBlogImage = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/blog-images', { method: 'POST', body: formData });
+    const json = await res.json();
+    const imageId = json?.data?.imageId || json?.data?.id;
+    if (!json.success || !imageId) {
+      throw new Error(json.error || 'Image upload failed.');
     }
+    return imageId as string;
+  }, []);
 
-    // track uploaded image for potential cleanup
-    if (payload?.data?.imageId) {
-      uploadedImageIdsRef.current.add(payload.data.imageId)
+  const inlineLoadingPlaceholder = useCallback((name: string) => {
+    const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675"><rect width="1200" height="675" fill="#e2e8f0"/><rect x="40" y="40" width="1120" height="595" rx="16" fill="#cbd5e1"/><text x="600" y="330" text-anchor="middle" font-size="34" font-family="Arial, Helvetica, sans-serif" fill="#475569">Uploading image...</text><text x="600" y="378" text-anchor="middle" font-size="20" font-family="Arial, Helvetica, sans-serif" fill="#64748b">${safe}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }, []);
+
+  const replaceInlinePlaceholder = useCallback((activeEditor: TiptapEditor, token: string, nextSrc: string, alt: string) => {
+    let foundPos: number | null = null;
+    activeEditor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && node.attrs.alt === token) {
+        foundPos = pos;
+        return false;
+      }
+      return true;
+    });
+    if (foundPos === null) return;
+    const tr = activeEditor.state.tr.setNodeMarkup(foundPos, undefined, {
+      src: nextSrc,
+      alt,
+    });
+    activeEditor.view.dispatch(tr);
+  }, []);
+
+  const removeInlinePlaceholder = useCallback((activeEditor: TiptapEditor, token: string) => {
+    let foundPos: number | null = null;
+    let nodeSize = 0;
+    activeEditor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && node.attrs.alt === token) {
+        foundPos = pos;
+        nodeSize = node.nodeSize;
+        return false;
+      }
+      return true;
+    });
+    if (foundPos === null || nodeSize <= 0) return;
+    const tr = activeEditor.state.tr.delete(foundPos, foundPos + nodeSize);
+    activeEditor.view.dispatch(tr);
+  }, []);
+
+  const handleInlineImageUpload = useCallback(async (file: File, activeEditor?: TiptapEditor | null) => {
+    if (!activeEditor) return;
+
+    const token = `uploading-inline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    activeEditor.chain().focus().setImage({
+      src: inlineLoadingPlaceholder(file.name),
+      alt: token,
+    }).run();
+
+    setInlineUploading(true);
+    try {
+      const imageId = await uploadBlogImage(file);
+      replaceInlinePlaceholder(activeEditor, token, `/api/blog-images/${imageId}`, file.name);
+      setAutoToast({ type: 'success', text: 'Content image uploaded successfully.' });
+      setTimeout(() => setAutoToast(null), 2500);
+    } catch (err) {
+      removeInlinePlaceholder(activeEditor, token);
+      setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Image upload failed.' });
+      setTimeout(() => setAutoToast(null), 4000);
+    } finally {
+      setInlineUploading(false);
     }
+  }, [inlineLoadingPlaceholder, removeInlinePlaceholder, replaceInlinePlaceholder, uploadBlogImage]);
 
-    // if server created/returned a draft blog id, remember it
-    if (payload?.data?.blogId) {
-      setDraftBlogId(payload.data.blogId)
-    }
-
-    return { imageId: payload.data.imageId as string, url: payload.data.url as string, blogId: payload.data.blogId as string | undefined }
-  }, [])
-
+  // ─── TipTap ────────────────────────────────────────────────────────────────
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [2, 3, 4],
+      StarterKit,
+      Image,
+      Placeholder.configure({
+        placeholder: ({ node }: { node: { type: { name: string } } }) => {
+          if (node.type.name === 'heading') return 'Start with your title…';
+          return 'Write your story…';
         },
       }),
-      Image,
     ],
-    content: {
-      type: 'doc',
-      content: [{ type: 'paragraph' }],
-    },
+    content: '',
     editorProps: {
       attributes: {
-        class:
-          'prose prose-slate dark:prose-invert max-w-none min-h-[280px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 focus:outline-none',
+        class: 'prose dark:prose-invert max-w-none min-h-[500px] outline-none focus:outline-none text-slate-900 dark:text-slate-100 px-1',
+      },
+      handleDrop(_view, event) {
+        const files = event.dataTransfer?.files;
+        if (!files?.length) return false;
+        const file = files[0];
+        if (!file.type.startsWith('image/')) return false;
+
+        void handleInlineImageUpload(file, editor);
+
+        event.preventDefault();
+        return true;
       },
     },
-    onUpdate({ editor }) {
-      setEditorStats(getEditorStats(editor.getJSON()))
-    },
-  })
+  });
 
-  const insertInlineImage = useCallback(
-    async (file: File) => {
-      if (!editor) return
-
-      if (!file.type.startsWith('image/')) {
-        setMessage('Only image files can be inserted.')
-        return
-      }
-
-      try {
-        setUploadingImage(true)
-        setMessage('Uploading image...')
-        const meta = await uploadImage(file)
-
-        editor
-          .chain()
-          .focus()
-          .setImage({
-            src: `/api/blog-images/${meta.imageId}`,
-            alt: file.name,
-            title: meta.imageId,
-          })
-          .run()
-
-        setEditorStats(getEditorStats(editor.getJSON()))
-        setMessage('Image inserted into article.')
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Image upload failed')
-      } finally {
-        setUploadingImage(false)
-      }
-    },
-    [editor, uploadImage]
-  )
-
-  const insertInlineImages = useCallback(
-    async (files: FileList | File[]) => {
-      const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'))
-
-      if (!imageFiles.length) {
-        setMessage('Drop or choose at least one image file.')
-        return
-      }
-
-      for (const file of imageFiles) {
-        // Keep uploads sequential so insertion order matches user order.
-        // eslint-disable-next-line no-await-in-loop
-        await insertInlineImage(file)
-      }
-    },
-    [insertInlineImage]
-  )
-
-  const validation = useMemo(() => {
-    const trimmedTitle = title.trim()
-    const trimmedAuthor = author.trim()
-    const trimmedExcerpt = excerpt.trim()
-    const imageCount = editorStats.imageCount + (coverImageId ? 1 : 0)
-
-    return {
-      paragraphCount: editorStats.paragraphCount,
-      imageCount,
-      canSave:
-        trimmedTitle.length >= 3 &&
-        trimmedAuthor.length >= 2 &&
-        trimmedExcerpt.length >= 10 &&
-        editorStats.paragraphCount >= 2 &&
-        imageCount >= 1,
-    }
-  }, [title, author, excerpt, editorStats, coverImageId])
-
-  const handleCoverImageChange = async (file: File) => {
-    try {
-      setUploadingImage(true)
-      setMessage('Uploading cover image')
-      const meta = await uploadImage(file)
-      setCoverImageId(meta.imageId)
-      // track id
-      if (meta.imageId) uploadedImageIdsRef.current.add(meta.imageId)
-      setMessage('Cover image uploaded.')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Cover upload failed')
-    } finally {
-      setUploadingImage(false)
-    }
-  }
-
-  const submit = async (desiredStatus?: BlogStatus) => {
-    if (!validation.canSave) {
-      setMessage('Author, one image, and at least two paragraph blocks are required.')
-      return
-    }
-
-    try {
-      if (!editor) {
-        setMessage('Editor is still loading. Please try again.')
-        return
-      }
-
-      setSaveState('saving')
-      setMessage('Saving blog...')
-
-      const sections = editorDocToSections(editor.getJSON())
-
-      let payload: any
-
-      if (draftBlogId) {
-        // update existing draft
-        const res = await fetch(`/api/blogs/${draftBlogId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            author: author ? author : user?.name,
-            excerpt,
-            slug: slug || undefined,
-            status: desiredStatus ?? status,
-            coverImageId: coverImageId || undefined,
-            authorImageId: authorImageId || undefined,
-            authorImageUrl: authorImageUrl || user?.image || undefined,
-            sections,
-          }),
-        })
-
-        payload = await res.json()
-
-        if (!res.ok || !payload?.success) {
-          throw new Error(payload?.error || 'Failed to update draft')
-        }
-
-        setSaveState('success')
-        setMessage('Draft updated successfully. Redirecting...')
-        const blogSlug = payload.data.slug
-        uploadedImageIdsRef.current.clear()
-        setDraftBlogId(null)
-        window.location.href = `/blogs/${blogSlug}`
-      } else {
-        const response = await fetch('/api/createBlog', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            author,
-            excerpt,
-            slug: slug || undefined,
-            status: desiredStatus ?? status,
-            coverImageId: coverImageId || undefined,
-            authorImageId: authorImageId || undefined,
-            authorImageUrl: authorImageUrl || user?.image || undefined,
-            sections,
-          }),
-        })
-
-        payload = await response.json()
-        if (!response.ok || !payload?.success) {
-          throw new Error(payload?.error || 'Failed to save blog')
-        }
-
-        setSaveState('success')
-        setMessage('Blog published successfully. Redirecting...')
-
-        const blogSlug = payload.data.slug
-        // clear tracked uploads (they are now used by the blog)
-        uploadedImageIdsRef.current.clear()
-        window.location.href = `/blogs/${blogSlug}`
-      }
-    } catch (error) {
-      setSaveState('error')
-      setMessage(error instanceof Error ? error.message : 'Failed to save blog')
-    }
-  }
-
-  const generateWithAI = async () => {
-    const trimmedTitle = aiTitle.trim()
-    if (!trimmedTitle || trimmedTitle.length < 3) {
-      setAiMessage('Enter a title of at least 3 characters.')
-      return
-    }
-
-    try {
-      setAiGenerating(true)
-      setAiPreview(null)
-      setAiMessage('Generating blog content and cover image…')
-      setAiPublishState('idle')
-
-      const response = await fetch('/api/ai/generate-blog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmedTitle }),
-      })
-
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || 'AI generation failed')
-      }
-
-      setAiPreview(payload.data as AiBlogPreview)
-      setAiMessage('')
-    } catch (error) {
-      setAiPublishState('error')
-      setAiMessage(error instanceof Error ? error.message : 'AI generation failed')
-    } finally {
-      setAiGenerating(false)
-    }
-  }
-
-  const publishAiBlog = async () => {
-    if (!aiPreview) return
-
-    try {
-      setAiPublishState('saving')
-      setAiMessage('Publishing blog…')
-
-      const response = await fetch('/api/createBlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: aiPreview.title,
-          author: aiPreview.author,
-          excerpt: aiPreview.excerpt,
-          slug: aiPreview.slug,
-          status: aiPreview.status,
-          coverImageId: aiPreview.coverImageId,
-          authorImageUrl: aiPreview.authorImageUrl,
-          authorImageId: aiPreview.authorImageId,
-          sections: aiPreview.sections,
-        }),
-      })
-
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || 'Failed to publish blog')
-      }
-
-      setAiPublishState('success')
-      setAiMessage('Blog published successfully. Redirecting…')
-      window.location.href = `/blogs/${payload.data.slug}`
-    } catch (error) {
-      setAiPublishState('error')
-      setAiMessage(error instanceof Error ? error.message : 'Failed to publish blog')
-    }
-  }
-
-  // remove uploaded images that were not persisted when editor unmounts
+  // ─── Load existing blog for edit mode ──────────────────────────────────────
   useEffect(() => {
-    return () => {
-      const ids = Array.from(uploadedImageIdsRef.current)
-      if (!ids.length) return
-
-      // If we have a draft blog id, the images are expected to be attached
-      // to that draft and should not be removed here.
-      if (draftBlogId) return
-
-      // fire-and-forget delete requests (admin-only endpoint)
-      for (const id of ids) {
-        void fetch(`/api/blog-images/${id}`, { method: 'DELETE' })
-      }
-    }
-  }, [draftBlogId])
-
-  const handleAuthorUpload = async (file: File) => {
-    const meta = await uploadImage(file)
-    if (meta?.imageId) {
-      setAuthorImageId(meta.imageId)
-      setAuthorImageUrl(meta.url)
-      uploadedImageIdsRef.current.add(meta.imageId)
-    }
-    return meta
-  }
-
-  // load blog for editing when `editId` param is present
-  useEffect(() => {
-    if (!editId) return
-    let cancelled = false
-
-    const load = async () => {
-      try {
-        setMessage('Loading draft...')
-        const res = await fetch(`/api/blogs/${editId}`)
-        const payload = await res.json()
-        if (!res.ok || !payload?.success) {
-          throw new Error(payload?.error || 'Failed to load blog')
+    if (!editId || !editor) return;
+    setEditLoading(true);
+    fetch(`/api/blogs/${editId}`)
+      .then(r => r.json())
+      .then((json: { success: boolean; data?: { title?: string; excerpt?: string; author?: string; coverImageId?: string; sections?: BlogSection[] } }) => {
+        if (!json.success || !json.data) throw new Error('Blog not found');
+        const post = json.data;
+        if (post.title) setTitle(post.title);
+        if (post.excerpt) setExcerpt(post.excerpt);
+        if (post.author) setAuthor(post.author);
+        if (post.coverImageId) {
+          setCoverImageId(post.coverImageId);
+          setCoverImageUrl(`/api/blog-images/${post.coverImageId}`);
         }
+        if (post.sections?.length) {
+          editor.commands.setContent(sectionsToHtml(post.sections), false);
+        }
+      })
+      .catch(err => {
+        setAutoToast({ type: 'error', text: `Failed to load blog: ${err instanceof Error ? err.message : 'Unknown error'}` });
+        setTimeout(() => setAutoToast(null), 5000);
+      })
+      .finally(() => setEditLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId, editor]);
 
-        const post = payload.data
-        if (cancelled) return
+  // ─── Stream Generate ────────────────────────────────────────────────────────
+  const handleStream = useCallback(async () => {
+    if (streamState === 'streaming') {
+      abortRef.current?.abort();
+      setStreamState('idle');
+      return;
+    }
 
-        setTitle(post.title ?? '')
-        setAuthor(post.author ?? '')
-        setExcerpt(post.excerpt ?? '')
-        setSlug(post.slug ?? '')
-        setCoverImageId(post.coverImageId ?? '')
-        setAuthorImageId(post.authorImageId ?? '')
-        setAuthorImageUrl(post.authorImageUrl ?? undefined)
-        setStatus(post.status ?? 'draft')
-        setDraftBlogId(post.id)
+    const topic = title.trim();
+    if (topic.length < 3) {
+      setAutoToast({ type: 'error', text: 'Please enter a title to generate content from.' });
+      setTimeout(() => setAutoToast(null), 4000);
+      return;
+    }
 
-        // populate editor content from sections when editor is ready
-        if (editor && Array.isArray(post.sections)) {
-          const doc: any = { type: 'doc', content: [] }
-          for (const s of post.sections) {
-            if (s.type === 'heading') {
-              doc.content.push({ type: 'heading', attrs: { level: s.level ?? 2 }, content: [{ type: 'text', text: s.content ?? '' }] })
-            } else if (s.type === 'paragraph') {
-              doc.content.push({ type: 'paragraph', content: [{ type: 'text', text: s.content ?? '' }] })
-            } else if (s.type === 'quote') {
-              doc.content.push({ type: 'blockquote', content: [{ type: 'paragraph', content: [{ type: 'text', text: s.content ?? '' }] }] })
-            } else if (s.type === 'list') {
-              const items = (s.items ?? []).map((it: string) => ({ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: it }] }] }))
-              doc.content.push({ type: 'bulletList', content: items })
-            } else if (s.type === 'image') {
-              doc.content.push({ type: 'image', attrs: { src: `/api/blog-images/${s.imageId}`, alt: s.alt ?? '' } })
-            }
-          }
+    // Abort any previous stream
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
+    streamBuffer.current = '';
+    setStreamPreview('');
+    setStreamState('streaming');
+    setImageStreaming(true);
+
+    try {
+      const res = await fetch(
+        `/api/ai/generate-blog?title=${encodeURIComponent(topic)}`,
+        { signal: controller.signal }
+      );
+
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { error?: string }).error || 'Stream failed');
+      }
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const raw = dec.decode(value, { stream: true });
+        // Parse SSE lines: "data: {...}\n\n"
+        for (const line of raw.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
           try {
-            editor.commands.setContent(doc)
-            setEditorStats(getEditorStats(editor.getJSON()))
-          } catch (err) {
-            // ignore editor set errors
+            const payload = JSON.parse(line.slice(6)) as {
+              meta?: { title: string; excerpt: string };
+              text?: string;
+              coverImage?: { id: string; url?: string };
+              done?: boolean;
+              error?: string;
+            };
+            if (payload.error) throw new Error(payload.error);
+            if (payload.meta) {
+              // Populate title + excerpt from AI-generated meta
+              if (payload.meta.title) setTitle(payload.meta.title);
+              if (payload.meta.excerpt) setExcerpt(payload.meta.excerpt);
+            }
+            if (payload.text) {
+              streamBuffer.current += payload.text;
+              setStreamPreview(streamBuffer.current);
+            }
+            if (payload.coverImage) {
+              setCoverImageId(payload.coverImage.id);
+              setCoverImageUrl(payload.coverImage.url || `/api/blog-images/${payload.coverImage.id}`);
+              setImageStreaming(false);
+              setImageGenFailed(false);
+            }
+            if (payload.done) {
+              // Load full streamed HTML into TipTap
+              editor?.commands.setContent(streamBuffer.current, false);
+              setStreamState('done');
+              // If no cover image was received by now, mark as failed
+              if (!coverImageId) {
+                setImageStreaming(false);
+                setImageGenFailed(true);
+              }
+              return;
+            }
+          } catch {
+            // skip malformed lines
           }
         }
-
-        setMessage('')
-      } catch (err) {
-        setMessage(err instanceof Error ? err.message : 'Failed to load blog')
       }
-    }
 
-    void load()
-
-    return () => {
-      cancelled = true
-    }
-  }, [editId, editor])
-
-  const handleAuthorRemove = async () => {
-    if (!authorImageId) return
-    try {
-      setUploadingImage(true)
-      const res = await fetch(`/api/blog-images/${authorImageId}`, { method: 'DELETE' })
-      const payload = await res.json()
-      if (res.ok && payload?.success) {
-        uploadedImageIdsRef.current.delete(authorImageId)
-        setAuthorImageId('')
-        setAuthorImageUrl(undefined)
-      } else {
-        setMessage(payload?.error || 'Failed to remove author image')
+      // Fallback if stream ended without explicit done event
+      editor?.commands.setContent(streamBuffer.current, false);
+      setStreamState('done');
+      if (!coverImageId) {
+        setImageStreaming(false);
+        setImageGenFailed(true);
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Failed to remove author image')
+      if ((err as Error).name === 'AbortError') return;
+      setStreamState('idle');
+      setImageStreaming(false);
+      if (!coverImageId) setImageGenFailed(true);
+      setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Stream failed.' });
+      setTimeout(() => setAutoToast(null), 5000);
+    }
+  }, [title, streamState, editor, coverImageId]);
+
+  // When streaming completes, clear preview after a beat
+  useEffect(() => {
+    if (streamState === 'done') {
+      const t = setTimeout(() => setStreamPreview(''), 800);
+      return () => clearTimeout(t);
+    }
+  }, [streamState]);
+
+  // ─── Run Blog Automation ───────────────────────────────────────────────────
+  async function handleRunAutomation() {
+    setAutoRunning(true);
+    setAutoToast(null);
+    try {
+      const res = await fetch('/api/admin/trigger-blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Automation failed');
+
+      const d = json.data;
+      const text = d?.state === 'skipped'
+        ? `Automation skipped — ${d.reason || 'already ran recently'}`
+        : `Blog automation created: "${d?.title || 'new post'}"`;
+      setAutoToast({ type: 'success', text });
+    } catch (err) {
+      setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Automation failed.' });
     } finally {
-      setUploadingImage(false)
+      setAutoRunning(false);
+      setTimeout(() => setAutoToast(null), 6000);
     }
   }
 
-  const openPreviewForStatus = (s: BlogStatus) => {
-    // ensure current editor sections are included in preview
-    setPreviewOpen(true)
-    setStatus(s)
+  // ─── Publish ───────────────────────────────────────────────────────────────
+  async function handleConfirmPublish(status: BlogStatus) {
+    const html = editor?.getHTML() || '';
+    const sections = htmlToSections(html);
+    const coverImagePatch = coverImageId
+      ? { coverImageId }
+      : editId
+        ? { coverImageId: null }
+        : {};
+
+    const payload = {
+      title,
+      excerpt,
+      author,
+      sections,
+      status,
+      ...coverImagePatch,
+    };
+
+    setAutoRunning(true);
+    try {
+      let res: Response;
+      if (editId) {
+        // Edit mode: PATCH existing blog
+        res = await fetch(`/api/blogs/${editId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Create mode: POST new blog
+        res = await fetch('/api/blogs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Publish failed');
+
+      setAutoToast({
+        type: 'success',
+        text: status === 'published'
+          ? `${editId ? 'Updated' : 'Published'}! /${json.data?.slug || ''}`
+          : `Draft ${editId ? 'updated' : 'saved'}.`,
+      });
+      if (!editId && status === 'draft') {
+        // Reset only on new draft create, otherwise redirect handles it
+        setTitle('');
+        setExcerpt('');
+        setAuthor('ResumeCraft Team');
+        setCoverImageId(null);
+        setCoverImageUrl(null);
+        editor?.commands.setContent('');
+      }
+      setPreCheckOpen(false);
+
+      const slug = json.data?.slug;
+      if (status === 'published' && slug) {
+        router.push(`/blogs/${slug}`);
+      }
+      return slug;
+    } catch (err) {
+      setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Publish failed.' });
+      return undefined;
+    } finally {
+      setAutoRunning(false);
+      setTimeout(() => setAutoToast(null), 6000);
+    }
   }
 
-  const handleConfirmFromPreview = async (s: BlogStatus) => {
-    setPreviewOpen(false)
-    await submit(s)
+  // Patch improved content back into editor + meta fields
+  function handleImprove(data: { title: string; excerpt: string; sections: BlogSection[]; seoKeywords: string[] }) {
+    setTitle(data.title);
+    setExcerpt(data.excerpt);
+    editor?.commands.setContent(sectionsToHtml(data.sections), false);
+    setAutoToast({
+      type: 'success',
+      text: `Improved! SEO keywords: ${data.seoKeywords.join(', ') || 'none'}`,
+    });
+    setTimeout(() => setAutoToast(null), 6000);
   }
 
-  const previewSections = useMemo(() => {
-    if (!editor) return [] as BlogSection[]
-    return editorDocToSections(editor.getJSON())
-  }, [editor, editorStats])
+  // ─── Quick Publish (bypass review) ─────────────────────────────────────────
+  async function handleQuickPublish(status: 'published' | 'draft') {
+    if (!title.trim() || title.trim().length < 3) {
+      setAutoToast({ type: 'error', text: 'Title must be at least 3 characters.' });
+      setTimeout(() => setAutoToast(null), 4000);
+      return;
+    }
+    if (!excerpt.trim() || excerpt.trim().length < 10) {
+      setAutoToast({ type: 'error', text: 'Excerpt must be at least 10 characters.' });
+      setTimeout(() => setAutoToast(null), 4000);
+      return;
+    }
+    setQuickPublishing(true);
+    try {
+      await handleConfirmPublish(status);
+    } finally {
+      setQuickPublishing(false);
+    }
+  }
 
+  // ─── Preview ───────────────────────────────────────────────────────────────
+  function handlePreview() {
+    if (!title.trim() || title.trim().length < 3) {
+      setAutoToast({ type: 'error', text: 'Title must be at least 3 characters to preview.' });
+      setTimeout(() => setAutoToast(null), 4000);
+      return;
+    }
+    setPreviewOpen(true);
+  }
+
+  // ─── Derived ───────────────────────────────────────────────────────────────
+  const editorHtml = editor?.getHTML() || '';
+  const editorSections = htmlToSections(editorHtml);
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <section className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
+    <div className="w-full space-y-0">
 
-      <header className="space-y-2">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">Write a blog</h1>
-          <div className="flex items-center gap-3">
-            {user?.isAdmin ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (autoRunning) return
-                  if (!confirm('Run automation to generate & publish a blog now?')) return
-                  try {
-                    setAutoRunning(true)
-                    setAutoMsg('Running automation...')
-                    const resp = await fetch('/api/admin/trigger-blog', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ title: title || undefined }),
-                    })
-                    const payload = await resp.json()
-                    if (!resp.ok || !payload?.success) {
-                      throw new Error(payload?.error || 'Automation failed')
-                    }
-                    const result = payload.data
-                    if (result?.state === 'created' && result?.slug) {
-                      window.location.href = `/blogs/${result.slug}`
-                      return
-                    }
-                    const msg = result?.reason || 'Automation completed; no blog created.'
-                    setAutoMsg(msg)
-                    showToast(msg)
-                  } catch (err) {
-                    const msg = err instanceof Error ? err.message : 'Automation failed'
-                    setAutoMsg(msg)
-                    setMessage(msg)
-                  } finally {
-                    setAutoRunning(false)
-                  }
-                }}
-                disabled={autoRunning}
-                className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium disabled:opacity-50"
-              >
-                {autoRunning ? 'Running…' : 'Run automation'}
-              </button>
-            ) : null}
-
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI mode</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={aiMode}
-              onClick={() => {
-                setAiMode((prev) => !prev)
-                setAiPreview(null)
-                setAiMessage('')
-                setAiPublishState('idle')
-              }}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${aiMode ? 'bg-teal-600' : 'bg-slate-300 dark:bg-slate-600'
-                }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${aiMode ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-              />
-            </button>
-          </label>
+      {/* ── Edit mode banner ── */}
+      {editId && (
+        <div className="mb-3 rounded-xl px-4 py-2 text-sm font-medium border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800 flex items-center gap-2">
+          {editLoading
+            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading blog…</>
+            : <><Pencil className="w-3.5 h-3.5" /> Editing existing blog post — changes will update the existing entry.</>
+          }
         </div>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          {aiMode
-            ? 'Enter a title and let AI write the full blog and generate a cover image.'
-            : 'Write a blog with airesumecraft blog writter'}
+      )}
+
+      {/* ── Toast ── */}
+      {autoToast && (
+        <div className={`mb-3 rounded-xl px-4 py-3 text-sm font-medium border ${
+          autoToast.type === 'error'
+            ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+            : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+        }`}>
+          {autoToast.text}
+        </div>
+      )}
+
+      {/* ── Top action bar ── */}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-t-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+        {/* Generate toggle */}
+        <button
+          type="button"
+          onClick={handleStream}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            streamState === 'streaming'
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600'
+          }`}
+        >
+          {streamState === 'streaming'
+            ? <><X className="w-3.5 h-3.5" /> Stop AI</>
+            : <><Sparkles className="w-3.5 h-3.5" /> Generate</>
+          }
+        </button>
+
+        {streamState === 'streaming' && (
+          <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 font-medium ml-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Writing…
+          </div>
+        )}
+        <input
+          ref={coverImageRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            setCoverUploading(true);
+            try {
+              const res = await fetch('/api/blog-images', { method: 'POST', body: formData });
+              const json = await res.json();
+              const imageId = json?.data?.imageId || json?.data?.id;
+              if (json.success && imageId) {
+                setCoverImageId(imageId);
+                setCoverImageUrl(`/api/blog-images/${imageId}`);
+                setImageGenFailed(false);
+                setAutoToast({ type: 'success', text: 'Cover image uploaded successfully.' });
+                setTimeout(() => setAutoToast(null), 2500);
+              } else {
+                throw new Error(json.error || 'Cover image upload failed.');
+              }
+            } catch (err) {
+              setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Cover image upload failed.' });
+              setTimeout(() => setAutoToast(null), 4000);
+            } finally {
+              setCoverUploading(false);
+            }
+            if (coverImageRef.current) {
+              coverImageRef.current.value = '';
+            }
+          }}
+        />
+
+        {/* Insert image */}
+        <button
+          type="button"
+          onClick={() => inlineImageRef.current?.click()}
+          disabled={streamState === 'streaming' || inlineUploading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors"
+        >
+          {inlineUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />} <span className="hidden md:inline">{inlineUploading ? 'Uploading...' : 'Image'}</span>
+        </button>
+        <input
+          ref={inlineImageRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            await handleInlineImageUpload(file, editor);
+
+            if (inlineImageRef.current) {
+              inlineImageRef.current.value = '';
+            }
+          }}
+        />
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Run Automation — admin tool to trigger scheduled post generation */}
+        <button
+          type="button"
+          onClick={handleRunAutomation}
+          disabled={autoRunning || streamState === 'streaming'}
+          title="Run scheduled blog automation (admin)"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors"
+        >
+          {autoRunning
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <Settings className="w-3.5 h-3.5" />
+          }
+          <span className="hidden lg:inline text-xs">Automation</span>
+        </button>
+
+        {/* Preview */}
+        <button
+          type="button"
+          onClick={handlePreview}
+          disabled={quickPublishing || autoRunning}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+        >
+          <Eye className="w-3.5 h-3.5" /> Preview
+        </button>
+
+        {/* Publish */}
+        <button
+          type="button"
+          onClick={() => handleQuickPublish('published')}
+          disabled={quickPublishing || autoRunning}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors"
+        >
+          {quickPublishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+          Publish
+        </button>
+
+        {/* Submit for Review */}
+        <button
+          type="button"
+          onClick={() => setPreCheckOpen(true)}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-100 transition-colors whitespace-nowrap"
+        >
+          <Sparkles className="w-3.5 h-3.5" /> AI Review
+        </button>
+      </div>
+
+      {/* ── AI Live Preview ── */}
+      {streamState === 'streaming' && streamPreview && (
+        <div className="border-x border-slate-200 dark:border-slate-700 bg-teal-50/40 dark:bg-teal-900/10 px-4 py-4">
+          <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 mb-2 uppercase tracking-wide flex items-center gap-2">
+            <span className="inline-block w-2.5 h-2.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            AI is drafting...
           </p>
-        </div>
-      </header>
-
-      {aiMode && (
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                value={aiTitle}
-                onChange={(event) => setAiTitle(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !aiGenerating && aiTitle.trim().length >= 3) {
-                    void generateWithAI()
-                  }
-                }}
-                placeholder="Enter a blog title to generate…"
-                disabled={aiGenerating || aiPublishState === 'saving' || aiPublishState === 'success'}
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-              <button
-                type="button"
-                onClick={() => void generateWithAI()}
-                disabled={
-                  aiGenerating ||
-                  aiTitle.trim().length < 3 ||
-                  aiPublishState === 'saving' ||
-                  aiPublishState === 'success'
-                }
-                className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50 whitespace-nowrap"
-              >
-                {aiGenerating ? 'Generating…' : 'Generate with AI'}
-              </button>
-            </div>
-            {aiMessage && !aiPreview ? (
-              <p
-                className={`text-sm ${aiPublishState === 'error'
-                  ? 'text-red-500 dark:text-red-400'
-                  : 'text-slate-600 dark:text-slate-400'
-                  }`}
-              >
-                {aiMessage}
-              </p>
-            ) : null}
-          </div>
-
-          {aiGenerating ? (
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-10 flex flex-col items-center gap-3">
-              <span className="h-8 w-8 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Writing blog content and generating cover image…
-              </p>
-            </div>
-          ) : null}
-
-          {aiPreview && !aiGenerating ? (
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              {aiPreview.coverImageUrl ? (
-                <img
-                  src={aiPreview.coverImageUrl}
-                  alt={aiPreview.title}
-                  className="w-full h-48 sm:h-64 object-cover"
-                />
-              ) : null}
-              <div className="p-5 space-y-5">
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {aiPreview.title}
-                  </h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">{aiPreview.excerpt}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">by {aiPreview.author}</p>
-                </div>
-                <div className="prose prose-slate dark:prose-invert max-w-none">
-                  {aiPreview.sections.map((section) => (
-                    <BlogSectionRenderer key={section.id} section={section} />
-                  ))}
-                </div>
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-3">
-                  <select
-                    value={aiPreview.status}
-                    onChange={(event) =>
-                      setAiPreview({ ...aiPreview, status: event.target.value as BlogStatus })
-                    }
-                    disabled={aiPublishState === 'saving' || aiPublishState === 'success'}
-                    className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                  >
-                    <option value="published">Published</option>
-                    <option value="draft">Draft</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => void publishAiBlog()}
-                    disabled={aiPublishState === 'saving' || aiPublishState === 'success'}
-                    className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50"
-                  >
-                    {aiPublishState === 'saving'
-                      ? 'Publishing…'
-                      : aiPublishState === 'success'
-                        ? 'Published!'
-                        : 'Publish blog'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAiPreview(null)
-                      setAiMessage('')
-                      setAiPublishState('idle')
-                    }}
-                    disabled={aiPublishState === 'saving' || aiPublishState === 'success'}
-                    className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                  {aiMessage ? (
-                    <p
-                      className={`text-sm ${aiPublishState === 'error'
-                        ? 'text-red-500 dark:text-red-400'
-                        : 'text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                      {aiMessage}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {!aiMode && (
-        <>
-          <div className="grid gap-3">
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Blog title"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
-            />
-            <div className="flex items-center gap-3">
-              <AuthorImagePicker
-                authorImageUrl={authorImageUrl}
-                userImage={user?.image}
-                uploading={uploadingImage}
-                onUpload={handleAuthorUpload}
-              />
-              <input
-                value={author}
-                onChange={(event) => setAuthor(event.target.value)}
-                required
-                placeholder={user?.name ? user.name : 'Author Name'}
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
-              />
-            </div>
-            <textarea
-              value={excerpt}
-              onChange={(event) => setExcerpt(event.target.value)}
-              placeholder="Short excerpt"
-              rows={3}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
-            />
-            <input
-              value={slug}
-              onChange={(event) => setSlug(event.target.value)}
-              placeholder="Custom slug (optional)"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
-            />
-
-            <div className="w-full flex flex-wrap items-center gap-3">
-              <label className="w-full text-sm text-slate-700 dark:text-slate-300">
-                Cover image
-                <div className='relative w-full h-[200px] overflow-hidden group bg-gray-300/25 grid place-items-center' >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      if (file) {
-                        void handleCoverImageChange(file)
-                      }
-                    }}
-                    className="block mt-1 text-sm opacity-0 absolute"
-                  />
-                  {uploadingImage && message === 'Uploading cover image' ?
-                    <div className='grid gap-2 absolute place-items-center z-40'>
-                      <Loader className='animate-spin ' />
-                      <span className='font-semibold capitalize'>{message.toLocaleLowerCase() === 'cover image uploaded' ? 'Updating Cover Image' : 'Uploading cover Image'}</span>
-                    </div> :
-                    <ImageIcon className={`${coverImageId && !uploadingImage ? 'opacity-0 group-hover:opacity-100' : ''} absolute z-20`} size={80} />}
-                  {coverImageId ? (
-                    <img src={`/api/blog-images/${coverImageId}`} className={`relative object-cover rounded-md group-hover:opacity-50 ${uploadingImage && message === 'Uploading cover image' ? 'opacity-50' : ''} z-10`} />
-                  ) : null}
-
-                </div>
-              </label>
-
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => editor?.chain().focus().toggleBold().run()}
-              className={`px-4 py-1 rounded text-xs ${editor?.isActive('bold') ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
-            >
-              Bold
-            </button>
-            <button
-              type="button"
-              onClick={() => editor?.chain().focus().toggleItalic().run()}
-              className={`px-4 py-1 rounded text-xs ${editor?.isActive('italic') ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
-            >
-              Italic
-            </button>
-            <button
-              type="button"
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-              className={`px-4 py-1 rounded text-xs ${editor?.isActive('heading', { level: 2 }) ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
-            >
-              H2
-            </button>
-            <button
-              type="button"
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-              className={`px-4 py-1 rounded text-xs ${editor?.isActive('heading', { level: 3 }) ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
-            >
-              H3
-            </button>
-            <button
-              type="button"
-              onClick={() => editor?.chain().focus().toggleBulletList().run()}
-              className={`px-4 py-1 rounded text-xs ${editor?.isActive('bulletList') ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
-            >
-              Bullet List
-            </button>
-            <button
-              type="button"
-              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-              className={`px-4 py-1 rounded text-xs ${editor?.isActive('blockquote') ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
-            >
-              Quote
-            </button>
-            <button
-              type="button"
-              onClick={() => inlineImagePickerRef.current?.click()}
-              className="px-4 py-1 rounded bg-texs-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300 text-sm"
-            >
-              Insert Image
-            </button>
-            <input
-              ref={inlineImagePickerRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(event) => {
-                const files = event.target.files
-                if (files?.length) {
-                  void insertInlineImages(files)
-                }
-                event.currentTarget.value = ''
-              }}
-            />
-          </div>
-
           <div
-            onDragEnter={(event) => {
-              event.preventDefault()
-              setDraggingInlineImage(true)
-            }}
-            onDragOver={(event) => {
-              event.preventDefault()
-              setDraggingInlineImage(true)
-            }}
-            onDragLeave={(event) => {
-              event.preventDefault()
-              setDraggingInlineImage(false)
-            }}
-            onDrop={(event) => {
-              event.preventDefault()
-              setDraggingInlineImage(false)
+            className="rounded-lg border border-teal-200 dark:border-teal-800 bg-white dark:bg-slate-800/80 px-4 py-3 text-sm prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 opacity-80 pointer-events-none max-h-64 overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: streamPreview }}
+          />
+        </div>
+      )}
 
-              const files = event.dataTransfer.files
-              if (!files?.length) {
-                setMessage('No files detected in drop action.')
-                return
-              }
+      {/* ── Metadata ── */}
+      <div className="border-x border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-4 space-y-3">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Post title *"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+        <input
+          type="text"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          placeholder="Short excerpt / meta description *"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+        <input
+          type="text"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          placeholder="Author name *"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
 
-              void insertInlineImages(files)
-            }}
-            onPaste={(event) => {
-              const files = event.clipboardData?.files
-              if (!files?.length) {
-                return
-              }
-
-              const hasImage = Array.from(files).some((file) => file.type.startsWith('image/'))
-              if (!hasImage) {
-                return
-              }
-
-              event.preventDefault()
-              void insertInlineImages(files)
-            }}
-            className={`rounded-xl transition-colors ${draggingInlineImage
-              ? 'ring-2 ring-teal-400/70 bg-teal-50/40 dark:bg-teal-900/20'
-              : 'ring-1 ring-slate-200 dark:ring-slate-700'
-              }`}
-          >
-            <EditorContent editor={editor} />
-            <p className="px-3 pb-3 text-xs text-slate-500 dark:text-slate-400">
-              Drag and drop images into the editor, use the Insert Image button, or paste screenshots.
-            </p>
-          </div>
-          <div>
-            <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              paragraphs: {validation.paragraphCount}/2
-            </span>
-            <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              images: {validation.imageCount}/1
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 pb-4">
-            <div className="relative ">
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value as BlogStatus)}
-                className=" w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer "
-              >
-                <option value="published" className="bg-white text-gray-800">
-                  Published
-                </option>
-                <option value="draft" className="bg-white text-gray-800">
-                  Draft
-                </option>
-              </select>
-
-              {/* Custom dropdown icon */}
-              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
+        {/* Cover image row — always visible */}
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Cover image</p>
+          {coverImageUrl ? (
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverImageUrl}
+                alt="Cover"
+                className="w-32 h-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
+              />
+              <div className="space-y-1">
+                {imageStreaming && (
+                  <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> AI generating…
+                  </p>
+                )}
+                {coverUploading && (
+                  <p className="text-xs text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading cover image…
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => coverImageRef.current?.click()}
+                  disabled={coverUploading}
+                  className="text-xs text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 disabled:opacity-50 flex items-center gap-1"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+                  {coverUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />} {coverUploading ? 'Uploading...' : 'Replace'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCoverImageId(null); setCoverImageUrl(null); setImageGenFailed(false); }}
+                  disabled={coverUploading}
+                  className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Remove
+                </button>
               </div>
             </div>
+          ) : (
             <button
               type="button"
-              onClick={() => openPreviewForStatus(status)}
-              disabled={!validation.canSave || saveState === 'saving' || uploadingImage}
-              className="px-4 py-2 rounded-lg bg-teal-600 text-white disabled:opacity-50"
+              onClick={() => coverImageRef.current?.click()}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${imageGenFailed
+                ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+                : imageStreaming
+                  ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400 cursor-default'
+                  : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              disabled={imageStreaming || coverUploading}
             >
-              {saveState === 'saving' ? 'Saving...' : 'Preview & Publish'}
+              {coverUploading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Uploading cover image…</>
+              ) : imageStreaming ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> AI generating cover image…</>
+              ) : imageGenFailed ? (
+                <><Upload className="w-4 h-4" /> Image generation failed — upload manually</>
+              ) : (
+                <><Upload className="w-4 h-4" /> Upload cover image</>
+              )}
             </button>
+          )}
+        </div>
+      </div>
 
-            {message ? <p className="text-sm text-slate-600 dark:text-slate-300">{message}</p> : null}
-          </div>
-        </>
-      )}
+      {/* ── Editor ── */}
+      <div className="border-x border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-b-xl overflow-hidden">
+        {/* Toolbar */}
+        <div className="px-4 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <EditorToolbar editor={editor} />
+        </div>
+
+        {/* TipTap content */}
+        <div className="px-4 py-3">
+          <EditorContent editor={editor} />
+        </div>
+
+        <p className="px-4 pb-3 text-xs text-slate-400 dark:text-slate-500">
+          Drag &amp; drop images directly into the editor.
+        </p>
+      </div>
+
+      {/* ── Pre-check modal ── */}
+      <BlogPreCheckModal
+        open={preCheckOpen}
+        title={title}
+        excerpt={excerpt}
+        author={author}
+        html={editorHtml}
+        sections={editorSections}
+        onImprove={handleImprove}
+        onConfirm={handleConfirmPublish}
+        onClose={() => setPreCheckOpen(false)}
+      />
+
+      {/* ── Preview modal ── */}
       <BlogPreviewModal
         open={previewOpen}
         title={title}
         excerpt={excerpt}
         author={author}
-        authorImageUrl={authorImageUrl || user?.image || undefined}
-        coverImageUrl={coverImageId ? `/api/blog-images/${coverImageId}` : undefined}
-        sections={previewSections}
+        coverImageUrl={coverImageUrl || undefined}
+        sections={editorSections}
         onClose={() => setPreviewOpen(false)}
-        onConfirm={handleConfirmFromPreview}
+        onConfirm={async (status) => {
+          setPreviewOpen(false);
+          if (status === 'published' || status === 'draft') {
+            await handleQuickPublish(status);
+          }
+        }}
       />
-    </section>
-  )
+    </div>
+  );
 }

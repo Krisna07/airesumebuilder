@@ -4,15 +4,17 @@ import Link from "next/link"
 import UniversalImage from "./Ui/UniversalImage"
 import { useAuth } from "@/context/authContext"
 import VerificationModal from './VerificationModal'
-import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2 } from "lucide-react"
+import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2, Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import SubscriptionStatus from "./SubscriptionStatus"
 
 const Navbar = () => {
   const [menu, setMenu] = useState<boolean>(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false)
   const { user, logOut, subscription } = useAuth()
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const navRef = useRef<HTMLElement | null>(null)
   const route = usePathname()
   const [activeTab, setActivetab] = useState<string>("")
   // avoid reading `window` during SSR — sync theme on mount
@@ -43,6 +45,7 @@ const Navbar = () => {
   useEffect(() => {
     setActivetab(route ?? "")
     setMenu(false)
+    setIsMobileMenuOpen(false)
   }, [route])
 
   const toggleTheme = () => {
@@ -81,6 +84,25 @@ const Navbar = () => {
     }
   }, [menu])
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const handleClickOutsideMobile = (event: MouseEvent) => {
+      if (!navRef.current) return
+      const target = event.target as HTMLElement
+      if (!navRef.current.contains(target)) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+    const handleScrollMobile = () => setIsMobileMenuOpen(false)
+    
+    document.addEventListener("mousedown", handleClickOutsideMobile)
+    document.addEventListener("scroll", handleScrollMobile, { passive: true })
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutsideMobile)
+      document.removeEventListener("scroll", handleScrollMobile)
+    }
+  }, [isMobileMenuOpen])
+
   // // position the sliding glass under the active tab
   // useEffect(() => {
   //   if (typeof window === 'undefined') return
@@ -109,7 +131,7 @@ const Navbar = () => {
 
 
   return (
-    <nav className="w-full grid place-items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 z-50 transition-colors duration-200">
+    <nav ref={navRef} className="w-full grid place-items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 z-50 transition-colors duration-200">
       <div className="w-full max-w-[800px] mx-auto p-3 px-4 flex items-center justify-between">
         {/* Logo */}
         <Link
@@ -128,9 +150,19 @@ const Navbar = () => {
         </Link>
 
         {/* Navigation */}
-        <div className="flex items-center gap-6">
-          {/* Nav Links */}
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2 sm:gap-6">
+          {/* Mobile Menu Button */}
+          <button
+            className="sm:hidden p-1 text-slate-600 dark:text-slate-300 focus:outline-none"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            aria-expanded={isMobileMenuOpen}
+            aria-label="Toggle navigation"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden sm:flex items-center gap-1">
             <Link
               href="/"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "/"
@@ -323,6 +355,42 @@ const Navbar = () => {
           <VerificationModal open={showVerify} onClose={() => setShowVerify(false)} />
         </div>
       </div>
+
+      {/* Mobile Nav Links Overlay */}
+      {isMobileMenuOpen && (
+        <div className="sm:hidden absolute top-[calc(100%+1px)] left-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 shadow-lg px-4 py-4 flex flex-col gap-2 animate-fade-in z-40">
+          <Link
+            href="/"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === "/"
+                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+          >
+            Home
+          </Link>
+          <Link
+            href="/builder"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("builder")
+                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+          >
+            Builder
+          </Link>
+          <Link
+            href="/blogs"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("blogs")
+              ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+              : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+          >
+            Blogs
+          </Link>
+        </div>
+      )}
     </nav>
   )
 }

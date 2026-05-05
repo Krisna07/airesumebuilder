@@ -80,7 +80,7 @@ export default function BlogCard({ post }: Props) {
                                     }
                                </div>
                                 <div><p className="text-xs text-slate-500 dark:text-slate-400">By {post.author}</p>
-                                    <time className="block text-xs text-slate-500 dark:text-slate-400">
+                                    <time suppressHydrationWarning className="block text-xs text-slate-500 dark:text-slate-400">
                                         {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}
                                     </time>
                                 </div>

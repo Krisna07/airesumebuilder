@@ -2,45 +2,58 @@ import slugify from 'slugify'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import OpenAI from 'openai'
+import { GoogleGenAI } from '@google/genai'
 import { parseResponse } from '@/lib/jsonParse'
-import { generateBlogTitlePlanPrompt, generateSeoBlogPrompt } from '@/lib/prompts'
+import { generateBlogTitlePlanPrompt, generateSeoBlogPrompt, regenerateBlogPrompt } from '@/lib/prompts'
 import { prisma } from '@/lib/prisma'
 import sanityClient from '@/lib/sanity'
 import { createBlog, saveImage } from '@/services/blogCmsService'
 import type { BlogActor, BlogSection, BlogStatus, CreateBlogInput } from '@/types/blog'
 
-const aiOutputSectionSchema = z.discriminatedUnion('type', [
+// Use z.union instead of z.discriminatedUnion to avoid Zod v4 _zod.propValues crash
+const aiOutputSectionSchema = z.union([
   z.object({
     id: z.string().optional(),
     type: z.literal('paragraph'),
-    content: z.string().trim().min(1),
+    content: z.string().min(1),
+  }),
+  z.object({
+    id: z.string().optional(),
+    type: z.literal('heading'),
+    level: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+    content: z.string().min(1),
+  }),
+  z.object({
+    id: z.string().optional(),
+    type: z.literal('list'),
+    items: z.array(z.string().min(1)).min(1),
   }),
   z.object({
     id: z.string().optional(),
     type: z.literal('quote'),
-    content: z.string().trim().min(1),
-    citation: z.string().trim().optional(),
+    content: z.string().min(1),
+    citation: z.string().optional(),
   }),
 ])
 
 const aiOutputSchema = z.object({
-  title: z.string().trim().min(3).max(180),
-  excerpt: z.string().trim().min(10),
+  title: z.string().min(3).max(180),
+  excerpt: z.string().min(10),
   slug: z
     .object({
-      current: z.string().trim().min(2).max(240).optional(),
+      current: z.string().min(2).max(240).optional(),
     })
     .optional(),
-  imagePrompt: z.string().trim().min(5),
+  imagePrompt: z.string().min(5),
   sections: z.array(aiOutputSectionSchema).min(1),
   status: z.enum(['draft', 'published', 'archived']).optional(),
-  author: z.string().trim().min(2).max(120).optional(),
+  author: z.string().min(2).max(120).optional(),
 })
 
 const titlePlanSchema = z.object({
-  title: z.string().trim().min(8).max(180),
-  targetKeywords: z.array(z.string().trim()).optional(),
-  rationale: z.string().trim().optional(),
+  title: z.string().min(8).max(180),
+  targetKeywords: z.array(z.string()).optional(),
+  rationale: z.string().optional(),
 })
 
 type GeneratedBlogDraft = {
@@ -330,6 +343,83 @@ async function requestBlogDraftFromGateway(prompt: string) {
   return requestGatewayText(prompt, model)
 }
 
+async function executeAiWithFallback(prompt: string, taskTitle: string = 'automation') {
+  const hasGateway = Boolean(getGatewayToken())
+  const hasWorker = Boolean(process.env.BLOG_AI_WORKER_URL)
+  const hasGemini = Boolean(process.env.GEMINI_API_KEY)
+
+  let lastError: Error | null = null
+
+  // 1. Try Gemini first if available (usually fastest & most reliable)
+  if (hasGemini) {
+    try {
+      return await requestBlogDraftFromGemini(prompt)
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      console.warn('Gemini AI failed, falling back:', lastError.message)
+    }
+  }
+
+  // 2. Try Gateway (Cloudflare compatibility endpoint)
+  if (hasGateway) {
+    try {
+      const model = process.env.BLOG_TITLE_AI_MODEL || process.env.BLOG_AI_WORKER_MODEL || 'workers-ai/@cf/zai-org/glm-4.7-flash'
+      return await requestGatewayText(prompt, model)
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      console.warn('Gateway AI failed, falling back:', lastError.message)
+    }
+  }
+
+  // 3. Try fallback worker endpoint
+  if (hasWorker) {
+    try {
+      return await requestBlogDraftFromWorker(prompt, taskTitle)
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      console.warn('Worker AI failed:', lastError.message)
+    }
+  }
+
+  throw lastError || new Error('No AI provider configured or all configured providers failed')
+}
+
+// ─── Gemini fallback (uses GEMINI_API_KEY, same key as the rest of the app) ───
+
+async function requestBlogDraftFromGemini(prompt: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured')
+
+  const genAI = new GoogleGenAI({ apiKey })
+
+  // Try fast model first, fall back to flash
+  const models = [
+    'gemini-3.1-flash-lite-preview',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+  ]
+
+  let lastError: Error | null = null
+  for (const model of models) {
+    try {
+      const response = await genAI.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      })
+      const text = response.candidates?.[0]?.content?.parts
+        ?.map((p: { text?: string }) => p.text ?? '')
+        .join('') ?? ''
+      if (!text) throw new Error(`Empty response from ${model}`)
+      return text
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      console.warn(`Gemini model ${model} failed: ${lastError.message}`)
+    }
+  }
+
+  throw lastError ?? new Error('All Gemini models failed')
+}
+
 function normalizeTitleKey(title: string) {
   return title.trim().toLowerCase().replace(/\s+/g, ' ')
 }
@@ -537,8 +627,9 @@ async function planUniqueTitleFromResume(preferredTitle?: string) {
   const retryCount = Math.max(Number(process.env.BLOG_TITLE_GEN_RETRIES || 5), 2)
   const hasGateway = Boolean(getGatewayToken())
   const hasWorkerEndpoint = Boolean(process.env.BLOG_AI_WORKER_URL)
+  const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY)
 
-  if (hasGateway || hasWorkerEndpoint) {
+  if (hasGateway || hasWorkerEndpoint || hasGeminiKey) {
     for (let attempt = 1; attempt <= retryCount; attempt += 1) {
       const prompt = generateBlogTitlePlanPrompt({
         resumeContext,
@@ -547,9 +638,13 @@ async function planUniqueTitleFromResume(preferredTitle?: string) {
         attempt,
       })
 
-      const aiResponse = hasGateway
-        ? await requestGatewayText(prompt, process.env.BLOG_TITLE_AI_MODEL || process.env.BLOG_AI_WORKER_MODEL || 'workers-ai/@cf/zai-org/glm-4.7-flash')
-        : await requestBlogDraftFromWorker(prompt, 'title-planning')
+      let aiResponse: string
+      try {
+        aiResponse = await executeAiWithFallback(prompt, 'title-planning')
+      } catch (err) {
+        console.warn('All AI title generation attempts failed:', err)
+        break // break the loop and use fallback base
+      }
 
       const candidate = parseTitleFromAi(aiResponse)
       if (!candidate) continue
@@ -598,47 +693,21 @@ export function validateAndNormalizeBlogDraft(raw: unknown, fallbackAuthor?: str
   }
 
   const value = parsed.data
-  const paragraphs = value.sections.filter((section) => section.type === 'paragraph')
-  const quote = value.sections.find((section) => section.type === 'quote')
-
-  if (paragraphs.length < 3) {
-    throw new Error('AI output must contain at least 3 paragraph sections')
+  if (value.sections.length < 2) {
+    throw new Error('AI output must contain at least 2 sections')
   }
 
-  if (!quote) {
-    throw new Error('AI output must include one quote section')
-  }
-
-  const orderedSections: BlogSection[] = [
-    {
-      id: `sec_${nanoid(8)}`,
-      type: 'paragraph',
-      content: paragraphs[0].content,
-    },
-    {
-      id: `sec_${nanoid(8)}`,
-      type: 'quote',
-      content: quote.content,
-      citation: quote.citation,
-    },
-    {
-      id: `sec_${nanoid(8)}`,
-      type: 'paragraph',
-      content: paragraphs[1].content,
-    },
-    {
-      id: `sec_${nanoid(8)}`,
-      type: 'paragraph',
-      content: paragraphs[2].content,
-    },
-  ]
+  const sections = value.sections.map((s) => ({
+    ...s,
+    id: s.id || `sec_${nanoid(8)}`,
+  })) as BlogSection[]
 
   return {
     title: value.title,
     excerpt: value.excerpt,
     slug: value.slug?.current,
     imagePrompt: value.imagePrompt,
-    sections: orderedSections,
+    sections,
     status: value.status || getDefaultStatus(),
     author: value.author || fallbackAuthor || getDefaultAuthor(),
   }
@@ -810,6 +879,24 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
       throw new Error('Workers AI image response contained no image data')
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unknown Cloudflare image error'
+      console.warn('Cloudflare image generation failed, trying Pollinations fallback...', reason)
+      
+      try {
+        // Fallback to a free community image generator before resorting to SVG
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=680&nologo=true`
+        const fallbackRes = await fetch(fallbackUrl, { method: 'GET' })
+        
+        if (fallbackRes.ok) {
+          return {
+            bytes: Buffer.from(await fallbackRes.arrayBuffer()),
+            mimeType: fallbackRes.headers.get('content-type') || 'image/jpeg',
+            filename: `blog-fallback-${Date.now()}.jpg`,
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn('Pollinations fallback failed as well:', fallbackErr)
+      }
+
       console.warn('Falling back to local SVG cover image:', reason)
       return createFallbackCoverImagePayload(imagePrompt, reason)
     }
@@ -902,11 +989,15 @@ export async function generateBlogDraftFromTitle(title: string) {
   const author = getDefaultAuthor()
   const prompt = generateSeoBlogPrompt(title, author)
   const hasGatewayToken = Boolean(getGatewayToken())
-  const workerResult = hasGatewayToken
-    ? await requestBlogDraftFromGateway(prompt)
-    : await requestBlogDraftFromWorker(prompt, title)
+  const hasWorkerUrl = Boolean(process.env.BLOG_AI_WORKER_URL)
+  const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY)
 
-  const rawText = toRawTextFromUnknown(workerResult)
+  if (!hasGatewayToken && !hasWorkerUrl && !hasGeminiKey) {
+    throw new Error('No AI provider configured. Set GEMINI_API_KEY, CLOUDFLARE_AI_GATEWAY_TOKEN, or BLOG_AI_WORKER_URL.')
+  }
+
+  const rawText = toRawTextFromUnknown(await executeAiWithFallback(prompt, title))
+
   const parsed = parseResponse(rawText)
   const draft = validateAndNormalizeBlogDraft(parsed, author)
 
@@ -915,6 +1006,38 @@ export async function generateBlogDraftFromTitle(title: string) {
   draft.slug = normalizeSlug(title)
 
   return draft
+}
+
+export async function regenerateBlogContent(title: string, currentSections: BlogSection[], modificationPrompt: string) {
+  // Convert current sections to a simple text summary for the AI to understand current state
+  const currentText = currentSections
+    .map((s) => {
+      if (s.type === 'paragraph') return s.content
+      if (s.type === 'heading') return `${'#'.repeat(s.level)} ${s.content}`
+      if (s.type === 'list') return s.items.map((it) => `- ${it}`).join('\n')
+      if (s.type === 'quote') return `> ${s.content}`
+      return ''
+    })
+    .join('\n\n')
+
+  const prompt = regenerateBlogPrompt(title, currentText, modificationPrompt)
+  
+  const workerResult = await executeAiWithFallback(prompt, title)
+
+  const rawText = toRawTextFromUnknown(workerResult)
+  const parsed = parseResponse(rawText)
+  
+  // Validation for regeneration: strictly check sections part
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as any).sections)) {
+    throw new Error('AI regeneration returned invalid format')
+  }
+
+  const sections = (parsed as any).sections.map((s: any) => ({
+    ...s,
+    id: s.id || `sec_${nanoid(8)}`,
+  })) as BlogSection[]
+
+  return sections
 }
 
 export async function publishGeneratedBlog(draft: GeneratedBlogDraft, actor = getCronActor()) {
