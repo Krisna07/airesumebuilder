@@ -65,7 +65,8 @@ export const updateBlogSchema = z.object({
   authorImageId: z.string().min(1).optional(),
   authorImageUrl: z.string().min(1).optional(),
   slug: z.string().min(2).max(240).optional(),
-  coverImageId: z.string().min(1).max(120).optional(),
+  // null means explicit remove during edit mode
+  coverImageId: z.string().min(1).max(120).nullable().optional(),
   sections: z.array(blogSectionSchema).min(1).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
 })

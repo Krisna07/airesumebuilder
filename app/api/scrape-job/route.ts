@@ -61,7 +61,6 @@ const webFetch = async (url: string, attempt = 1): Promise<string> => {
         'sec-fetch-user': '?1',
         'sec-fetch-dest': 'document'
     } as Record<string, string>;
-<<<<<<< HEAD
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
@@ -80,20 +79,6 @@ const webFetch = async (url: string, attempt = 1): Promise<string> => {
         return await response.text();
     } finally {
         clearTimeout(timeout);
-=======
-    
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 30000);
-    
-    try {
-        const response = await fetch(url, { headers, signal: controller.signal });
-        clearTimeout(id);
-        const data = await response.text();
-        return data;
-    } catch (e) {
-        clearTimeout(id);
-        throw e;
->>>>>>> 0dbf622 (feat: implement blog management system with validation, AI-assisted editing, and pre-publish checks)
     }
 };
 

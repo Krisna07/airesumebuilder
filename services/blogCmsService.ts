@@ -215,13 +215,17 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
   const nextSlug = input.slug || nextTitle
   const normalizedSlug = await ensureUniqueSlug(nextSlug, existing.id)
   const nextStatus = input.status ?? existing.status
+  const hasCoverImageUpdate = Object.prototype.hasOwnProperty.call(input, 'coverImageId')
+  const nextCoverImageId = hasCoverImageUpdate
+    ? input.coverImageId ?? undefined
+    : existing.coverImageId
 
   const updated: BlogPost = {
     ...existing,
     title: nextTitle,
     excerpt: input.excerpt ?? existing.excerpt,
     slug: normalizedSlug,
-    coverImageId: input.coverImageId ?? existing.coverImageId,
+    coverImageId: nextCoverImageId,
     authorImageUrl: input.authorImageUrl ?? existing.authorImageUrl,
     authorImageId: input.authorImageId ?? existing.authorImageId,
     sections: input.sections ?? existing.sections,
@@ -232,13 +236,12 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
       nextStatus === 'published' ? existing.publishedAt ?? new Date().toISOString() : undefined,
   }
 
-  await sanityClient
+  const patch = sanityClient
     .patch(id)
     .set({
       title: updated.title,
       excerpt: updated.excerpt,
       slug: { current: updated.slug },
-      coverImageId: updated.coverImageId,
       authorImageUrl: updated.authorImageUrl,
       authorImageId: updated.authorImageId,
       sections: toSanitySections(updated.sections),
@@ -247,7 +250,16 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
       updatedAt: updated.updatedAt,
       publishedAt: updated.publishedAt,
     })
-    .commit()
+
+  if (hasCoverImageUpdate) {
+    if (input.coverImageId) {
+      patch.set({ coverImageId: input.coverImageId })
+    } else {
+      patch.unset(['coverImageId'])
+    }
+  }
+
+  await patch.commit()
 
   return updated
 }
