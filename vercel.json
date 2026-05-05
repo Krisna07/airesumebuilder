@@ -39,10 +39,6 @@
 },
 "crons": [
     {
-        "path": "/api/cron/resume-regenerate",
-        "schedule": "*/1 * * * *"
-    },
-    {
         "path": "/api/cron/blog",
         "schedule": "0 0 * * *"
     }
