@@ -40,12 +40,6 @@ model Resume {
   updatedAt      DateTime        @updatedAt
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deleted        Boolean         @default(false)
-  regenStatus    String          @default("idle")
-  regenRequestedAt DateTime?
-  regenStartedAt DateTime?
-  regenFinishedAt DateTime?
-  regenError     String?
-  regenJobDescription Json?
   analysisResults AnalysisResult[]
 }
 
@@ -76,6 +70,20 @@ model AnalysisResult {
   resume           Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
   jobDescription   JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
   @@unique([resumeId, jobDescriptionId])
+}
+
+model DynamicRole {
+  id              String   @id @default(uuid())
+  roleNormalized  String   // normalized role name for matching
+  roleDisplay     String   // original role display name
+  specialization  String   @default("general") // frontend, backend, general, etc
+  seniority       String   @default("junior") // junior, senior
+  bullets         Json     // array of recommendation bullets
+  usageCount      Int      @default(0) // track how many times this role was used
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([roleNormalized, specialization, seniority])
+  @@index([roleNormalized])
 }
 
 model Verification {

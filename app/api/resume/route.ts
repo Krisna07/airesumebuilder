@@ -24,8 +24,6 @@ function formatResumeResponse(resume: {
     customSections: unknown;
     updatedAt: Date;
     styleConfig?: unknown;
-    regenStatus?: unknown;
-    regenError?: unknown;
 } & Record<string, unknown>) {
     return {
         id: resume.id,
@@ -40,8 +38,6 @@ function formatResumeResponse(resume: {
         updated: resume.updatedAt,
         matchingScore: resume.matchingScore ?? null,
         analyzedAt: resume.analyzedAt ?? null,
-        regenerationStatus: typeof resume.regenStatus === 'string' ? resume.regenStatus : 'idle',
-        regenerationError: typeof resume.regenError === 'string' ? resume.regenError : null,
     };
 }
 
@@ -50,7 +46,22 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id') ?? undefined;
         console.log(`Fetching resume with id: ${id}`);
-        const resume = await prisma.resume.findFirst({ where: { id } });
+        const resume = await prisma.resume.findFirst({
+            where: { id },
+            select: {
+                id: true,
+                title: true,
+                template: true,
+                profile: true,
+                experiences: true,
+                educations: true,
+                skills: true,
+                customSections: true,
+                styleConfig: true,
+                updatedAt: true,
+                deleted: true,
+            },
+        });
         if (!resume || resume.deleted) {
             return NextResponse.json({ error: "Resume not found" }, { status: 404 });
         }
@@ -78,7 +89,7 @@ export async function PUT(req: NextRequest) {
     try {
         const resumeData = await req.json();
         const resumeId = resumeData.id || randomUUID();
-        const existing = await prisma.resume.findFirst({ where: { id: resumeId } });
+        const existing = await prisma.resume.findFirst({ where: { id: resumeId }, select: { id: true } });
 
         const sharedFields = {
             title: resumeData.title || '',
@@ -144,7 +155,7 @@ export async function DELETE(req: NextRequest) {
         if (!id) {
             return NextResponse.json({ error: "Resume ID is required" }, { status: 400 });
         }
-        const existing = await prisma.resume.findFirst({ where: { id } });
+        const existing = await prisma.resume.findFirst({ where: { id }, select: { id: true } });
         if (!existing) {
             return NextResponse.json({ error: "Resume not found" }, { status: 404 });
         }
