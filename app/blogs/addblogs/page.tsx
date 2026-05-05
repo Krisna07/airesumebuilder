@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import BlogEditor from '@/components/blog/BlogEditor'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
@@ -27,7 +28,11 @@ export default function AddBlogsCmsPage() {
           Create and publish blog posts with section-based content and drag-drop image placement.
         </p>
       </div>
-      <BlogEditor />
+      <div className="w-full max-w-4xl mx-auto">
+        <Suspense fallback={<div className="rounded-xl border border-slate-200 dark:border-slate-700 h-96 animate-pulse bg-slate-100 dark:bg-slate-800" />}>
+          <BlogEditor />
+        </Suspense>
+      </div>
     </section>
   )
 

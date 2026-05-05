@@ -48,22 +48,17 @@ function Typewriter({ text, speed = 60, initialDelay = 300 }: { text: string; sp
 
 export default function Page() {
     return (
-        <section className="min-h-screen flex items-center justify-center" style={{  minHeight: '100vh' }}>
+        <section className="min-h-screen flex items-center justify-center" style={{ minHeight: '100vh' }}>
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Mea+Culpa&display=swap');`}</style>
             <div className="w-full px-6 sm:px-8 lg:px-12">
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-3xl font-bold  mb-6">Thank you</h1>
-
                     <div className='min-h-[60vh] sm:h-[86vh] flex items-center justify-center'>
-                        <div
-                        
-                            className='w-full h-full flex items-start justify-center'
-                        >
+                        <div className='w-full h-full flex items-start justify-center' >
                             <div className='w-11/12 max-w-[640px] p-4 sm:p-6 md:p-8' style={{ maxHeight: '74vh', overflowY: 'auto' }}>
                                 <div style={{ fontFamily: `'Mea Culpa', cursive`, fontSize: '16px', lineHeight: 1.9, padding: '20px', borderRadius: 6 }}>
                                     <Typewriter text={message} speed={56} initialDelay={350} />
                                 </div>
-                               
+
                             </div>
                         </div>
                     </div>

@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import BlogSectionRenderer from '@/components/blog/BlogSectionRenderer'
 import { getBlogBySlug, listRelatedByAuthor } from '@/services/blogCmsService'
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export const runtime = 'nodejs'
 
@@ -9,7 +11,10 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
   const { blogname } = await params
   const post = await getBlogBySlug(blogname)
 
-  if (!post || post.status !== 'published') {
+  const session = await getServerSession(authOptions)
+  const isAdmin = session?.user?.isAdmin
+
+  if (!post || (post.status !== 'published' && !isAdmin)) {
     notFound()
   }
 

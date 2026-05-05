@@ -1,42 +1,43 @@
 import { z } from 'zod'
 
-const sectionId = z.string().min(1)
+// ─── Section schemas (z.union avoids Zod v4 discriminatedUnion propValues bug) ─
 
 const headingSectionSchema = z.object({
-  id: sectionId,
+  id: z.string().min(1),
   type: z.literal('heading'),
   level: z.union([z.literal(2), z.literal(3), z.literal(4)]),
-  content: z.string().trim().min(1),
+  content: z.string().min(1),
 })
 
 const paragraphSectionSchema = z.object({
-  id: sectionId,
+  id: z.string().min(1),
   type: z.literal('paragraph'),
-  content: z.string().trim().min(1),
+  content: z.string().min(1),
 })
 
 const quoteSectionSchema = z.object({
-  id: sectionId,
+  id: z.string().min(1),
   type: z.literal('quote'),
-  content: z.string().trim().min(1),
-  citation: z.string().trim().optional(),
+  content: z.string().min(1),
+  citation: z.string().optional(),
 })
 
 const listSectionSchema = z.object({
-  id: sectionId,
+  id: z.string().min(1),
   type: z.literal('list'),
-  items: z.array(z.string().trim().min(1)).min(1),
+  items: z.array(z.string().min(1)).min(1),
 })
 
 const imageSectionSchema = z.object({
-  id: sectionId,
+  id: z.string().min(1),
   type: z.literal('image'),
-  imageId: z.string().trim().min(1),
-  alt: z.string().trim().optional(),
-  caption: z.string().trim().optional(),
+  imageId: z.string().min(1),
+  alt: z.string().optional(),
+  caption: z.string().optional(),
 })
 
-export const blogSectionSchema = z.discriminatedUnion('type', [
+// Use z.union instead of z.discriminatedUnion to avoid Zod v4 _zod.propValues crash
+export const blogSectionSchema = z.union([
   headingSectionSchema,
   paragraphSectionSchema,
   quoteSectionSchema,
@@ -45,47 +46,29 @@ export const blogSectionSchema = z.discriminatedUnion('type', [
 ])
 
 export const createBlogSchema = z.object({
-  title: z.string().trim().min(3).max(180),
-  excerpt: z.string().trim().min(10),
-  author: z.string().trim().min(2).max(120),
-  authorImageId: z.string().trim().min(1).optional(),
-  authorImageUrl: z.string().trim().min(1).optional(),
-  slug: z.string().trim().min(2).max(240).optional(),
-  coverImageId: z.string().trim().min(1).max(120).optional(),
+  title: z.string().min(3).max(180),
+  excerpt: z.string().min(10),
+  author: z.string().min(2).max(120),
+  authorImageId: z.string().min(1).optional(),
+  authorImageUrl: z.string().min(1).optional(),
+  slug: z.string().min(2).max(240).optional(),
+  // coverImageId is optional — editor-written posts may not have a cover image
+  coverImageId: z.string().min(1).max(120).optional(),
   sections: z.array(blogSectionSchema).min(1),
-  status: z.union([z.literal('draft'), z.literal('published'), z.literal('archived')]).optional(),
-}).superRefine((value, ctx) => {
-  const paragraphCount = value.sections.filter((section) => section.type === 'paragraph').length
-  const hasSectionImage = value.sections.some((section) => section.type === 'image' && section.imageId.trim().length > 0)
-  const hasAnyImage = Boolean(value.coverImageId) || hasSectionImage
-
-  if (!hasAnyImage) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'At least one image is required (cover image or image section).',
-      path: ['coverImageId'],
-    })
-  }
-
-  if (paragraphCount < 2) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'At least two paragraph sections are required.',
-      path: ['sections'],
-    })
-  }
+  status: z.enum(['draft', 'published', 'archived']).optional(),
 })
 
 export const updateBlogSchema = z.object({
-  title: z.string().trim().min(3).max(180).optional(),
-  excerpt: z.string().trim().min(10).optional(),
-  author: z.string().trim().min(2).max(120).optional(),
-  authorImageId: z.string().trim().min(1).optional(),
-  authorImageUrl: z.string().trim().min(1).optional(),
-  slug: z.string().trim().min(2).max(240).optional(),
-  coverImageId: z.string().trim().min(1).max(120).optional(),
+  title: z.string().min(3).max(180).optional(),
+  excerpt: z.string().min(10).optional(),
+  author: z.string().min(2).max(120).optional(),
+  authorImageId: z.string().min(1).optional(),
+  authorImageUrl: z.string().min(1).optional(),
+  slug: z.string().min(2).max(240).optional(),
+  // null means explicit remove during edit mode
+  coverImageId: z.string().min(1).max(120).nullable().optional(),
   sections: z.array(blogSectionSchema).min(1).optional(),
-  status: z.union([z.literal('draft'), z.literal('published'), z.literal('archived')]).optional(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
 })
 
 export const imageUploadSchema = z.object({

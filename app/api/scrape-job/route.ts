@@ -47,7 +47,7 @@ const normalizeUrl = (input: string): string => {
     } catch { return input; }
 };
 
-const axiosFetch = async (url: string, attempt = 1): Promise<string> => {
+const webFetch = async (url: string, attempt = 1): Promise<string> => {
     const ua = USER_AGENTS[(attempt - 1) % USER_AGENTS.length];
     const headers = {
         'user-agent': ua,
@@ -87,7 +87,7 @@ const fetchHTML = async (rawUrl: string, useBrowser: boolean): Promise<{ html: s
     if (!useBrowser) {
         // Try up to 3 attempts rotating UA if 403/401/429
         for (let attempt = 1; attempt <= 3; attempt++) {
-            const html = await axiosFetch(url, attempt);
+            const html = await webFetch(url, attempt);
             if (/<!doctype/i.test(html) || html.length > 500) {
                 // crude check for real HTML
                 if (!/Access Denied|captcha/i.test(html)) return { html, usedBrowser: false };

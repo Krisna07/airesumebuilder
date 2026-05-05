@@ -228,12 +228,14 @@ Here is the attached app summary for reference: ${appSummary}
   "title": "string",
   "excerpt": "string (Focus on the transformation from 'Applied' to 'Interviewing')",
   "slug": { "current": "string" },
-  "imagePrompt": "string (Professional, minimalist UI/UX aesthetic)",
+  "imagePrompt": "string (Flat vector illustration, SaaS isometric style, tech blog aesthetic. Teal/slate palette. NO TEXT, NO WORDS, NO TYPOGRAPHY allowed in the prompt.)",
   "sections": [
     { "id": "sec_1", "type": "paragraph", "content": "string (250+ words)" },
-    { "id": "sec_2", "type": "quote", "content": "string", "citation": "string" },
-    { "id": "sec_3", "type": "paragraph", "content": "string (600+ words - The Bridge Walkthrough)" },
-    { "id": "sec_4", "type": "paragraph", "content": "string (400+ words - The Results & Export)" }
+    { "id": "sec_2", "type": "heading", "level": 2, "content": "string (The Bridge Walkthrough)" },
+    { "id": "sec_3", "type": "paragraph", "content": "string (explanation)" },
+    { "id": "sec_4", "type": "list", "items": ["step 1", "step 2", "step 3"] },
+    { "id": "sec_5", "type": "quote", "content": "string", "citation": "string" },
+    { "id": "sec_6", "type": "paragraph", "content": "string (The Results & Export)" }
   ],
   "status": "published",
   "author": "${author}"
@@ -243,10 +245,52 @@ Here is the attached app summary for reference: ${appSummary}
 - NO PRE-AMBLE. NO MARKDOWN. 
 - TOTAL WORD COUNT MUST BE >= 1500.
 - Direct the user to specific UI elements (e.g., "Click the 'Tailor' button," "View your Match Score").
+- You MUST use "heading" and "list" segment types to structure the content well.
+- NEVER prepend numbers or bullets (like "1.", "2.", "Step 1:", "-") inside the string values of your \`list\` items. The UI automatically adds bullets.
+- Return ONLY valid JSON matching the schema.
 
 OUTPUT:
 `;
 };
+
+const regenerateBlogPrompt = (currentTitle: string, currentContent: string, modificationPrompt: string) => {
+  return `
+### ROLE
+You are a Lead Content Editor at ResumeCraft.xyz. Your task is to rewrite an existing blog draft according to specific editorial directions.
+
+### TASK
+Regenerate the provided blog draft below. Address the following editorial instruction explicitly: "${modificationPrompt}"
+
+### ORIGINAL CONTENT SUMMARY (Reference)
+TITLE: ${currentTitle}
+SECTIONS PREVIEW: ${currentContent.slice(0, 1500)}...
+
+### OUTPUT SCHEMA (JSON ONLY)
+Provide the entire rewritten blog body. Do not abbreviate. Keep the content length substantial.
+{
+  "sections": [
+    { "id": "sec_1", "type": "paragraph", "content": "string" },
+    { "id": "sec_2", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_3", "type": "list", "items": ["string", "string"] },
+    { "id": "sec_4", "type": "quote", "content": "string", "citation": "string" }
+  ]
+}
+
+### SECTION TYPES ALLOWED
+- "paragraph": Standard text
+- "heading": level can be 2, 3, or 4
+- "list": an array of simple string items (bullet points)
+- "quote": a pull quote with optional citation
+
+### STRICT CONSTRAINTS
+- NO PRE-AMBLE. NO MARKDOWN. 
+- Maintain a highly professional and informative tone.
+- Return ONLY valid JSON matching the schema.
+
+OUTPUT:
+`;
+};
+
 
 const generateBlogTitlePlanPrompt = (input: {
   resumeContext: unknown
@@ -290,7 +334,84 @@ OUTPUT:
 `;
 };
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt, generateSeoBlogPrompt, generateBlogTitlePlanPrompt };
+const polishBlogPrompt = (title: string, excerpt: string, sections: unknown[]) => {
+  return `### ROLE
+You are an expert blog editor, SEO strategist, and senior proofreader at ResumeCraft.xyz.
+
+### TASK
+Polish the provided blog draft for all three dimensions simultaneously:
+1. **Spelling & Grammar** — Fix every spelling mistake and grammatical error without changing the author's voice.
+2. **Readability** — Improve sentence flow, eliminate redundancy, and clarify any awkward phrasing.
+3. **SEO Optimisation** — Naturally weave in high-value keywords relevant to: ATS optimisation, resume writing, job search strategy, career development, LinkedIn profile, cover letter, interview preparation, and personal branding. Do NOT keyword-stuff — embed them where they read naturally.
+
+### INPUT BLOG DRAFT
+TITLE: ${title}
+EXCERPT: ${excerpt}
+SECTIONS (JSON):
+${JSON.stringify(sections, null, 2)}
+
+### OUTPUT SCHEMA (JSON ONLY)
+{
+  "title": "string — polished, SEO-optimised title",
+  "excerpt": "string — polished excerpt that leads with a keyword and a clear value statement",
+  "seoKeywords": ["string", "string"],
+  "sections": [
+    { "id": "sec_1", "type": "paragraph", "content": "string" },
+    { "id": "sec_2", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_3", "type": "list", "items": ["string", "string"] },
+    { "id": "sec_4", "type": "quote", "content": "string", "citation": "string" }
+  ]
+}
+
+### CONSTRAINTS
+- Preserve every section's \`id\` and \`type\` exactly as given.
+- Do NOT add, merge, or remove sections.
+- Do NOT alter the fundamental message, facts, or examples.
+- NO PRE-AMBLE. NO MARKDOWN FENCES. RETURN ONLY VALID JSON.
+
+OUTPUT:
+`;
+};
+
+export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt, generateSeoBlogPrompt, generateBlogTitlePlanPrompt, regenerateBlogPrompt, polishBlogPrompt, streamBlogHtmlPrompt, blogMetaPrompt };
+
+const blogMetaPrompt = (topic: string) => `You are a creative career content strategist at ResumeCraft.xyz.
+Generate a highly distinct, unique, and engaging blog post title and excerpt for this topic: "${topic}"
+
+Crucial Rule: Do not generate a generic or repetitive title. Explore a unique angle, advanced tip, or specific niche within the topic.
+
+Return ONLY valid JSON — no markdown fences, no preamble:
+{
+  "title": "string — highly unique, SEO-optimised blog post title (max 80 chars)",
+  "excerpt": "string — compelling 1-2 sentence meta description that leads with a keyword and a clear value statement (max 160 chars)"
+}
+
+OUTPUT:`;
+
+const streamBlogHtmlPrompt = (title: string) => `You are a senior career strategist and technical writer for ResumeCraft.xyz.
+Write a highly authoritative, engaging, and professional 1200+ word blog post titled: "${title}"
+
+IMPORTANT STRUCTURAL & STYLISTIC RULES:
+1. DO NOT write a plain "essay". The post MUST be highly structured, skimmable, and visually broken down.
+2. Divide the content into logical sections using <h2> and <h3> headers. Use strong transitions between them.
+3. Liberally incorporate structured data:
+   - Use numbered steps (<ol><li>) for actionable "How-To" guides or chronologies.
+   - Use bullet points (<ul><li>) for checklists, key takeaways, and symptom matching.
+   - Use bold text (<strong>) sparingly to highlight critical phrases or metrics.
+   - Use blockquotes (<blockquote>) for expert insights, call-outs, or important rules of thumb.
+4. NEVER manually type numbers or bullets (e.g., "1. ", "- ") inside <li> tags. The HTML handles the numbering/bullets automatically.
+5. Keep paragraphs short (3-4 sentences max) to ensure readability on mobile screens.
+
+HTML OUTPUT RULES:
+1. Output ONLY raw HTML fragments using strictly these tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <blockquote>, <strong>, <em>
+2. NO DOCTYPE, NO <html>, <head>, or <body> tags. NO class names, inline styles, or markdown (do not use #, **, etc).
+3. Start writing immediately — zero preamble, no "Here is your article" intro.
+4. Focus content on data-driven career advice, ATS optimization, and recruiting psychology. 
+5. Integrate ResumeCraft.xyz features naturally where it logically aids the reader's strategy (e.g. using the AI Resume Tailor to align with job descriptions).
+6. Conclude with an impactful final paragraph and a distinct call-to-action utilizing ResumeCraft.xyz.
+
+Begin now:
+`;
 
 const inspectIntentPrompt = (title: string, seniority: string, specialization: string, intent: string, existingBullets: string[]) => {
   return `SYSTEM: You are an expert engineering reviewer and resume consultant.
