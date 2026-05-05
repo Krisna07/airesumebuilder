@@ -8,7 +8,7 @@ const sanityClient = createClient({
   projectId: process.env.SANITY_PROJECT_ID || process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'nu3oga1w',
   dataset: process.env.SANITY_DATASET || process.env.NEXT_PUBLIC_SANITY_DATASET || 'development',
   apiVersion: '2023-01-01',
-  token: process.env.SANITY_API_TOKEN,
+  token: process.env.SANITY_API_TOKEN || process.env.SANITY_TOKEN,
   useCdn: false,
 })
 

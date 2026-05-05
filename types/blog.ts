@@ -107,7 +107,7 @@ export interface UpdateBlogInput {
   authorImageUrl?: string
   authorImageId?: string
   slug?: string
-  coverImageId?: string
+  coverImageId?: string | null
   sections?: BlogSection[]
   status?: BlogStatus
 }

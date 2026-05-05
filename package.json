@@ -32,18 +32,11 @@
     "@stripe/stripe-js": "^8.6.4",
     "@tanstack/query-core": "^5.90.16",
     "@tanstack/react-query": "^5.90.16",
-<<<<<<< HEAD
-    "@tiptap/extension-image": "^3.20.2",
-    "@tiptap/react": "^3.20.2",
-    "@tiptap/starter-kit": "^3.20.2",
-    "axios": "^1.16.0",
-=======
     "@tiptap/extension-heading": "^2.27.2",
     "@tiptap/extension-image": "^2.27.2",
     "@tiptap/extension-placeholder": "^2.27.2",
     "@tiptap/react": "^2.27.2",
     "@tiptap/starter-kit": "^2.27.2",
->>>>>>> 0dbf622 (feat: implement blog management system with validation, AI-assisted editing, and pre-publish checks)
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.1.0",
     "class-variance-authority": "^0.7.1",

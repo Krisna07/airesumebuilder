@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { EditorContent, useEditor } from '@tiptap/react';
+import type { Editor as TiptapEditor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import EditorToolbar from './EditorToolbar';
 import BlogPreCheckModal from './BlogPreCheckModal';
+import BlogPreviewModal from './BlogPreviewModal';
+import { Sparkles, Settings, Image as ImageIcon, Eye, Rocket, Pencil, Upload, Loader2, X } from 'lucide-react';
 import type { BlogSection, BlogStatus } from '@/types/blog';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -19,6 +22,11 @@ function htmlToSections(html: string): BlogSection[] {
   const sections: BlogSection[] = [];
   let idx = 0;
   const id = () => `sec_${Date.now()}_${idx++}`;
+  const imageIdFromSrc = (src?: string | null) => {
+    if (!src) return null;
+    const m = src.match(/\/api\/blog-images\/([^/?#]+)/i);
+    return m?.[1] || null;
+  };
 
   for (const node of Array.from(container.childNodes)) {
     const el = node as HTMLElement;
@@ -27,8 +35,36 @@ function htmlToSections(html: string): BlogSection[] {
     if (['h1', 'h2', 'h3', 'h4'].includes(tag)) {
       const level = Math.max(2, Math.min(4, parseInt(tag[1], 10)));
       sections.push({ id: id(), type: 'heading', level: level as 2 | 3 | 4, content: el.textContent || '' });
+    } else if (tag === 'img') {
+      const imageId = imageIdFromSrc(el.getAttribute('src'));
+      if (imageId) {
+        sections.push({
+          id: id(),
+          type: 'image',
+          imageId,
+          alt: el.getAttribute('alt') || undefined,
+        });
+      }
     } else if (tag === 'p') {
+      const imageNodes = Array.from(el.querySelectorAll('img'));
       const text = el.textContent?.trim();
+
+      // Tiptap often wraps standalone images in <p><img .../></p>
+      if (!text && imageNodes.length > 0) {
+        imageNodes.forEach((img) => {
+          const imageId = imageIdFromSrc(img.getAttribute('src'));
+          if (imageId) {
+            sections.push({
+              id: id(),
+              type: 'image',
+              imageId,
+              alt: img.getAttribute('alt') || undefined,
+            });
+          }
+        });
+        continue;
+      }
+
       if (text) sections.push({ id: id(), type: 'paragraph', content: el.innerHTML });
     } else if (tag === 'ul' || tag === 'ol') {
       const items = Array.from(el.querySelectorAll('li')).map(li => li.textContent?.trim() || '').filter(Boolean);
@@ -47,6 +83,7 @@ function sectionsToHtml(sections: BlogSection[]): string {
     if (sec.type === 'paragraph') return `<p>${sec.content}</p>`;
     if (sec.type === 'list') return `<ul>${sec.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
     if (sec.type === 'quote') return `<blockquote><p>${sec.content}</p>${sec.citation ? `<p>— ${sec.citation}</p>` : ''}</blockquote>`;
+    if (sec.type === 'image') return `<p><img src="/api/blog-images/${sec.imageId}" alt="${sec.alt || 'Blog image'}" /></p>`;
     return '';
   }).join('\n');
 }
@@ -74,11 +111,92 @@ export default function BlogEditor() {
   const abortRef = useRef<AbortController | null>(null);
 
   const [preCheckOpen, setPreCheckOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [autoToast, setAutoToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [autoRunning, setAutoRunning] = useState(false);
   const [quickPublishing, setQuickPublishing] = useState(false);
+  const [imageGenFailed, setImageGenFailed] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [inlineUploading, setInlineUploading] = useState(false);
 
   const inlineImageRef = useRef<HTMLInputElement | null>(null);
+  const coverImageRef = useRef<HTMLInputElement | null>(null);
+
+  const uploadBlogImage = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/blog-images', { method: 'POST', body: formData });
+    const json = await res.json();
+    const imageId = json?.data?.imageId || json?.data?.id;
+    if (!json.success || !imageId) {
+      throw new Error(json.error || 'Image upload failed.');
+    }
+    return imageId as string;
+  }, []);
+
+  const inlineLoadingPlaceholder = useCallback((name: string) => {
+    const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675"><rect width="1200" height="675" fill="#e2e8f0"/><rect x="40" y="40" width="1120" height="595" rx="16" fill="#cbd5e1"/><text x="600" y="330" text-anchor="middle" font-size="34" font-family="Arial, Helvetica, sans-serif" fill="#475569">Uploading image...</text><text x="600" y="378" text-anchor="middle" font-size="20" font-family="Arial, Helvetica, sans-serif" fill="#64748b">${safe}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }, []);
+
+  const replaceInlinePlaceholder = useCallback((activeEditor: TiptapEditor, token: string, nextSrc: string, alt: string) => {
+    let foundPos: number | null = null;
+    activeEditor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && node.attrs.alt === token) {
+        foundPos = pos;
+        return false;
+      }
+      return true;
+    });
+    if (foundPos === null) return;
+    const tr = activeEditor.state.tr.setNodeMarkup(foundPos, undefined, {
+      src: nextSrc,
+      alt,
+    });
+    activeEditor.view.dispatch(tr);
+  }, []);
+
+  const removeInlinePlaceholder = useCallback((activeEditor: TiptapEditor, token: string) => {
+    let foundPos: number | null = null;
+    let nodeSize = 0;
+    activeEditor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && node.attrs.alt === token) {
+        foundPos = pos;
+        nodeSize = node.nodeSize;
+        return false;
+      }
+      return true;
+    });
+    if (foundPos === null || nodeSize <= 0) return;
+    const tr = activeEditor.state.tr.delete(foundPos, foundPos + nodeSize);
+    activeEditor.view.dispatch(tr);
+  }, []);
+
+  const handleInlineImageUpload = useCallback(async (file: File, activeEditor?: TiptapEditor | null) => {
+    if (!activeEditor) return;
+
+    const token = `uploading-inline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    activeEditor.chain().focus().setImage({
+      src: inlineLoadingPlaceholder(file.name),
+      alt: token,
+    }).run();
+
+    setInlineUploading(true);
+    try {
+      const imageId = await uploadBlogImage(file);
+      replaceInlinePlaceholder(activeEditor, token, `/api/blog-images/${imageId}`, file.name);
+      setAutoToast({ type: 'success', text: 'Content image uploaded successfully.' });
+      setTimeout(() => setAutoToast(null), 2500);
+    } catch (err) {
+      removeInlinePlaceholder(activeEditor, token);
+      setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Image upload failed.' });
+      setTimeout(() => setAutoToast(null), 4000);
+    } finally {
+      setInlineUploading(false);
+    }
+  }, [inlineLoadingPlaceholder, removeInlinePlaceholder, replaceInlinePlaceholder, uploadBlogImage]);
 
   // ─── TipTap ────────────────────────────────────────────────────────────────
   const editor = useEditor({
@@ -103,11 +221,9 @@ export default function BlogEditor() {
         if (!files?.length) return false;
         const file = files[0];
         if (!file.type.startsWith('image/')) return false;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          editor?.chain().focus().setImage({ src: e.target?.result as string }).run();
-        };
-        reader.readAsDataURL(file);
+
+        void handleInlineImageUpload(file, editor);
+
         event.preventDefault();
         return true;
       },
@@ -211,11 +327,17 @@ export default function BlogEditor() {
               setCoverImageId(payload.coverImage.id);
               setCoverImageUrl(payload.coverImage.url || `/api/blog-images/${payload.coverImage.id}`);
               setImageStreaming(false);
+              setImageGenFailed(false);
             }
             if (payload.done) {
               // Load full streamed HTML into TipTap
               editor?.commands.setContent(streamBuffer.current, false);
               setStreamState('done');
+              // If no cover image was received by now, mark as failed
+              if (!coverImageId) {
+                setImageStreaming(false);
+                setImageGenFailed(true);
+              }
               return;
             }
           } catch {
@@ -227,13 +349,19 @@ export default function BlogEditor() {
       // Fallback if stream ended without explicit done event
       editor?.commands.setContent(streamBuffer.current, false);
       setStreamState('done');
+      if (!coverImageId) {
+        setImageStreaming(false);
+        setImageGenFailed(true);
+      }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
       setStreamState('idle');
+      setImageStreaming(false);
+      if (!coverImageId) setImageGenFailed(true);
       setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Stream failed.' });
       setTimeout(() => setAutoToast(null), 5000);
     }
-  }, [title, streamState, editor]);
+  }, [title, streamState, editor, coverImageId]);
 
   // When streaming completes, clear preview after a beat
   useEffect(() => {
@@ -258,8 +386,8 @@ export default function BlogEditor() {
 
       const d = json.data;
       const text = d?.state === 'skipped'
-        ? `⚙️ Automation skipped — ${d.reason || 'already ran recently'}`
-        : `✅ Blog automation created: "${d?.title || 'new post'}"`;
+        ? `Automation skipped — ${d.reason || 'already ran recently'}`
+        : `Blog automation created: "${d?.title || 'new post'}"`;
       setAutoToast({ type: 'success', text });
     } catch (err) {
       setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Automation failed.' });
@@ -273,13 +401,19 @@ export default function BlogEditor() {
   async function handleConfirmPublish(status: BlogStatus) {
     const html = editor?.getHTML() || '';
     const sections = htmlToSections(html);
+    const coverImagePatch = coverImageId
+      ? { coverImageId }
+      : editId
+        ? { coverImageId: null }
+        : {};
+
     const payload = {
       title,
       excerpt,
       author,
       sections,
       status,
-      ...(coverImageId ? { coverImageId } : {}),
+      ...coverImagePatch,
     };
 
     setAutoRunning(true);
@@ -306,8 +440,8 @@ export default function BlogEditor() {
       setAutoToast({
         type: 'success',
         text: status === 'published'
-          ? `✅ ${editId ? 'Updated' : 'Published'}! /${json.data?.slug || ''}`
-          : `✅ Draft ${editId ? 'updated' : 'saved'}.`,
+          ? `${editId ? 'Updated' : 'Published'}! /${json.data?.slug || ''}`
+          : `Draft ${editId ? 'updated' : 'saved'}.`,
       });
       if (!editId && status === 'draft') {
         // Reset only on new draft create, otherwise redirect handles it
@@ -341,7 +475,7 @@ export default function BlogEditor() {
     editor?.commands.setContent(sectionsToHtml(data.sections), false);
     setAutoToast({
       type: 'success',
-      text: `✨ Improved! SEO keywords: ${data.seoKeywords.join(', ') || 'none'}`,
+      text: `Improved! SEO keywords: ${data.seoKeywords.join(', ') || 'none'}`,
     });
     setTimeout(() => setAutoToast(null), 6000);
   }
@@ -367,33 +501,13 @@ export default function BlogEditor() {
   }
 
   // ─── Preview ───────────────────────────────────────────────────────────────
-  async function handlePreview() {
+  function handlePreview() {
     if (!title.trim() || title.trim().length < 3) {
       setAutoToast({ type: 'error', text: 'Title must be at least 3 characters to preview.' });
       setTimeout(() => setAutoToast(null), 4000);
       return;
     }
-    
-    // Open preview window synchronously to avoid popup blockers
-    const previewWindow = window.open('about:blank', '_blank')
-    if (!previewWindow) {
-      setAutoToast({ type: 'error', text: 'Popup blocked! Please allow popups to preview.' })
-      return
-    }
-
-    setQuickPublishing(true);
-    try {
-      const slug = await handleConfirmPublish('draft');
-      if (slug) {
-        previewWindow.location.href = `/blogs/${slug}`;
-      } else {
-        previewWindow.close();
-      }
-    } catch {
-      previewWindow.close();
-    } finally {
-      setQuickPublishing(false);
-    }
+    setPreviewOpen(true);
   }
 
   // ─── Derived ───────────────────────────────────────────────────────────────
@@ -408,8 +522,8 @@ export default function BlogEditor() {
       {editId && (
         <div className="mb-3 rounded-xl px-4 py-2 text-sm font-medium border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800 flex items-center gap-2">
           {editLoading
-            ? <><span className="inline-block w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /> Loading blog…</>
-            : <>✏️ Editing existing blog post — changes will update the existing entry.</>
+            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading blog…</>
+            : <><Pencil className="w-3.5 h-3.5" /> Editing existing blog post — changes will update the existing entry.</>
           }
         </div>
       )}
@@ -437,72 +551,106 @@ export default function BlogEditor() {
               : 'bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600'
           }`}
         >
-          {streamState === 'streaming' ? '■ Stop AI' : '✨ Generate'}
+          {streamState === 'streaming'
+            ? <><X className="w-3.5 h-3.5" /> Stop AI</>
+            : <><Sparkles className="w-3.5 h-3.5" /> Generate</>
+          }
         </button>
 
         {streamState === 'streaming' && (
           <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 font-medium ml-2">
-            <span className="inline-block w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
             Writing…
           </div>
         )}
-        {imageStreaming && (
-          <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-medium ml-2">
-            <span className="inline-block w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-            Cover…
-          </div>
-        )}
-
-        {/* Run Automation */}
-        <button
-          type="button"
-          onClick={handleRunAutomation}
-          disabled={autoRunning || streamState === 'streaming'}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors ml-auto md:ml-0"
-        >
-          {autoRunning ? (
-            <span className="inline-block w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-          ) : '⚙️'}
-          <span className="hidden md:inline">Run Automation</span>
-        </button>
+        <input
+          ref={coverImageRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            setCoverUploading(true);
+            try {
+              const res = await fetch('/api/blog-images', { method: 'POST', body: formData });
+              const json = await res.json();
+              const imageId = json?.data?.imageId || json?.data?.id;
+              if (json.success && imageId) {
+                setCoverImageId(imageId);
+                setCoverImageUrl(`/api/blog-images/${imageId}`);
+                setImageGenFailed(false);
+                setAutoToast({ type: 'success', text: 'Cover image uploaded successfully.' });
+                setTimeout(() => setAutoToast(null), 2500);
+              } else {
+                throw new Error(json.error || 'Cover image upload failed.');
+              }
+            } catch (err) {
+              setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Cover image upload failed.' });
+              setTimeout(() => setAutoToast(null), 4000);
+            } finally {
+              setCoverUploading(false);
+            }
+            if (coverImageRef.current) {
+              coverImageRef.current.value = '';
+            }
+          }}
+        />
 
         {/* Insert image */}
         <button
           type="button"
           onClick={() => inlineImageRef.current?.click()}
-          disabled={streamState === 'streaming'}
+          disabled={streamState === 'streaming' || inlineUploading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors"
         >
-          📷 <span className="hidden md:inline">Image</span>
+          {inlineUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />} <span className="hidden md:inline">{inlineUploading ? 'Uploading...' : 'Image'}</span>
         </button>
         <input
           ref={inlineImageRef}
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(e) => {
+          onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-              editor?.chain().focus().setImage({ src: ev.target?.result as string, alt: file.name }).run();
-            };
-            reader.readAsDataURL(file);
-            e.currentTarget.value = '';
+
+            await handleInlineImageUpload(file, editor);
+
+            if (inlineImageRef.current) {
+              inlineImageRef.current.value = '';
+            }
           }}
         />
 
         {/* Spacer */}
         <div className="flex-1" />
 
+        {/* Run Automation — admin tool to trigger scheduled post generation */}
+        <button
+          type="button"
+          onClick={handleRunAutomation}
+          disabled={autoRunning || streamState === 'streaming'}
+          title="Run scheduled blog automation (admin)"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors"
+        >
+          {autoRunning
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <Settings className="w-3.5 h-3.5" />
+          }
+          <span className="hidden lg:inline text-xs">Automation</span>
+        </button>
+
         {/* Preview */}
         <button
           type="button"
           onClick={handlePreview}
           disabled={quickPublishing || autoRunning}
-          className="px-4 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
         >
-          👁️ Preview
+          <Eye className="w-3.5 h-3.5" /> Preview
         </button>
 
         {/* Publish */}
@@ -510,18 +658,19 @@ export default function BlogEditor() {
           type="button"
           onClick={() => handleQuickPublish('published')}
           disabled={quickPublishing || autoRunning}
-          className="px-4 py-1.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors"
         >
-          {quickPublishing ? '…' : '🚀 Publish'}
+          {quickPublishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+          Publish
         </button>
 
         {/* Submit for Review */}
         <button
           type="button"
           onClick={() => setPreCheckOpen(true)}
-          className="px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-100 transition-colors whitespace-nowrap"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-100 transition-colors whitespace-nowrap"
         >
-          ✨ AI Review
+          <Sparkles className="w-3.5 h-3.5" /> AI Review
         </button>
       </div>
 
@@ -563,27 +712,70 @@ export default function BlogEditor() {
           className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
 
-        {/* Cover image preview */}
-        {coverImageUrl && (
-          <div className="flex items-start gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={coverImageUrl}
-              alt="Cover"
-              className="w-32 h-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0 space-y-1">
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Cover image</p>
-              <button
-                type="button"
-                onClick={() => { setCoverImageId(null); setCoverImageUrl(null); }}
-                className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
-              >
-                ✕ Remove
-              </button>
+        {/* Cover image row — always visible */}
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Cover image</p>
+          {coverImageUrl ? (
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverImageUrl}
+                alt="Cover"
+                className="w-32 h-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
+              />
+              <div className="space-y-1">
+                {imageStreaming && (
+                  <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> AI generating…
+                  </p>
+                )}
+                {coverUploading && (
+                  <p className="text-xs text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading cover image…
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => coverImageRef.current?.click()}
+                  disabled={coverUploading}
+                  className="text-xs text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 disabled:opacity-50 flex items-center gap-1"
+                >
+                  {coverUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />} {coverUploading ? 'Uploading...' : 'Replace'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCoverImageId(null); setCoverImageUrl(null); setImageGenFailed(false); }}
+                  disabled={coverUploading}
+                  className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Remove
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => coverImageRef.current?.click()}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${imageGenFailed
+                ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+                : imageStreaming
+                  ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400 cursor-default'
+                  : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              disabled={imageStreaming || coverUploading}
+            >
+              {coverUploading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Uploading cover image…</>
+              ) : imageStreaming ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> AI generating cover image…</>
+              ) : imageGenFailed ? (
+                <><Upload className="w-4 h-4" /> Image generation failed — upload manually</>
+              ) : (
+                <><Upload className="w-4 h-4" /> Upload cover image</>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Editor ── */}
@@ -614,6 +806,23 @@ export default function BlogEditor() {
         onImprove={handleImprove}
         onConfirm={handleConfirmPublish}
         onClose={() => setPreCheckOpen(false)}
+      />
+
+      {/* ── Preview modal ── */}
+      <BlogPreviewModal
+        open={previewOpen}
+        title={title}
+        excerpt={excerpt}
+        author={author}
+        coverImageUrl={coverImageUrl || undefined}
+        sections={editorSections}
+        onClose={() => setPreviewOpen(false)}
+        onConfirm={async (status) => {
+          setPreviewOpen(false);
+          if (status === 'published' || status === 'draft') {
+            await handleQuickPublish(status);
+          }
+        }}
       />
     </div>
   );

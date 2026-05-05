@@ -62,15 +62,6 @@ const SignUpForm: React.FC = () => {
                 <UserAuthLoading />
             </div>}
 
-<<<<<<< HEAD
-            <h2 className='text-2xl font-bold text-center'>Welcome to Resume Craft</h2>
-
-            <form onSubmit={handleSubmit} className='w-full  grid gap-4   p-4 font-semibold '>
-                <div className='grid gap-2 relative'>
-                    <label className=''>Email *</label>
-                    <input type='email' name='email' value={form.email} onChange={handleChange} className={`font-normal p-2  outline-none ring-1 focus:ring-green-600 ${isError ? 'ring-red-500' : 'ring-gray-400'} transition-all ease-in-out   rounded-md`} />
-                    <FaCircleExclamation className={` absolute bottom-3 right-2 ${isError ? 'opacity-100 text-red-500' : 'opacity-0 bg-none'} transition-all ease-in-out `} />
-=======
             <h2 className='text-[2rem] font-bold text-center'>Welcome to Resume Craft</h2>
             <p>
                 Already have an account?{' '}
@@ -82,13 +73,11 @@ const SignUpForm: React.FC = () => {
                 <div className='grid gap-2'>
                     <label className=''>Email Address</label>
                     <input type='email' name='email' value={form.email} onChange={handleChange} className={`font-normal p-2 outline-none ring-1 focus:ring-green-600 ${isError ? 'ring-red-500' : 'ring-gray-400'} transition-all ease-in-out rounded-md`} />
->>>>>>> 529b3bb (feat: update layout metadata, enhance hero section, and improve how it works component; add robots.txt for SEO)
                 </div>
                 <div className='grid gap-2'>
                     <label className=''>Password</label>
                     <input type='password' name='password' value={form.password} onChange={handleChange} className={`p-2 outline-none ring-1 focus:ring-green-600 ${isError ? 'ring-red-500' : 'ring-gray-400'} transition-all ease-in-out rounded-md`} />
                 </div>
-<<<<<<< HEAD
                 <p className='w-[80%]'>
                     Already have an account?{' '}
                     <a href='/auth/signin' className='underline text-blue-600'>
@@ -111,8 +100,6 @@ const SignUpForm: React.FC = () => {
                         .
                     </p>
                 </label>
-=======
->>>>>>> 529b3bb (feat: update layout metadata, enhance hero section, and improve how it works component; add robots.txt for SEO)
 
                 <Button variant='primary' size='large' className='w-full flex items-center justify-center rounded-full mt-4 pt-2 pb-2' disabled={loading ? true : false}>
                     {loader ? 'Creating account....' : '  Create Account'}
