@@ -54,6 +54,7 @@ export const createBlogSchema = z.object({
   slug: z.string().min(2).max(240).optional(),
   // coverImageId is optional — editor-written posts may not have a cover image
   coverImageId: z.string().min(1).max(120).optional(),
+  seoKeywords: z.array(z.string()).optional(),
   sections: z.array(blogSectionSchema).min(1),
   status: z.enum(['draft', 'published', 'archived']).optional(),
 })
@@ -67,6 +68,7 @@ export const updateBlogSchema = z.object({
   slug: z.string().min(2).max(240).optional(),
   // null means explicit remove during edit mode
   coverImageId: z.string().min(1).max(120).nullable().optional(),
+  seoKeywords: z.array(z.string()).optional(),
   sections: z.array(blogSectionSchema).min(1).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
 })

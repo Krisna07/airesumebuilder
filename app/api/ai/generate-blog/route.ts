@@ -19,6 +19,14 @@ export const runtime = 'nodejs'
  *   { done: true }                 — final event
  *   { error: "message" }           — on failure
  */
+
+const imageStyles = [
+  'Flat vector illustration, SaaS isometric style, clean minimalist tech blog cover',
+  'Photorealistic 3D render, modern tech workspace, soft studio lighting, depth of field',
+  'Abstract geometric shapes, gradient mesh background, bold color blocks, futuristic digital art',
+  'Hand-drawn sketch style, editorial illustration, ink and watercolor wash, editorial tech blog',
+]
+const choosenStyle = imageStyles[Math.floor(Math.random() * imageStyles.length)]
 export async function GET(req: Request) {
   const admin = await requireAdminOrForbidden()
   if (!admin.ok) return admin.response
@@ -43,6 +51,7 @@ export async function GET(req: Request) {
 
   const genAI = new GoogleGenAI({ apiKey: geminiKey })
   const encoder = new TextEncoder()
+
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -90,7 +99,8 @@ export async function GET(req: Request) {
 
         // ── Step 3: Generate cover image (non-fatal) ───────────────────────────
         try {
-          const imagePrompt = `Flat vector illustration, SaaS isometric style, clean minimalist tech blog cover for "${derivedTitle}". Digital career concept. Teal and slate color palette. ABSOLUTELY NO TEXT, NO TYPOGRAPHY, NO LETTERS, AND NO WORDS in the image whatsoever.`
+
+          const imagePrompt = `${choosenStyle} for "${derivedTitle}". Digital career concept. Teal and slate color palette. ABSOLUTELY NO TEXT, NO TYPOGRAPHY, NO LETTERS, AND NO WORDS in the image whatsoever.`
           const imagePayload = await generateCoverImageFromPrompt(imagePrompt)
           const imageMeta = await saveImage({
             bytes: imagePayload.bytes,
@@ -130,6 +140,9 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     const title = typeof body.title === 'string' ? body.title.trim() : ''
+    const targetKeywords = Array.isArray(body.targetKeywords)
+      ? body.targetKeywords.filter((k: unknown): k is string => typeof k === 'string')
+      : []
 
     if (!title || title.length < 3) {
       return NextResponse.json(
@@ -138,8 +151,8 @@ export async function POST(req: Request) {
       )
     }
 
-    const draft = await generateBlogDraftFromTitle(title)
-    const imagePayload = await generateCoverImageFromPrompt(draft.imagePrompt)
+    const draft = await generateBlogDraftFromTitle(title, targetKeywords)
+    const imagePayload = await generateCoverImageFromPrompt(`${choosenStyle}, ${draft.imagePrompt}`)
 
     const imageMeta = await saveImage({
       bytes: imagePayload.bytes,

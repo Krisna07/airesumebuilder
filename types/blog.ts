@@ -52,6 +52,7 @@ export interface BlogPost {
   authorImageUrl?: string
   authorImageId?: string
   coverImageId?: string
+  seoKeywords?: string[]
   sections: BlogSection[]
   status: BlogStatus
   createdBy: string
@@ -70,6 +71,7 @@ export interface BlogListItem {
   coverImageId?: string
   authorImageUrl?: string
   authorImageId?: string
+  seoKeywords?: string[]
   createdAt: string
   publishedAt?: string
 }
@@ -96,6 +98,7 @@ export interface CreateBlogInput {
   authorImageId?: string
   slug?: string
   coverImageId?: string
+  seoKeywords?: string[]
   sections: BlogSection[]
   status?: BlogStatus
 }
@@ -108,6 +111,7 @@ export interface UpdateBlogInput {
   authorImageId?: string
   slug?: string
   coverImageId?: string | null
+  seoKeywords?: string[]
   sections?: BlogSection[]
   status?: BlogStatus
 }

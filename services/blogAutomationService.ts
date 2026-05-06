@@ -45,6 +45,7 @@ const aiOutputSchema = z.object({
     })
     .optional(),
   imagePrompt: z.string().min(5),
+  seoKeywords: z.array(z.string()).optional(),
   sections: z.array(aiOutputSectionSchema).min(1),
   status: z.enum(['draft', 'published', 'archived']).optional(),
   author: z.string().min(2).max(120).optional(),
@@ -61,6 +62,7 @@ type GeneratedBlogDraft = {
   excerpt: string
   slug?: string
   imagePrompt: string
+  seoKeywords?: string[]
   sections: BlogSection[]
   status: BlogStatus
   author: string
@@ -603,7 +605,45 @@ function parseTitleFromAi(raw: unknown): string | null {
   return cleanCandidateTitle(firstLine)
 }
 
-async function planUniqueTitleFromResume(preferredTitle?: string) {
+function parseTitlePlanFromAi(raw: unknown): { title: string; targetKeywords: string[] } {
+  const text = toRawTextFromUnknown(raw)
+
+  try {
+    const parsed = parseResponse(text)
+    const validated = titlePlanSchema.safeParse(parsed)
+    if (validated.success) {
+      return {
+        title: cleanCandidateTitle(validated.data.title),
+        targetKeywords: validated.data.targetKeywords || [],
+      }
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      const obj = parsed as Record<string, unknown>
+      const titleCandidate = obj.title
+      const keywordsCandidate = obj.targetKeywords
+
+      if (typeof titleCandidate === 'string' && titleCandidate.trim()) {
+        return {
+          title: cleanCandidateTitle(titleCandidate),
+          targetKeywords: Array.isArray(keywordsCandidate)
+            ? keywordsCandidate.filter((k): k is string => typeof k === 'string')
+            : [],
+        }
+      }
+    }
+  } catch {
+    // fallback to plain text line parsing
+  }
+
+  const fallbackTitle = parseTitleFromAi(raw)
+  return {
+    title: fallbackTitle || '',
+    targetKeywords: [],
+  }
+}
+
+async function planUniqueTitleFromResume(preferredTitle?: string): Promise<{ title: string; targetKeywords: string[] }> {
   const [resumeContext, existing] = await Promise.all([
     buildResumeContextForTitlePlanning(),
     getExistingBlogTitleIndex(),
@@ -617,7 +657,7 @@ async function planUniqueTitleFromResume(preferredTitle?: string) {
     const used = blocked.has(normalizeTitleKey(given)) || blocked.has(givenSlug) || await isTitleOrSlugUsed(given, givenSlug)
 
     if (!used) {
-      return given
+      return { title: given, targetKeywords: [] }
     }
 
     blocked.add(normalizeTitleKey(given))
@@ -646,12 +686,12 @@ async function planUniqueTitleFromResume(preferredTitle?: string) {
         break // break the loop and use fallback base
       }
 
-      const candidate = parseTitleFromAi(aiResponse)
-      if (!candidate) continue
+      const result = parseTitlePlanFromAi(aiResponse)
+      if (!result.title) continue
 
-      const slug = normalizeSlug(candidate)
-      const key = normalizeTitleKey(candidate)
-      const used = blocked.has(key) || blocked.has(slug) || await isTitleOrSlugUsed(candidate, slug)
+      const slug = normalizeSlug(result.title)
+      const key = normalizeTitleKey(result.title)
+      const used = blocked.has(key) || blocked.has(slug) || await isTitleOrSlugUsed(result.title, slug)
 
       if (used) {
         blocked.add(key)
@@ -659,7 +699,7 @@ async function planUniqueTitleFromResume(preferredTitle?: string) {
         continue
       }
 
-      return candidate
+      return result
     }
   }
 
@@ -677,11 +717,11 @@ async function planUniqueTitleFromResume(preferredTitle?: string) {
     const used = blocked.has(key) || blocked.has(slug) || await isTitleOrSlugUsed(candidate, slug)
 
     if (!used) {
-      return candidate
+      return { title: candidate, targetKeywords: [] }
     }
   }
 
-  return `${fallbackBase} ${Date.now()}`
+  return { title: `${fallbackBase} ${Date.now()}`, targetKeywords: [] }
 }
 
 export function validateAndNormalizeBlogDraft(raw: unknown, fallbackAuthor?: string): GeneratedBlogDraft {
@@ -707,6 +747,7 @@ export function validateAndNormalizeBlogDraft(raw: unknown, fallbackAuthor?: str
     excerpt: value.excerpt,
     slug: value.slug?.current,
     imagePrompt: value.imagePrompt,
+    seoKeywords: value.seoKeywords || [],
     sections,
     status: value.status || getDefaultStatus(),
     author: value.author || fallbackAuthor || getDefaultAuthor(),
@@ -985,9 +1026,9 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
   return createFallbackCoverImagePayload(imagePrompt, 'Image API response did not include image bytes')
 }
 
-export async function generateBlogDraftFromTitle(title: string) {
+export async function generateBlogDraftFromTitle(title: string, targetKeywords: string[] = []) {
   const author = getDefaultAuthor()
-  const prompt = generateSeoBlogPrompt(title, author)
+  const prompt = generateSeoBlogPrompt(title, author, targetKeywords)
   const hasGatewayToken = Boolean(getGatewayToken())
   const hasWorkerUrl = Boolean(process.env.BLOG_AI_WORKER_URL)
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY)
@@ -1055,6 +1096,7 @@ export async function publishGeneratedBlog(draft: GeneratedBlogDraft, actor = ge
     excerpt: draft.excerpt,
     slug: draft.slug,
     author: draft.author,
+    seoKeywords: draft.seoKeywords,
     sections: draft.sections,
     status: draft.status,
     coverImageId: imageMeta.id,
@@ -1070,9 +1112,9 @@ export async function runHourlyBlogAutomation(options?: {
 }): Promise<BlogAutomationResult> {
   const startedAt = Date.now()
   const traceId = options?.traceId || `cron_${nanoid(10)}`
-  const title = await planUniqueTitleFromResume(options?.title)
+  const { title, targetKeywords } = await planUniqueTitleFromResume(options?.title)
 
-  const draft = await generateBlogDraftFromTitle(title)
+  const draft = await generateBlogDraftFromTitle(title, targetKeywords)
   const slugBase = normalizeSlug(draft.slug || draft.title)
 
   if (options?.dryRun) {

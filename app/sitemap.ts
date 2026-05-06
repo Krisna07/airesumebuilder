@@ -54,12 +54,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let blogPages: MetadataRoute.Sitemap = []
   try {
     const { items } = await listPublishedBlogs({ limit: 1000, offset: 0 })
-    blogPages = items.map((post) => ({
-      url: `${baseUrl}/blogs/${post.slug}`,
-      lastModified: new Date(post.publishedAt || post.createdAt),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    }))
+    blogPages = items.map((post) => {
+      const publishedDate = new Date(post.publishedAt || post.createdAt)
+      const ageInDays = (Date.now() - publishedDate.getTime()) / (1000 * 60 * 60 * 24)
+
+      // Boost priority for recent posts
+      const priority = ageInDays < 7 ? 0.9 : ageInDays < 30 ? 0.8 : 0.7
+
+      return {
+        url: `${baseUrl}/blogs/${post.slug}`,
+        lastModified: publishedDate,
+        changeFrequency: 'weekly' as const,
+        priority,
+      }
+    })
   } catch (error) {
     console.error('Failed to fetch blogs for sitemap:', error)
   }
