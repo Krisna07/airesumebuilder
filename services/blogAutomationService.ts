@@ -7,8 +7,21 @@ import { parseResponse } from '@/lib/jsonParse'
 import { generateBlogTitlePlanPrompt, generateSeoBlogPrompt, regenerateBlogPrompt } from '@/lib/prompts'
 import { prisma } from '@/lib/prisma'
 import sanityClient from '@/lib/sanity'
-import { createBlog, saveImage } from '@/services/blogCmsService'
+import { createBlog, getBlogById, saveImage, updateBlog } from '@/services/blogCmsService'
 import type { BlogActor, BlogSection, BlogStatus, CreateBlogInput } from '@/types/blog'
+
+// Internal type for Sanity blog document structure
+interface SanityBlogDoc {
+  _id: string
+  title: string
+  slug?: { current?: string }
+  author: string
+  seoKeywords?: string[]
+  sections: BlogSection[]
+  createdAt: string
+  publishedAt?: string
+  updatedAt: string
+}
 
 // Use z.union instead of z.discriminatedUnion to avoid Zod v4 _zod.propValues crash
 const aiOutputSectionSchema = z.union([
@@ -1140,4 +1153,151 @@ export async function runHourlyBlogAutomation(options?: {
     traceId,
     durationMs: Date.now() - startedAt,
   }
+}
+
+export type ContentRefreshResult = {
+  success: boolean
+  state: 'refreshed' | 'skipped' | 'error'
+  reason?: string
+  postId?: string
+  postTitle?: string
+  oldAgeDays?: number
+  newUpdatedAt?: string
+  durationMs: number
+}
+
+function getRefreshActor(): BlogActor {
+  return {
+    userId: process.env.BLOG_REFRESH_AUTHOR_ID || 'cron-refresh',
+    email: process.env.BLOG_REFRESH_AUTHOR_EMAIL || 'refresh@system.local',
+  }
+}
+
+/**
+ * Refreshes an old blog post by regenerating its content while preserving metadata.
+ * 
+ * @param postId - The ID of the blog post to refresh
+ * @param actor - The actor performing the refresh operation
+ * @returns The updated blog post or null if not found
+ */
+export async function refreshOldBlogPost(postId: string, actor: BlogActor) {
+  const post = await getBlogById(postId)
+
+  if (!post) {
+    throw new Error(`Blog post with ID ${postId} not found`)
+  }
+
+  // Regenerate content
+  const newSections = await regenerateBlogContent(
+    post.title,
+    post.sections,
+    "Update content to reflect current best practices and trends. Maintain the same structure and tone."
+  )
+
+  // Update post with new content (preserves original metadata like title, slug, author, publishedAt)
+  // Note: updatedAt is automatically set by updateBlog()
+  return await updateBlog(postId, {
+    sections: newSections
+  })
+}
+
+export async function runContentRefreshCron(options?: {
+  ageThresholdDays?: number
+  dryRun?: boolean
+}): Promise<ContentRefreshResult> {
+  const startedAt = Date.now()
+  const ageThresholdDays = options?.ageThresholdDays ||
+    Number(process.env.BLOG_REFRESH_THRESHOLD_DAYS) || 90
+  const dryRun = options?.dryRun ||
+    toBoolean(process.env.BLOG_REFRESH_DRYRUN || process.env.DRY_RUN || 'false')
+
+  console.log(`[cron/refresh] Starting — dryRun=${dryRun}, ageThreshold=${ageThresholdDays} days`)
+
+  try {
+    // Query Sanity for published posts older than threshold
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - ageThresholdDays)
+    const cutoffDateString = cutoffDate.toISOString()
+
+    const oldPosts = await sanityClient.fetch<SanityBlogDoc[]>(
+      `*[_type == "blog" && status == "published" && coalesce(publishedAt, createdAt) < $cutoffDate] 
+        | order(coalesce(publishedAt, createdAt) asc) [0...1]
+        {_id,title,slug,author,seoKeywords,sections,createdAt,publishedAt,updatedAt}`,
+      { cutoffDate: cutoffDateString }
+    )
+
+    if (oldPosts.length === 0) {
+      console.log('[cron/refresh] No posts older than threshold found')
+      return {
+        success: true,
+        state: 'skipped',
+        reason: `No posts older than ${ageThresholdDays} days found`,
+        durationMs: Date.now() - startedAt,
+      }
+    }
+
+    const post = oldPosts[0]
+    const postAgeDays = calculatePostAgeDays(post)
+
+    console.log(`[cron/refresh] Found post to refresh: "${post.title}" (age: ${postAgeDays} days)`)
+
+    if (dryRun) {
+      console.log('[cron/refresh] Dry run enabled — skipping actual refresh')
+      return {
+        success: true,
+        state: 'skipped',
+        reason: 'Dry run enabled',
+        postId: post._id,
+        postTitle: post.title,
+        oldAgeDays: postAgeDays,
+        durationMs: Date.now() - startedAt,
+      }
+    }
+
+    // Regenerate content
+    const currentSections = post.sections || []
+    const modificationPrompt = "Update content to reflect current best practices and trends. Maintain the same structure and tone. Keep the same sections and headings but refresh the content with new information and examples."
+
+    const newSections = await regenerateBlogContent(post.title, currentSections, modificationPrompt)
+
+    // Update the post with new content (preserve metadata)
+    // Note: updatedAt is automatically set by updateBlog()
+    const updatedPost = await updateBlog(post._id, {
+      sections: newSections,
+    })
+
+    console.log(`[cron/refresh] Refreshed post: "${post.title}" — new updatedAt: ${updatedPost?.updatedAt}`)
+
+    return {
+      success: true,
+      state: 'refreshed',
+      postId: post._id,
+      postTitle: post.title,
+      oldAgeDays: postAgeDays,
+      newUpdatedAt: updatedPost?.updatedAt,
+      durationMs: Date.now() - startedAt,
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected refresh error'
+    console.error('[cron/refresh] Failed:', message, error)
+
+    return {
+      success: false,
+      state: 'error',
+      reason: message,
+      durationMs: Date.now() - startedAt,
+    }
+  }
+}
+
+function calculatePostAgeDays(post: SanityBlogDoc): number {
+  const publishedDate = new Date(post.publishedAt || post.createdAt)
+  const now = new Date()
+  const diffMs = now.getTime() - publishedDate.getTime()
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24))
+}
+
+function toBoolean(value: string | undefined | null): boolean {
+  if (!value) return false
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
 }

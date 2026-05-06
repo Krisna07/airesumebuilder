@@ -45,6 +45,39 @@ export const blogSectionSchema = z.union([
   imageSectionSchema,
 ])
 
+// ─── Word Count Validation ───────────────────────────────────────────────────
+
+export function calculateWordCount(sections: BlogSection[]): number {
+  let totalWords = 0
+
+  for (const section of sections) {
+    if (section.type === 'paragraph' && typeof section.content === 'string') {
+      totalWords += section.content.trim().split(/\s+/).length
+    }
+  }
+
+  return totalWords
+}
+
+export function validateWordCount(sections: BlogSection[], status: BlogStatus): { valid: boolean; error?: string } {
+  const minimumWordCount = parseInt(process.env.BLOG_MIN_WORD_COUNT || '1500')
+
+  // Only validate published posts
+  if (status === 'published') {
+    const wordCount = calculateWordCount(sections)
+    if (wordCount < minimumWordCount) {
+      return {
+        valid: false,
+        error: `Word count validation failed: ${wordCount} words (minimum: ${minimumWordCount}). Add more content or save as draft.`
+      }
+    }
+  }
+
+  return { valid: true }
+}
+
+// ─── Validation Schemas ──────────────────────────────────────────────────────
+
 export const createBlogSchema = z.object({
   title: z.string().min(3).max(180),
   excerpt: z.string().min(10),

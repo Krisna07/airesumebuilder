@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation'
 import BlogSectionRenderer from '@/components/blog/BlogSectionRenderer'
-import { getBlogBySlug, listRelatedByKeywords } from '@/services/blogCmsService'
+import { getBlogBySlug } from '@/services/blogCmsService'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { Metadata } from 'next'
 import type { BlogPost } from '@/types/blog'
+import RelatedPosts from '@/components/blog/RelatedPosts'
 
 export const runtime = 'nodejs'
 export const revalidate = 3600 // Revalidate every hour
@@ -80,7 +81,6 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
     notFound()
   }
 
-  const related = await listRelatedByKeywords(post.seoKeywords || [], post.id, 4)
   const readingTime = estimateReadingTime(post.sections)
 
   // Structured data for individual blog post
@@ -214,21 +214,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
       </section>
 
       {/* Related posts */}
-      <section className="mt-12">
-        <h3 className="text-xl font-semibold mb-4">Related posts</h3>
-        {related.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {related.map((item) => (
-              <Link key={item.id} href={`/blogs/${item.slug}`} className="block rounded-lg border p-3 hover:shadow">
-                <h4 className="font-medium">{item.title}</h4>
-                <p className="text-sm text-slate-600">{item.excerpt}</p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500">No related posts yet.</p>
-        )}
-      </section>
+        <RelatedPosts blogId={post.id} limit={5} />
     </article>
     </>
   )

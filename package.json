@@ -12,6 +12,7 @@
     "subscription:seed": "ts-node scripts/seed-subscriptions.ts",
     "subscription:test": "ts-node scripts/subscription-tests.ts",
     "test:blog-cron": "tsx scripts/test-blog-cron.ts",
+    "test:refresh-cron": "tsx scripts/test-refresh-cron.ts",
     "postinstall": "npx puppeteer browsers install chrome",
     "studio": "sanity start"
   },
