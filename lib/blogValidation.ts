@@ -1,3 +1,4 @@
+import { BlogSection, BlogStatus } from '@/types/blog'
 import { z } from 'zod'
 
 // ─── Section schemas (z.union avoids Zod v4 discriminatedUnion propValues bug) ─
