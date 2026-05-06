@@ -1,6 +1,13 @@
 export const metadata = {
-  title: 'Privacy Policy - AI Resume Craft',
-  description: 'Privacy policy for AI Resume Craft',
+  title: 'Privacy Policy & Terms of Service',
+  description: 'Read the AI Resume Craft privacy policy and terms of service. We respect your data and are committed to transparency.',
+  alternates: {
+    canonical: 'https://airesumecraft.xyz/privacy',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function PrivacyPage() {

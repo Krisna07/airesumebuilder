@@ -1,0 +1,21 @@
+{
+  "name": "AI Resume Craft - Free AI Resume Builder",
+  "short_name": "AI Resume Craft",
+  "description": "Build, tailor, and optimize your resume for free with our AI-powered resume builder",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr"
+}
