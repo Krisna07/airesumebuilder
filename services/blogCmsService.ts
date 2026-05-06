@@ -19,6 +19,7 @@ interface SanityBlogDoc {
   coverImageId?: string
   authorImageUrl?: string
   authorImageId?: string
+  seoKeywords?: string[]
   sections: BlogPost['sections']
   status: BlogPost['status']
   author: string
@@ -82,6 +83,7 @@ function mapToPost(doc: SanityBlogDoc | null): BlogPost | null {
     coverImageId: doc.coverImageId,
     authorImageUrl: doc.authorImageUrl,
     authorImageId: doc.authorImageId,
+    seoKeywords: doc.seoKeywords || [],
     sections: doc.sections || [],
     status: doc.status,
     author: doc.author,
@@ -101,6 +103,7 @@ function toListItem(post: BlogPost): BlogListItem {
     excerpt: post.excerpt,
     coverImageId: post.coverImageId,
     author: post.author,
+    seoKeywords: post.seoKeywords,
     createdAt: post.createdAt,
     publishedAt: post.publishedAt,
   }
@@ -119,6 +122,7 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
     coverImageId: input.coverImageId,
     authorImageUrl: input.authorImageUrl,
     authorImageId: input.authorImageId,
+    seoKeywords: input.seoKeywords || [],
     sections: input.sections,
     status: input.status ?? 'published',
     author: input.author,
@@ -138,6 +142,7 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
     coverImageId: post.coverImageId,
     authorImageUrl: post.authorImageUrl,
     authorImageId: post.authorImageId,
+    seoKeywords: post.seoKeywords,
     sections: toSanitySections(post.sections),
     status: post.status,
     author: post.author,
@@ -153,7 +158,7 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
 
 export async function getBlogById(id: string) {
   const doc = await sanityClient.fetch<SanityBlogDoc | null>(
-    '*[_type == "blog" && _id == $id][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && _id == $id][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
     { id }
   )
 
@@ -162,7 +167,7 @@ export async function getBlogById(id: string) {
 
 export async function getBlogBySlug(slug: string) {
   const doc = await sanityClient.fetch<SanityBlogDoc | null>(
-    '*[_type == "blog" && slug.current == $slug][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && slug.current == $slug][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
     { slug }
   )
 
@@ -175,7 +180,7 @@ export async function listPublishedBlogs({ limit = 20, offset = 0 }: BlogPaginat
   const end = safeOffset + safeLimit
 
   const docs = await sanityClient.fetch<SanityBlogDoc[]>(
-    '*[_type == "blog" && status == "published"] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && status == "published"] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
     { start: safeOffset, end }
   )
 
@@ -194,9 +199,46 @@ export async function listPublishedBlogs({ limit = 20, offset = 0 }: BlogPaginat
 export async function listRelatedByAuthor(author: string, excludeId?: string, limit = 3) {
   const docs = await sanityClient.fetch<SanityBlogDoc[]>(
     excludeId
-      ? '*[_type == "blog" && status == "published" && author == $author && _id != $excludeId] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,createdAt,publishedAt}'
-      : '*[_type == "blog" && status == "published" && author == $author] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,createdAt,publishedAt}',
+      ? '*[_type == "blog" && status == "published" && author == $author && _id != $excludeId] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,seoKeywords,createdAt,publishedAt}'
+      : '*[_type == "blog" && status == "published" && author == $author] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,seoKeywords,createdAt,publishedAt}',
     excludeId ? { author, excludeId, start: 0, end: limit } : { author, start: 0, end: limit }
+  )
+
+  const items = docs
+    .map((doc) => mapToPost(doc))
+    .filter((post): post is BlogPost => Boolean(post))
+    .map(toListItem)
+
+  return items.slice(0, limit)
+}
+
+export async function listRelatedByKeywords(
+  keywords: string[],
+  excludeId: string,
+  limit = 4
+) {
+  if (!keywords || keywords.length === 0) {
+    // Fallback to recent posts if no keywords
+    const docs = await sanityClient.fetch<SanityBlogDoc[]>(
+      '*[_type == "blog" && status == "published" && _id != $excludeId] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,seoKeywords,createdAt,publishedAt}',
+      { excludeId, start: 0, end: limit }
+    )
+
+    const items = docs
+      .map((doc) => mapToPost(doc))
+      .filter((post): post is BlogPost => Boolean(post))
+      .map(toListItem)
+
+    return items.slice(0, limit)
+  }
+
+  // Find posts where any seoKeyword overlaps with the provided keywords
+  const docs = await sanityClient.fetch<SanityBlogDoc[]>(
+    `*[_type == "blog" && status == "published" && _id != $excludeId
+      && count((seoKeywords)[@ in $keywords]) > 0]
+      | order(coalesce(publishedAt, createdAt) desc)[0...$limit]
+      {_id,title,excerpt,slug,coverImageId,author,seoKeywords,createdAt,publishedAt}`,
+    { keywords, excludeId, limit }
   )
 
   const items = docs
@@ -228,6 +270,7 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
     coverImageId: nextCoverImageId,
     authorImageUrl: input.authorImageUrl ?? existing.authorImageUrl,
     authorImageId: input.authorImageId ?? existing.authorImageId,
+    seoKeywords: input.seoKeywords ?? existing.seoKeywords,
     sections: input.sections ?? existing.sections,
     author: input.author ?? existing.author,
     status: nextStatus,
@@ -244,6 +287,7 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
       slug: { current: updated.slug },
       authorImageUrl: updated.authorImageUrl,
       authorImageId: updated.authorImageId,
+      seoKeywords: updated.seoKeywords,
       sections: toSanitySections(updated.sections),
       status: updated.status,
       author: updated.author,

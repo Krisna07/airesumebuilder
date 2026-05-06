@@ -197,7 +197,11 @@ OUTPUT:`;
 
 const appSummary = 'airesumecraft.xyz is a high-performance career architecture platform designed to transform the traditional job search into a data-driven strategy. Built with a minimalist, high-contrast aesthetic, the app serves as a centralized hub where users can construct a Master Profile and instantly deploy multiple, role-specific resume variations. At its core, the platform leverages a sophisticated AI Tailor and ATS Analyzer that semantically scores resumes against job descriptions, identifying critical keyword gaps to ensure candidates bypass automated filters. Beyond simple formatting, the Smart Rewriting engine gives users granular control over their professional voice, allowing them to flip between executive, concise, or achievement-led tones with a single click. The journey concludes with a Live Preview of modular templates and a seamless, Stripe-powered PDF export for a print-ready, high-fidelity finish. By integrating a full-stack Blog and Content Suite, the platform goes beyond the document, enabling professionals to build a lasting personal brand and authority alongside their optimized application materials.'
 
-const generateSeoBlogPrompt = (title: string, author = 'ResumeCraft Team') => {
+const generateSeoBlogPrompt = (title: string, author = 'ResumeCraft Team', targetKeywords: string[] = []) => {
+  const keywordHint = targetKeywords.length > 0
+    ? `\n### TARGET KEYWORDS (weave naturally into content, aim for 2-3% density)\n${targetKeywords.map(k => `- ${k}`).join('\n')}`
+    : ''
+
   return `
 ### ROLE
 You are a Lead Career Strategist and Product Guide at ResumeCraft.xyz. You don't just write articles; you build bridges between a candidate's current struggle and their target role using our platform.
@@ -211,31 +215,54 @@ The blog must be structured as a direct path to the app. You must guide the read
 5. **The Final Handshake:** Transitioning from the browser to the interview via a **Vercel-inspired, high-contrast PDF Export**.
 
 ### TASK
-Write a 1,500+ word deep-dive titled "${title}". 
+Write a 1,500–2,000 word deep-dive titled "${title}". 
 Every "Insight" in the blog must be followed by an "Action" the reader can take right now at ResumeCraft.xyz.
 Here is the attached app summary for reference: ${appSummary}
+${keywordHint}
 
-### CONTENT REQUIREMENTS
-- **Section 1 (The Hook):** Define the 6-second recruiter window. Introduce ResumeCraft as the tool to win those seconds. [IMAGE: Clean dashboard view].
-- **Section 3 (The Bridge):** This is the core walkthrough. Describe the "Aha!" moment when the **ATS Score** goes from 40% to 95% using our AI tools. [SCREENSHOT: Match Rate Score].
-- **Section 4 (The Conversion):** Explain how consistent personal branding (using our **Blog Tools**) builds authority. End with a call to export the final PDF. [SCREENSHOT: PDF Template Selection].
+### REQUIRED STRUCTURE (8–12 sections minimum)
+You MUST include these section types in this order:
+1. **Hook paragraph** (200+ words) — Open with a surprising stat, recruiter insight, or common pain point
+2. **H2 heading** — "The Core Problem" or similar
+3. **Explanation paragraph** (200+ words) — Deep dive into why this problem exists
+4. **H2 heading** — "Step-by-Step: [Topic]" or "How to [Solve Problem]"
+5. **Numbered list** (5–8 actionable steps) — Use type "list"
+6. **H2 heading** — "Common Mistakes to Avoid"
+7. **Bullet list** (4–6 mistakes) — Use type "list"
+8. **H2 heading** — "How ResumeCraft Solves This"
+9. **Paragraph** (150+ words) — Link to specific features with actual URLs
+10. **H2 heading** — "Frequently Asked Questions"
+11. **Paragraph** (200+ words) — Format as Q&A pairs: <strong>Q: [Question]</strong> A: [Answer]. Include 3–4 questions.
+12. **Closing CTA paragraph** (100+ words) — Direct call-to-action with link to https://airesumecraft.xyz/builder
 
-### VERIFIED QUOTE PROTOCOL
-- Search for a REAL, verifiable industry quote. If not found, leave "sec_2" empty (""). DO NOT HALLUCINATE.
+### INTERNAL LINKS (include at least 3 throughout the content)
+- Resume builder: https://airesumecraft.xyz/builder
+- Pricing: https://airesumecraft.xyz/pricing
+- Blog: https://airesumecraft.xyz/blogs
+
+### IMAGE PROMPT REQUIREMENTS
+Create a unique, topic-specific image prompt that reflects the blog's main theme. Include relevant visual metaphors (e.g., "resume document with checkmarks", "career ladder", "magnifying glass over text", "professional handshake"). Keep the flat vector, SaaS isometric style with teal/slate palette. ABSOLUTELY NO TEXT, NO WORDS, NO TYPOGRAPHY in the image.
 
 ### OUTPUT SCHEMA (JSON ONLY)
 {
-  "title": "string",
-  "excerpt": "string (Focus on the transformation from 'Applied' to 'Interviewing')",
+  "title": "string (SEO-optimised, max 70 chars, include primary keyword)",
+  "excerpt": "string (keyword-led, max 155 chars, ends with clear value promise)",
   "slug": { "current": "string" },
-  "imagePrompt": "string (Flat vector illustration, SaaS isometric style, tech blog aesthetic. Teal/slate palette. NO TEXT, NO WORDS, NO TYPOGRAPHY allowed in the prompt.)",
+  "imagePrompt": "string (topic-specific flat vector illustration, SaaS isometric style, teal/slate palette. NO TEXT, NO WORDS, NO TYPOGRAPHY)",
+  "seoKeywords": ["string", "string", "string"],
   "sections": [
-    { "id": "sec_1", "type": "paragraph", "content": "string (250+ words)" },
-    { "id": "sec_2", "type": "heading", "level": 2, "content": "string (The Bridge Walkthrough)" },
-    { "id": "sec_3", "type": "paragraph", "content": "string (explanation)" },
-    { "id": "sec_4", "type": "list", "items": ["step 1", "step 2", "step 3"] },
-    { "id": "sec_5", "type": "quote", "content": "string", "citation": "string" },
-    { "id": "sec_6", "type": "paragraph", "content": "string (The Results & Export)" }
+    { "id": "sec_1", "type": "paragraph", "content": "string (200+ words)" },
+    { "id": "sec_2", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_3", "type": "paragraph", "content": "string (200+ words)" },
+    { "id": "sec_4", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_5", "type": "list", "items": ["string", "string", ...] },
+    { "id": "sec_6", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_7", "type": "list", "items": ["string", "string", ...] },
+    { "id": "sec_8", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_9", "type": "paragraph", "content": "string (150+ words with URLs)" },
+    { "id": "sec_10", "type": "heading", "level": 2, "content": "string" },
+    { "id": "sec_11", "type": "paragraph", "content": "string (200+ words, Q&A format)" },
+    { "id": "sec_12", "type": "paragraph", "content": "string (100+ words, CTA with URL)" }
   ],
   "status": "published",
   "author": "${author}"
@@ -243,10 +270,12 @@ Here is the attached app summary for reference: ${appSummary}
 
 ### STRICT CONSTRAINTS
 - NO PRE-AMBLE. NO MARKDOWN. 
-- TOTAL WORD COUNT MUST BE >= 1500.
+- TOTAL WORD COUNT MUST BE >= 1500 (aim for 1800–2000).
+- You MUST include at least 8 sections, preferably 10–12.
 - Direct the user to specific UI elements (e.g., "Click the 'Tailor' button," "View your Match Score").
-- You MUST use "heading" and "list" segment types to structure the content well.
 - NEVER prepend numbers or bullets (like "1.", "2.", "Step 1:", "-") inside the string values of your \`list\` items. The UI automatically adds bullets.
+- Include actual URLs in the content where you mention ResumeCraft features.
+- The FAQ section is MANDATORY — do not skip it.
 - Return ONLY valid JSON matching the schema.
 
 OUTPUT:
@@ -300,6 +329,9 @@ const generateBlogTitlePlanPrompt = (input: {
 }) => {
   const blocked = input.blockedTitles || [];
   const attempt = input.attempt || 1;
+  const currentDate = new Date();
+  const currentMonth = currentDate.toLocaleString('en-US', { month: 'long' });
+  const currentYear = currentDate.getFullYear();
 
   return `
 ### ROLE
@@ -308,24 +340,33 @@ You are a Senior Market Analyst and Search Intent Strategist specializing in the
 ### OBJECTIVE
 Propose ONE high-authority, SEO-optimized blog title derived from the candidate's specific professional context. The title must address real-world hiring pain points or emerging industry standards.
 
+### CURRENT CONTEXT
+- **Date:** ${currentMonth} ${currentYear}
+- **Iteration:** ${attempt}
+
 ### INPUT DATA
 - **RESUME CONTEXT (JSON):** ${JSON.stringify(input.resumeContext)}
 - **CONTENT HISTORY (DO NOT DUPLICATE):** ${JSON.stringify(input.existingTitles)}
 - **REJECTED ITERATIONS:** ${JSON.stringify(blocked)}
-- **ITERATION COUNT:** ${attempt}
 
 ### STRATEGIC CONSTRAINTS
 1. **Market Alignment:** The title must reflect current hiring behaviors (e.g., "Skills-based hiring," "ATS optimization," or "Role-specific impact metrics").
 2. **Search Intent:** Prioritize "Informational" intent (how to solve a problem) or "Navigational" intent (how to reach a career milestone).
 3. **No Hallucinations:** Do not reference non-existent certifications, tools, or niche trends that aren't verified in the current professional landscape.
-4. **Length & Formatting:** 45-85 characters. Sentence case or Title Case. No clickbait superlatives (e.g., avoid "Shocking," "Secrets," or "Magic").
+4. **Length & Formatting:** 45-70 characters. Sentence case or Title Case. No clickbait superlatives (e.g., avoid "Shocking," "Secrets," or "Magic").
+5. **Format Variety:** Alternate between these formats across attempts:
+   - How-to: "How to [Achieve Goal] in ${currentYear}"
+   - Listicle: "[Number] [Topic] Tips for [Audience]"
+   - Question: "Why Do [Problem]? [Solution]"
+   - Guide: "The Complete Guide to [Topic]"
+   - Comparison: "[Option A] vs [Option B]: Which is Better?"
 
 ### STRICT OUTPUT RULE
 Return ONLY a valid JSON object. Do not include markdown fences (\`\`\`json) or any introductory text.
 
 {
-  "title": "string",
-  "targetKeywords": ["string", "string"],
+  "title": "string (45-70 chars, SEO-optimised, includes primary keyword)",
+  "targetKeywords": ["string", "string", "string"],
   "marketLogic": "string (A factual explanation of why this title aligns with current recruitment data or search trends)",
   "intentCategory": "Career Growth | Technical Skill | Optimization | Industry Insight"
 }
@@ -339,10 +380,11 @@ const polishBlogPrompt = (title: string, excerpt: string, sections: unknown[]) =
 You are an expert blog editor, SEO strategist, and senior proofreader at ResumeCraft.xyz.
 
 ### TASK
-Polish the provided blog draft for all three dimensions simultaneously:
+Polish the provided blog draft for all four dimensions simultaneously:
 1. **Spelling & Grammar** — Fix every spelling mistake and grammatical error without changing the author's voice.
-2. **Readability** — Improve sentence flow, eliminate redundancy, and clarify any awkward phrasing.
+2. **Readability** — Improve sentence flow, eliminate redundancy, and clarify any awkward phrasing. Target Flesch-Kincaid reading level: Grade 8–10 (accessible but professional).
 3. **SEO Optimisation** — Naturally weave in high-value keywords relevant to: ATS optimisation, resume writing, job search strategy, career development, LinkedIn profile, cover letter, interview preparation, and personal branding. Do NOT keyword-stuff — embed them where they read naturally.
+4. **Call-to-Action** — Ensure the final paragraph includes a clear, compelling CTA directing readers to https://airesumecraft.xyz/builder or another relevant ResumeCraft page.
 
 ### INPUT BLOG DRAFT
 TITLE: ${title}
@@ -352,9 +394,9 @@ ${JSON.stringify(sections, null, 2)}
 
 ### OUTPUT SCHEMA (JSON ONLY)
 {
-  "title": "string — polished, SEO-optimised title",
-  "excerpt": "string — polished excerpt that leads with a keyword and a clear value statement",
-  "seoKeywords": ["string", "string"],
+  "title": "string — polished, SEO-optimised title (max 70 chars)",
+  "excerpt": "string — polished excerpt that leads with a keyword and a clear value statement (max 155 chars)",
+  "seoKeywords": ["string", "string", "string"],
   "sections": [
     { "id": "sec_1", "type": "paragraph", "content": "string" },
     { "id": "sec_2", "type": "heading", "level": 2, "content": "string" },
@@ -367,6 +409,7 @@ ${JSON.stringify(sections, null, 2)}
 - Preserve every section's \`id\` and \`type\` exactly as given.
 - Do NOT add, merge, or remove sections.
 - Do NOT alter the fundamental message, facts, or examples.
+- Ensure the last section (if it's a paragraph) includes a CTA with a URL to ResumeCraft.
 - NO PRE-AMBLE. NO MARKDOWN FENCES. RETURN ONLY VALID JSON.
 
 OUTPUT:

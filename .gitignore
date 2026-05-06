@@ -4,6 +4,7 @@
 /.next
 /out
 /.github
+.kiro
 
 # Dependencies
 /node_modules

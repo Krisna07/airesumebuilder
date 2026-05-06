@@ -1,12 +1,27 @@
 import { notFound } from 'next/navigation'
 import BlogSectionRenderer from '@/components/blog/BlogSectionRenderer'
-import { getBlogBySlug, listRelatedByAuthor } from '@/services/blogCmsService'
+import { getBlogBySlug, listRelatedByKeywords } from '@/services/blogCmsService'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { Metadata } from 'next'
+import type { BlogPost } from '@/types/blog'
 
 export const runtime = 'nodejs'
+export const revalidate = 3600 // Revalidate every hour
+
+function estimateReadingTime(sections: BlogPost['sections']): number {
+  const totalWords = sections.reduce((acc, section) => {
+    if ('content' in section && typeof section.content === 'string') {
+      return acc + section.content.split(/\s+/).length
+    }
+    if ('items' in section && Array.isArray(section.items)) {
+      return acc + section.items.join(' ').split(/\s+/).length
+    }
+    return acc
+  }, 0)
+  return Math.max(1, Math.ceil(totalWords / 200))
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ blogname: string }> }): Promise<Metadata> {
   const { blogname } = await params
@@ -26,6 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ blogname:
   return {
     title: `${post.title} | AI Resume Craft Blog`,
     description: post.excerpt,
+    keywords: post.seoKeywords || [],
     alternates: {
       canonical: canonicalUrl,
     },
@@ -64,7 +80,8 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
     notFound()
   }
 
-  const related = await listRelatedByAuthor(post.author, post.id, 4)
+  const related = await listRelatedByKeywords(post.seoKeywords || [], post.id, 4)
+  const readingTime = estimateReadingTime(post.sections)
 
   // Structured data for individual blog post
   const imageUrl = post.coverImageId
@@ -177,6 +194,8 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
               {new Date(post.publishedAt || post.createdAt).toLocaleString()}
             </time>
           </div>
+            |
+            <span className="text-sm text-slate-500 dark:text-slate-400">{readingTime} min read</span>
         </div>
       </header>
 
