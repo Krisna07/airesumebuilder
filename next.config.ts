@@ -13,6 +13,30 @@ const nextConfig = {
         turbo: false // Disable Turbopack, use webpack
     },
     serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+    async redirects() {
+        return [
+            {
+                source: '/addblog',
+                destination: '/blogs/addblogs',
+                permanent: true, // 301 redirect
+            },
+            {
+                source: '/addblogs',
+                destination: '/blogs/addblogs',
+                permanent: true, // 301 redirect
+            },
+            {
+                source: '/blog/addblog',
+                destination: '/blogs/addblogs',
+                permanent: true, // 301 redirect
+            },
+            {
+                source: '/blog/addblogs',
+                destination: '/blogs/addblogs',
+                permanent: true, // 301 redirect
+            },
+        ]
+    },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     webpack: (config: any, { isServer }: { isServer: boolean }) => {
         if (isServer) {
