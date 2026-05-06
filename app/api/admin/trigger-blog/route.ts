@@ -3,7 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { runHourlyBlogAutomation } from '@/services/blogAutomationService'
 
-function toBoolean(value: string | null) {
+export const runtime = 'nodejs'
+export const maxDuration = 300
+
+function toBoolean(value: string | undefined | null) {
   if (!value) return false
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
 }
@@ -16,16 +19,21 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}))
-    const title = body?.title || undefined
+    const title = typeof body?.title === 'string' && body.title.trim() ? body.title.trim() : undefined
+    const dryRun = typeof body?.dryRun === 'boolean'
+      ? body.dryRun
+      : toBoolean(process.env.BLOG_CRON_DRYRUN || process.env.DRY_RUN || 'false')
 
-    const envDryRun = toBoolean(process.env.DRYRUN || process.env.DRY_RUN || process.env.BLOG_CRON_DRYRUN || 'false')
-    const dryRun = typeof body?.dryRun === 'boolean' ? body.dryRun : envDryRun
+    console.log(`[trigger-blog] Admin triggered — dryRun=${dryRun}, title=${title ?? 'auto'}`)
 
     const result = await runHourlyBlogAutomation({ title, dryRun })
 
+    console.log(`[trigger-blog] Done — state=${result.state}, title="${result.title}", duration=${result.durationMs}ms`)
+
     return NextResponse.json({ success: true, data: result })
   } catch (err) {
-    console.error('Trigger blog automation failed', err)
-    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Unexpected error' })
+    const message = err instanceof Error ? err.message : 'Unexpected error'
+    console.error('[trigger-blog] Failed:', message, err)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

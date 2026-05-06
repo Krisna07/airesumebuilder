@@ -35,6 +35,12 @@
     },
     "app/api/cron/resume-regenerate/route.ts": {
         "maxDuration": 60
+    },
+    "app/api/cron/blog/route.ts": {
+        "maxDuration": 300
+    },
+    "app/api/admin/trigger-blog/route.ts": {
+        "maxDuration": 300
     }
 },
 "crons": [
