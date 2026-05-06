@@ -212,41 +212,68 @@ export async function listRelatedByAuthor(author: string, excludeId?: string, li
   return items.slice(0, limit)
 }
 
+/**
+ * Calculate the keyword match score between two sets of keywords.
+ * Returns the count of shared keywords.
+ */
+function calculateKeywordMatchScore(keywords1: string[], keywords2: string[]): number {
+  const set1 = new Set(keywords1 || []);
+  const set2 = new Set(keywords2 || []);
+
+  // Count shared keywords
+  let sharedCount = 0;
+  for (const kw of set1) {
+    if (set2.has(kw)) {
+      sharedCount++;
+    }
+  }
+
+  return sharedCount;
+}
+
 export async function listRelatedByKeywords(
   keywords: string[],
   excludeId: string,
   limit = 4
 ) {
   if (!keywords || keywords.length === 0) {
-    // Fallback to recent posts if no keywords
-    const docs = await sanityClient.fetch<SanityBlogDoc[]>(
-      '*[_type == "blog" && status == "published" && _id != $excludeId] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,author,seoKeywords,createdAt,publishedAt}',
-      { excludeId, start: 0, end: limit }
-    )
-
-    const items = docs
-      .map((doc) => mapToPost(doc))
-      .filter((post): post is BlogPost => Boolean(post))
-      .map(toListItem)
-
-    return items.slice(0, limit)
+    // Return empty array if no keywords (per requirements)
+    return [];
   }
 
-  // Find posts where any seoKeyword overlaps with the provided keywords
+  // Find all published posts with at least one shared keyword
   const docs = await sanityClient.fetch<SanityBlogDoc[]>(
     `*[_type == "blog" && status == "published" && _id != $excludeId
       && count((seoKeywords)[@ in $keywords]) > 0]
-      | order(coalesce(publishedAt, createdAt) desc)[0...$limit]
       {_id,title,excerpt,slug,coverImageId,author,seoKeywords,createdAt,publishedAt}`,
-    { keywords, excludeId, limit }
+    { keywords, excludeId }
   )
 
-  const items = docs
+  const posts = docs
     .map((doc) => mapToPost(doc))
     .filter((post): post is BlogPost => Boolean(post))
-    .map(toListItem)
 
-  return items.slice(0, limit)
+  // Calculate match score for each post and sort
+  const postsWithScores = posts.map((post) => ({
+    post,
+    score: calculateKeywordMatchScore(keywords, post.seoKeywords || []),
+  }))
+
+  // Sort by score (descending), then by publication date (newest first)
+  postsWithScores.sort((a, b) => {
+    if (a.score !== b.score) {
+      return b.score - a.score; // Higher score first
+    }
+    // Same score: sort by date (newest first)
+    const dateA = a.post.publishedAt || a.post.createdAt;
+    const dateB = b.post.publishedAt || b.post.createdAt;
+    return new Date(dateB).getTime() - new Date(dateA).getTime();
+  })
+
+  // Return top N posts as list items
+  return postsWithScores
+    .slice(0, limit)
+    .map(({ post }) => toListItem(post));
 }
 
 export async function updateBlog(id: string, input: UpdateBlogInput) {
