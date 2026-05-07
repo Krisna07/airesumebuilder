@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './global.css';
 import Providers from '@/components/Providers';
-import Navbar from '@/components/Navbar';
 import { ToastContainer } from 'react-toastify';
 import Footer from '@/components/Footer';
+import ConditionalNavbar from '@/components/ConditionalNavbar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -164,7 +164,7 @@ export default function RootLayout({
         <ToastContainer />
         <Providers>
           <div className="flex flex-col min-h-screen">
-            <Navbar />
+            <ConditionalNavbar />
             <main className='w-full flex-1'>
               {children}
             </main>

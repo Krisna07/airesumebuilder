@@ -18,7 +18,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({
   return (
     <section
       id={id}
-      className="w-full max-w-4xl mx-auto flex flex-col  rounded-lg shadow-sm border border-gray-200 "
+      className="w-full max-w-4xl mx-auto flex flex-col  rounded-lg shadow-sm border border-gray-200/50 "
       role="group"
       aria-label={heading}
     >

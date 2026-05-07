@@ -305,7 +305,7 @@ const AddSection: React.FC<DynamicCustomSectionProps> = ({
                 {section.items.map(item => (
                   <div
                     key={item.id}
-                    className="rounded-md border border-gray-200 p-4 bg-gray-50/60 space-y-4 relative"
+                    className="rounded-md border border-gray-200/50 p-4 bg-gray-50/60 space-y-4 relative"
                   >
                     <div className="grid gap-4 md:grid-cols-2">
                       {fieldDefinitions.map(field => {
