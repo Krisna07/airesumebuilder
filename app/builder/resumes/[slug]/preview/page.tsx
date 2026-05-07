@@ -582,7 +582,7 @@ const PreviewPage = () => {
           <Button
             variant="secondary"
             size="small"
-            onClick={() => (window.location.href = `/builder/${slug}`)}
+            onClick={() => (window.location.href = `/builder/resumes/${slug}`)}
           >
             Continue Editing
           </Button>
@@ -698,7 +698,7 @@ const PreviewPage = () => {
             </button>
 
             <button
-              onClick={() => (window.location.href = `/builder/${slug}`)}
+              onClick={() => (window.location.href = `/builder/resumes/${slug}`)}
               className="max-[500px]:hidden px-4 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
             >
               <Edit size={16} /> Edit Resume
@@ -861,7 +861,7 @@ const PreviewPage = () => {
             </div>
           }
           <div
-            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200 shadow-sm"
+            className="relative w-full min-h-fit overflow-auto rounded-xl border border-gray-200/50 shadow-sm"
             id="resumeViewport"
           >
             {/* Optional inner wrapper to constrain width / center */}

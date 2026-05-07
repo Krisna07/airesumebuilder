@@ -41,7 +41,7 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
         <select
           value={settings.type}
           onChange={(e) => update({ type: e.target.value as SectionTitleType })}
-          className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
+          className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200/50 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
         >
           {TITLE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
@@ -50,7 +50,7 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
       {/* Alignment (Icon Buttons) */}
       <div>
         <label className="block text-xs text-gray-500 mb-1">Alignment</label>
-        <div className="flex bg-gray-50 dark:bg-slate-700 rounded-md p-1 border border-gray-200 dark:border-slate-600">
+        <div className="flex bg-gray-50 dark:bg-slate-700 rounded-md p-1 border border-gray-200/50 dark:border-slate-600">
           {(['left', 'center', 'right'] as TextAlign[]).map((align) => {
             const active = settings.align === align;
             return (
@@ -78,7 +78,7 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
            <select
              value={settings.fontWeight}
              onChange={(e) => update({ fontWeight: parseInt(e.target.value) as FontWeight })}
-             className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md outline-none"
+            className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200/50 dark:border-slate-600 rounded-md outline-none"
            >
              {FONT_WEIGHTS.map(w => <option key={w} value={w}>{w}</option>)}
            </select>
@@ -89,7 +89,7 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
            <select
              value={settings.textTransform}
              onChange={(e) => update({ textTransform: e.target.value as TextTransform })}
-             className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md outline-none"
+            className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200/50 dark:border-slate-600 rounded-md outline-none"
            >
              <option value="none">Normal</option>
              <option value="uppercase">UPPERCASE</option>

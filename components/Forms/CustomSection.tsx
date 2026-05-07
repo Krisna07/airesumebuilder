@@ -197,16 +197,16 @@ const CustomSectionBuilder: React.FC<CustomSectionBuilderProps> = ({ data = [], 
 
             {/* Sections */}
             {sections.length === 0 ? (
-                <div className='text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg'>
+                <div className='text-center py-12 text-gray-400 border-2 border-dashed border-gray-200/50 rounded-lg'>
                     <p>No custom sections yet.</p>
                     <p className='text-sm'>Click &quot;Add Section&quot; to create your first custom section.</p>
                 </div>
             ) : (
                     <div className='space-y-6'>
                         {sections.map((section) => (
-                            <div key={section.id} className='border-2 border-gray-200 rounded-lg p-4 space-y-4 shadow-sm'>
+                            <div key={section.id} className='border-2 border-gray-200/50 rounded-lg p-4 space-y-4 shadow-sm'>
                                 {/* Section Header */}
-                                <div className='flex gap-4 pb-3 border-b border-gray-200'>
+                                <div className='flex gap-4 pb-3 border-b border-gray-200/50'>
                                     <div className='flex-1'>
                                         <Input
                                             type='text'

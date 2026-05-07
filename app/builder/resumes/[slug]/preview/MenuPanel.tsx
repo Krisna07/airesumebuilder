@@ -14,7 +14,7 @@ const MenuPanel = (({ menuRef, menu, setShowConfirm, slug }: MenuPanelProps) => 
   const router = useRouter()
 
   const handleEdit = useCallback(() => {
-    router.push(`/builder/${slug}`)
+    router.push(`/builder/resumes/${slug}`)
   }, [router, slug])
 
   const handleNew = useCallback(() => {

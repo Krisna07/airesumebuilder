@@ -21,7 +21,23 @@ export async function GET() {
       data: resetCountsData(),
     })
   }
-  return NextResponse.json(sub)
+
+  // Fetch lifetime usage history
+  let usageHistory = await prisma.usageHistory.findUnique({ where: { userId: user.id } })
+  if (!usageHistory) {
+    usageHistory = await prisma.usageHistory.create({
+      data: {
+        userId: user.id,
+        regenTotal: 0,
+        downloadTotal: 0,
+        clTotal: 0,
+        analysisTotal: 0,
+        uploadTotal: 0,
+      },
+    })
+  }
+
+  return NextResponse.json({ ...sub, usageHistory })
 }
 
 export async function POST(req: Request) {

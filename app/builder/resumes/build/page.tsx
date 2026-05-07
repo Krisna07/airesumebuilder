@@ -60,7 +60,7 @@ const Page = () => {
       }
       // Start a 2-second interval when upload is successful
       const redirect = setInterval(() => {
-        return (window.location.href = `/builder/${data.data.id}`);
+        return (window.location.href = `/builder/resumes/${data.data.id}`);
         clearInterval(redirect);
       }, 2000);
       return redirect;

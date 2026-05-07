@@ -14,9 +14,10 @@ interface PreviewContainerProps {
   resume: ResumeData
   onDeleted: (id: string) => void
   index?: number
+  showDeleteOption?: boolean
 }
 
-const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDeleted }) => {
+const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDeleted, showDeleteOption = true }) => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isGone, setIsGone] = useState(false)
@@ -49,11 +50,11 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
   }, [isDeleting, resume.id, onDeleted])
 
   const handlePreview = useCallback(() => {
-    router.push(`/builder/${resume.id}/preview`)
+    router.push(`/builder/resumes/${resume.id}/preview`)
   }, [router, resume.id])
 
   const handleEdit = useCallback(() => {
-    router.push(`/builder/${resume.id}`)
+    router.push(`/builder/resumes/${resume.id}`)
   }, [router, resume.id])
 
   const handleShowConfirm = useCallback(() => {
@@ -85,15 +86,17 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
         </div>
 
         {/* Delete Icon */}
-        <Trash2
-          onClick={handleShowConfirm}
-          className="absolute z-40 right-0 top-0 bg-red-50 dark:bg-red-900/50 p-1.5 rounded-bl-lg translate-x-8 m-0 opacity-0 -translate-y-4 
-            group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 
-            group-focus-within:opacity-100 group-focus-within:translate-x-0 group-focus-within:translate-y-0 
-            transition-all ease-in-out cursor-pointer hover:bg-red-100 dark:hover:bg-red-800"
-          color="red"
-          size={28}
-        />
+        {showDeleteOption && (
+          <Trash2
+            onClick={handleShowConfirm}
+            className="absolute z-40 right-0 top-0 bg-red-50 dark:bg-red-900/50 p-1.5 rounded-bl-lg translate-x-8 m-0 opacity-0 -translate-y-4 
+              group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 
+              group-focus-within:opacity-100 group-focus-within:translate-x-0 group-focus-within:translate-y-0 
+              transition-all ease-in-out cursor-pointer hover:bg-red-100 dark:hover:bg-red-800"
+            color="red"
+            size={28}
+          />
+        )}
 
         {/* Action Buttons */}
         <div
@@ -109,7 +112,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
           <Button onClick={handleEdit} variant="secondary" size="small" className="flex-1">
             Edit
           </Button>
-          {!hasMinimumData(resume) && (
+          {showDeleteOption && !hasMinimumData(resume) && (
             <Button
               onClick={handleShowConfirm}
               variant="danger"

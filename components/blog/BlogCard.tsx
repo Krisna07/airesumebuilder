@@ -70,7 +70,7 @@ export default function BlogCard({ post }: Props) {
                     <div className="p-4 space-y-3">
                         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{post.title}</h2>
                         <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-3">{post.excerpt}</p>
-                        <div className="flex items-center justify-between border-t dark:border-gray-200/25 border-gray-200 pt-2">
+                        <div className="flex items-center justify-between border-t dark:border-gray-200/50/25 border-gray-200/50 pt-2">
                             <div className="space-y-0.5 flex items-center gap-2" >
                                 <div className='rounded-full w-8 h-8 overflow-hidden'>
                                     {post.authorImageUrl || post.authorImageId ?

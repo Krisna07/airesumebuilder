@@ -47,7 +47,7 @@ const TemplateSlider = () => {
       }
 
       showToast("Resume created successfully", 'success')
-      window.location.href = (`/builder/${data.data.id}`)
+      window.location.href = (`/builder/resumes/${data.data.id}`)
     } catch (err) {
       console.error("Error creating resume:", err)
       showToast("Error creating resume", 'error')

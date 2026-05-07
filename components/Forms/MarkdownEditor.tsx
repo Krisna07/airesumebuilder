@@ -84,7 +84,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div className={`border border-gray-300 rounded-md ${className} ${isFocused ? 'ring-2 ring-blue-500 border-transparent' : ''}`}>
       {/* Toolbar */}
-      <div className="border-b border-gray-200 p-2 flex items-center gap-1 bg-gray-50 rounded-t-md">
+      <div className="border-b border-gray-200/50 p-2 flex items-center gap-1 bg-gray-50 rounded-t-md">
         <ToolbarButton
           onClick={() => insertList('bullet')}
           title="Bullet List"

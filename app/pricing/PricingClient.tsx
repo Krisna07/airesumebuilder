@@ -95,7 +95,7 @@ export default function PricingClient() {
               className={`max-w-[300px] h-full relative rounded-lg border p-6 flex flex-col justify-between bg-white dark:bg-slate-800 ${
                 plan.highlight
                   ? 'ring-2 ring-indigo-500 border-transparent shadow-lg'
-                  : 'border-gray-200 dark:border-slate-700'
+                : 'border-gray-200/50 dark:border-slate-700'
               }`}
               aria-labelledby={`plan-${plan.id}`}
             >
@@ -126,7 +126,7 @@ export default function PricingClient() {
                 {plan.id === 'free' ? (
                   <Link
                     href="/auth/newuser"
-                    className="inline-flex w-full justify-center items-center px-4 py-2 rounded-md font-medium focus:outline-none bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700"
+                    className="inline-flex w-full justify-center items-center px-4 py-2 rounded-md font-medium focus:outline-none bg-gray-50 text-gray-900 border border-gray-200/50 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700"
                     aria-label={`Choose ${plan.name} plan`}
                   >
                     Get started free
@@ -137,7 +137,7 @@ export default function PricingClient() {
                     className={`inline-flex w-full justify-center items-center px-4 py-2 rounded-md font-medium focus:outline-none ${
                       plan.highlight
                         ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        : 'bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700'
+                      : 'bg-gray-50 text-gray-900 border border-gray-200/50 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700'
                     }`}
                     aria-label={`Checkout ${plan.name}`}
                   >

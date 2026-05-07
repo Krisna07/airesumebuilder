@@ -4,29 +4,37 @@ import Link from "next/link"
 import UniversalImage from "./Ui/UniversalImage"
 import { useAuth } from "@/context/authContext"
 import VerificationModal from './VerificationModal'
-import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2, Menu, X } from "lucide-react"
+import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2, LayoutDashboard, FileText, Settings, ArrowLeft } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 
-const Navbar = () => {
+/**
+ * Dashboard Navigation Component
+ * 
+ * A specialized navigation bar for dashboard pages with:
+ * - Dashboard-specific links (Dashboard, My Resumes, Account, Pricing)
+ * - User profile menu with subscription status
+ * - Theme toggle (light/dark mode)
+ * - Mobile responsive hamburger menu
+ * - Sticky positioning with backdrop blur
+ * 
+ * Design differences from homepage Navbar:
+ * - Simpler, more focused navigation (no "Home", "Blogs" links)
+ * - Dashboard-centric links only
+ * - Same styling patterns but optimized for dashboard context
+ */
+const DashboardNav = () => {
   const [menu, setMenu] = useState<boolean>(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false)
   const { user, logOut, subscription } = useAuth()
   const menuRef = useRef<HTMLDivElement | null>(null)
   const navRef = useRef<HTMLElement | null>(null)
   const route = usePathname()
   const [activeTab, setActivetab] = useState<string>("")
-  // avoid reading `window` during SSR — sync theme on mount
   const [isDark, setIsDark] = useState(false)
-  // const [tabIndex, setTabIndex] = useState<number>(0)
-  // const containerRef = useRef<HTMLDivElement | null>(null)
-  // const buttonsRef = useRef<Array<HTMLButtonElement | null>>([])
-  // const sliderRef = useRef<HTMLDivElement | null>(null)
-  // const [mounted, setMounted] = useState(false)
 
+  // Sync theme on mount
   useEffect(() => {
     if (typeof window === "undefined") return
-    // setMounted(true)
     const stored = localStorage.getItem("theme")
     if (stored) {
       const next = stored === "dark"
@@ -35,7 +43,6 @@ const Navbar = () => {
       return
     }
 
-    // if no stored preference, prefer current document class or OS preference
     const hasClass = document.documentElement.classList.contains("dark")
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
     setIsDark(hasClass || prefersDark)
@@ -44,7 +51,6 @@ const Navbar = () => {
   useEffect(() => {
     setActivetab(route ?? "")
     setMenu(false)
-    setIsMobileMenuOpen(false)
   }, [route])
 
   const toggleTheme = () => {
@@ -65,6 +71,7 @@ const Navbar = () => {
     })
   }
 
+  // Close menu on outside click
   useEffect(() => {
     if (!menu) return
     const handleClickOutside = (event: MouseEvent) => {
@@ -83,113 +90,76 @@ const Navbar = () => {
     }
   }, [menu])
 
-  useEffect(() => {
-    if (!isMobileMenuOpen) return
-    const handleClickOutsideMobile = (event: MouseEvent) => {
-      if (!navRef.current) return
-      const target = event.target as HTMLElement
-      if (!navRef.current.contains(target)) {
-        setIsMobileMenuOpen(false)
-      }
-    }
-    const handleScrollMobile = () => setIsMobileMenuOpen(false)
-    
-    document.addEventListener("mousedown", handleClickOutsideMobile)
-    document.addEventListener("scroll", handleScrollMobile, { passive: true })
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutsideMobile)
-      document.removeEventListener("scroll", handleScrollMobile)
-    }
-  }, [isMobileMenuOpen])
-
-  // // position the sliding glass under the active tab
-  // useEffect(() => {
-  //   if (typeof window === 'undefined') return
-  //   const setPos = () => {
-  //     const container = containerRef.current
-  //     const slider = sliderRef.current
-  //     // const btn = buttonsRef.current[tabIndex]
-  //     // if (!container || !slider || !btn) return
-  //     // const contRect = container.getBoundingClientRect()
-  //     // const btnRect = btn.getBoundingClientRect()
-  //     // const moveX = btnRect.left - contRect.left
-  //     // apply transform and width
-  //     // slider.style.transform = `translateX(${moveX}px)`
-  //     // slider.style.width = `${btnRect.width}px`
-  //   }
-
-  //   // initial set and on resize
-  //   setPos()
-  //   const onResize = () => setPos()
-  //   window.addEventListener('resize', onResize)
-  //   return () => window.removeEventListener('resize', onResize)
-  // }, [tabIndex])
-
   const userImage = user?.image
   const [showVerify, setShowVerify] = useState(false)
-
+  const isPreviewPage = route?.includes('/preview')
 
   return (
     <nav ref={navRef} className="w-full grid place-items-center sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 z-50 transition-colors duration-200">
-      <div className="w-full max-w-[800px] mx-auto p-3 px-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-        >
-          <div className="shadow-md shadow-teal-500/20">
-            <Image
-              src='/icon.svg'
-              alt="AI Resume Builder"
-              width={24}
-              height={24}
-            />
-          </div>
-          <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span>
-        </Link>
+      <div className="w-full max-w-[1200px] mx-auto p-3 px-4 flex items-center justify-between">
+        {/* Logo or Back Button */}
+        {isPreviewPage ? (
+          <Link
+            href="/builder"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline">Back to Dashboard</span>
+          </Link>
+        ) : (
+          <Link
+            href="/"
+            className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          >
+            <div className="shadow-md shadow-teal-500/20">
+              <Image
+                src='/icon.svg'
+                alt="AI Resume Builder"
+                width={24}
+                height={24}
+              />
+            </div>
+            <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span>
+          </Link>
+        )}
 
         {/* Navigation */}
         <div className="flex items-center gap-2 sm:gap-6">
-          {/* Mobile Menu Button */}
-          <button
-            className="sm:hidden p-1 text-slate-600 dark:text-slate-300 focus:outline-none"
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            aria-expanded={isMobileMenuOpen}
-            aria-label="Toggle navigation"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-
-          {/* Desktop Nav Links */}
-          <div className="hidden sm:flex items-center gap-1">
-            <Link
-              href="/"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "/"
-                  ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-                  : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                }`}
-            >
-              Home
-            </Link>
+          {/* Desktop Nav Links - Hidden on preview page */}
+          {!isPreviewPage && (
+            <div className="hidden sm:flex items-center gap-1">
             <Link
               href="/builder"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("builder")
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "/builder"
                   ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
                   : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
             >
-              Builder
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
             </Link>
             <Link
-              href="/blogs"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("blogs")
-                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              href="/builder/resumes"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("/builder/resumes")
+                  ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+                  : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
             >
-              Blogs
+              <FileText className="w-4 h-4" />
+              My Resumes
+            </Link>
+            <Link
+              href="/builder/settings"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("/builder/settings")
+                  ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+                  : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                }`}
+            >
+              <Settings className="w-4 h-4" />
+              Settings
             </Link>
           </div>
+          )}
 
           {/* Theme Toggle */}
           <button
@@ -208,37 +178,6 @@ const Navbar = () => {
               className={`w-5 h-5 rounded-full z-10 bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-7" : "translate-x-0"}`}
             />
           </button>
-
-          {/* Mobile compact tab bar with sliding glass
-          <div className="sm:hidden flex items-center ml-2">
-            <div ref={containerRef} className="menu-container">
-              <div
-                id="liquid-glass"
-                ref={sliderRef}
-                className="liquidGlass-wrapper slider"
-                aria-hidden="true"
-              >
-                <div className="liquidGlass-effect slider" />
-                <div className="liquidGlass-tint slider" />
-                <div className="liquidGlass-shine slider" />
-              </div>
-
-              <nav className="menu-items" role="tablist" aria-label="Experience level">
-                {['Junior', 'Senior', 'Expert'].map((label, i) => (
-                  <button
-                    key={label}
-                    ref={(el) => { buttonsRef.current[i] = el }}
-                    className={`menu-btn ${tabIndex === i ? 'active' : ''}`}
-                    role="tab"
-                    aria-selected={tabIndex === i}
-                    onClick={() => setTabIndex(i)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </div> */}
 
           {/* User Menu */}
           <div ref={menuRef} className="relative">
@@ -342,44 +281,8 @@ const Navbar = () => {
           <VerificationModal open={showVerify} onClose={() => setShowVerify(false)} />
         </div>
       </div>
-
-      {/* Mobile Nav Links Overlay */}
-      {isMobileMenuOpen && (
-        <div className="sm:hidden absolute top-[calc(100%+1px)] left-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-700/50 shadow-lg px-4 py-4 flex flex-col gap-2 animate-fade-in z-40">
-          <Link
-            href="/"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === "/"
-                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-          >
-            Home
-          </Link>
-          <Link
-            href="/builder"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("builder")
-                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-          >
-            Builder
-          </Link>
-          <Link
-            href="/blogs"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("blogs")
-              ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-              : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-          >
-            Blogs
-          </Link>
-        </div>
-      )}
     </nav>
   )
 }
 
-export default Navbar
+export default DashboardNav

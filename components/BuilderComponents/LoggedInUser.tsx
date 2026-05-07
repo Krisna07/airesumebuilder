@@ -31,7 +31,7 @@ const LoggedInUser: React.FC<LoggedInUserProps> = ({ userId }) => {
       }
 
       toast.showToast("Resume created successfully", "success", 3000)
-      router.push(`/builder/${data.data.id}`)
+      router.push(`/builder/resumes/${data.data.id}`)
     } catch (error) {
       console.error("Error creating resume:", error)
       toast.showToast("Failed to create resume", "error", 3000)
@@ -54,7 +54,7 @@ const LoggedInUser: React.FC<LoggedInUserProps> = ({ userId }) => {
             </span>
           )}
         </Button>
-        <Link href="/builder/build">
+        <Link href="/builder/resumes/build">
           <Button variant="secondary" size="medium">
             <File className="h-4 w-4" /> Upload Existing PDF
           </Button>

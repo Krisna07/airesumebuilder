@@ -42,7 +42,7 @@ const ResumeCreateSection = () => {
             </span>
           )}
         </Button>
-        <Link href={'/builder/build'} className='flex-1'>
+        <Link href={'/builder/resumes/build'} className='flex-1'>
           <Button variant='secondary' size='medium'>
             <File /> Upload Existing PDF
           </Button>
