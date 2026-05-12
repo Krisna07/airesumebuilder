@@ -47,7 +47,7 @@ const StylePanel = memo(({ stylesRef, resumeData, templateId, handleStyleChange,
                     onClick={() => onTemplateChange(template.id)}
                     className={`px-3 py-2 rounded-lg border text-sm text-left transition-all ${templateId === template.id
                       ? 'border-teal-500 bg-teal-50 text-teal-800 shadow-sm'
-                      : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500'
+                      : 'border-gray-200/50 dark:border-slate-600 text-gray-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500'
                       }`}
                   >
                     {template.name}

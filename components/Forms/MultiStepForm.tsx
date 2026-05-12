@@ -121,7 +121,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       // Force sync before navigating to preview
       const dataWithTemplate = { ...formData, template: selectedTemplate };
       await syncNow(dataWithTemplate);
-      router.push(`/builder/${resumeId}/preview`)
+      router.push(`/builder/resumes/${resumeId}/preview`)
       return
     }
     setCurrentStep((s) => Math.min(s + 1, FINAL_STEP_INDEX))
@@ -308,11 +308,11 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   ])
 
   return (
-    <div className="w-full h-full flex flex-col items-start bg-slate-50 dark:bg-slate-900 ">
+    <div className="w-full h-full flex flex-col items-start bg-slate-50 dark:bg-slate-900">
       {/* Step indicators */}
       {currentStep !== FINAL_STEP_INDEX && (
         <div
-          className="shrink-0 w-full hide-scrollbar sticky top-14 flex items-center justify-center max-[500px]:justify-start md:justify-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm z-40 px-3 py-2 overflow-x-auto  border-b border-slate-200 dark:border-slate-700"
+          className="shrink-0 w-full hide-scrollbar sticky top-14 flex items-center justify-center max-[500px]:justify-center md:justify-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm z-40 px-3 py-2 overflow-x-auto border-b border-slate-200 dark:border-slate-700"
           role="tablist"
           aria-label="Form steps"
         >
@@ -356,7 +356,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
       {/* Content area */}
       <div
-        className="flex-1  overscroll-contain px-2 sm:px-4 mb-20 scroll-smooth w-full"
+        className="flex-1 overscroll-contain px-2 sm:px-4 mb-20 scroll-smooth w-full"
         id={`step-panel-${currentStep}`}
         role="tabpanel"
         aria-labelledby={`step-${currentStep}`}
@@ -368,7 +368,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
       {/* Navigation footer */}
       {currentStep !== FINAL_STEP_INDEX && (
         <div className="shrink-0 w-full fixed bottom-0 z-50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-20 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {/* Sync Status */}
             <SyncIndicator status={syncStatus} lastSyncTime={lastSyncTime} className="hidden sm:block" />
 

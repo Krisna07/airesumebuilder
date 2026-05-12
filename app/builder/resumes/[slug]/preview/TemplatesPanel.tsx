@@ -42,7 +42,7 @@ const TemplatesPanel = memo(({ templatesRef, displayTemplate, selectedTemplate, 
                     className={`md:p-3 p-2 rounded-lg border-2 transition-all duration-200 text-left 
                       ${isSelected
                         ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 shadow-lg"
-                        : "border-gray-200 dark:border-slate-600 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md bg-white dark:bg-slate-700"
+                      : "border-gray-200/50 dark:border-slate-600 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md bg-white dark:bg-slate-700"
                       }`}
                   >
                     <div className="flex items-center gap-3 justify-left">

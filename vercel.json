@@ -1,4 +1,17 @@
 {
+"redirects": [
+    {
+        "source": "/:path*",
+        "has": [
+            {
+                "type": "host",
+                "value": "www.airesumecraft.xyz"
+            }
+        ],
+        "destination": "https://airesumecraft.xyz/:path*",
+        "permanent": true
+    }
+],
 "functions": {
     "app/api/download/route.ts": {
         "maxDuration": 30
@@ -39,6 +52,9 @@
     "app/api/cron/blog/route.ts": {
         "maxDuration": 300
     },
+    "app/api/cron/subscription-reset/route.ts": {
+        "maxDuration": 60
+    },
     "app/api/admin/trigger-blog/route.ts": {
         "maxDuration": 300
     }
@@ -46,6 +62,10 @@
 "crons": [
     {
         "path": "/api/cron/blog",
+        "schedule": "0 0 * * *"
+    },
+    {
+        "path": "/api/cron/subscription-reset",
         "schedule": "0 0 * * *"
     }
 ]

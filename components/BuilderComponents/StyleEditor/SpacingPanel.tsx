@@ -78,7 +78,7 @@ export default function SpacingPanel({ resumeData, handleStyleChange }: Props) {
               key={align}
               type="button"
               onClick={() => update({ bodyTextAlign: align })}
-              className={`text-xs py-1.5 rounded border ${settings.bodyTextAlign === align ? 'border-teal-600 text-teal-700 bg-teal-50' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+              className={`text-xs py-1.5 rounded border ${settings.bodyTextAlign === align ? 'border-teal-600 text-teal-700 bg-teal-50' : 'border-gray-200/50 text-gray-600 hover:border-gray-300'}`}
             >
               {align}
             </button>

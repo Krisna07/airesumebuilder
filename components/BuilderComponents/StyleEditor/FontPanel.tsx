@@ -50,7 +50,7 @@ export default function FontPanel({ resumeData, handleStyleChange }: Props) {
           <select
             value={settings.headingFont || DEFAULT_RESUME_STYLE.headingFont}
             onChange={(e) => update({ headingFont: e.target.value })}
-            className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200/50 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
           >
             {FONT_OPTIONS.map(font => (
               <option key={font} value={font} style={{ fontFamily: font }}>
@@ -68,7 +68,7 @@ export default function FontPanel({ resumeData, handleStyleChange }: Props) {
           <select
             value={settings.bodyFont || DEFAULT_RESUME_STYLE.bodyFont}
             onChange={(e) => update({ bodyFont: e.target.value })}
-            className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full text-sm p-2 bg-gray-50 dark:bg-slate-700 border border-gray-200/50 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
           >
              {FONT_OPTIONS.map(font => (
               <option key={font} value={font} style={{ fontFamily: font }}>

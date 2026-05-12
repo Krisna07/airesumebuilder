@@ -4,10 +4,9 @@ import Link from "next/link"
 import UniversalImage from "./Ui/UniversalImage"
 import { useAuth } from "@/context/authContext"
 import VerificationModal from './VerificationModal'
-import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2, Menu, X } from "lucide-react"
+import { LogIn, LogOut, LucideHeartHandshake, Moon, Sun, User2, Menu, X, LayoutDashboardIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
-import SubscriptionStatus from "./SubscriptionStatus"
 
 const Navbar = () => {
   const [menu, setMenu] = useState<boolean>(false)
@@ -146,7 +145,7 @@ const Navbar = () => {
               height={24}
             />
           </div>
-          <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span>
+          {/* <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span> */}
         </Link>
 
         {/* Navigation */}
@@ -172,15 +171,17 @@ const Navbar = () => {
             >
               Home
             </Link>
+
             <Link
-              href="/builder"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("builder")
-                  ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-                  : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              href="/features"
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("features")
+                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
             >
-              Builder
+              Features
             </Link>
+
             <Link
               href="/blogs"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("blogs")
@@ -242,7 +243,8 @@ const Navbar = () => {
           </div> */}
 
           {/* User Menu */}
-          <div ref={menuRef} className="relative">
+          <div className="flex items-center gap-2 ">
+            <div ref={menuRef} className="relative">
             <button
               type="button"
               aria-haspopup="menu"
@@ -292,20 +294,8 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                {user && <SubscriptionStatus />}
-
                 {/* Menu Items */}
                 <div className="py-1">
-                  {user && (
-                    <Link
-                      href="/account"
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                      onClick={() => setMenu(false)}
-                    >
-                      <User2 className="w-4 h-4" />
-                      Account settings
-                    </Link>
-                  )}
                   {user && (
                     <Link
                       href="https://buymeacoffee.com/krisnachhe0"
@@ -351,6 +341,10 @@ const Navbar = () => {
                 </div>
               </div>
             )}
+            </div>
+            {user && <>
+              <span>|</span>
+              <Link href={'/builder'} className="w-9 h-9 flex items-center justify-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-transparent hover:border-teal-300 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"> <LayoutDashboardIcon /></Link></>}
           </div>
           <VerificationModal open={showVerify} onClose={() => setShowVerify(false)} />
         </div>
@@ -369,16 +363,18 @@ const Navbar = () => {
           >
             Home
           </Link>
+
           <Link
-            href="/builder"
+            href="/features"
             onClick={() => setIsMobileMenuOpen(false)}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("builder")
-                ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
-                : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab.includes("features")
+              ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400"
+              : "text-slate-600 hover:text-teal-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
               }`}
           >
-            Builder
+            Features
           </Link>
+
           <Link
             href="/blogs"
             onClick={() => setIsMobileMenuOpen(false)}
