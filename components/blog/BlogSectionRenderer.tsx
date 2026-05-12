@@ -31,6 +31,27 @@ export default function BlogSectionRenderer({ section }: BlogSectionRendererProp
   }
 
   if (section.type === 'list') {
+    // Detect if this is an FAQ list
+    const isFaqList = section.items.some(item =>
+      item.trim().startsWith('<strong>Q:') ||
+      item.includes('<strong>Q:')
+    )
+
+    if (isFaqList) {
+      return (
+        <ul className="list-none ml-0 mb-6 space-y-6 text-slate-700 dark:text-slate-300">
+          {section.items.map((item, idx) => (
+            <li
+              key={`${section.id}-item-${idx}`}
+              className="pl-4 border-l-2 border-teal-500/30 py-2"
+              dangerouslySetInnerHTML={{ __html: item }}
+            />
+          ))}
+        </ul>
+      )
+    }
+
+    // Standard list rendering (existing code)
     return (
       <ul className="list-disc ml-6 mb-4 space-y-2 text-slate-700 dark:text-slate-300">
         {section.items.map((item, idx) => (

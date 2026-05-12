@@ -119,7 +119,7 @@ const DashboardNav = () => {
                 height={24}
               />
             </div>
-            <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span>
+              {/* <span className="font-semibold text-slate-800 dark:text-white hidden sm:block">ResumeCraft</span> */}
           </Link>
         )}
 
