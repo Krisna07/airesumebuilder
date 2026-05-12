@@ -232,7 +232,7 @@ You MUST include these section types in this order:
 8. **H2 heading** — "How ResumeCraft Solves This"
 9. **Paragraph** (150+ words) — Link to specific features with actual URLs
 10. **H2 heading** — "Frequently Asked Questions"
-11. **Paragraph** (200+ words) — Format as Q&A pairs: <strong>Q: [Question]</strong> A: [Answer]. Include 3–4 questions.
+11. **List** (3-4 items) — Each item should be formatted as: <strong>Q: [Question]</strong><br>A: [Answer]
 12. **Closing CTA paragraph** (100+ words) — Direct call-to-action with link to https://airesumecraft.xyz/builder
 
 ### INTERNAL LINKS (include at least 3 throughout the content)
@@ -261,7 +261,7 @@ Create a unique, topic-specific image prompt that reflects the blog's main theme
     { "id": "sec_8", "type": "heading", "level": 2, "content": "string" },
     { "id": "sec_9", "type": "paragraph", "content": "string (150+ words with URLs)" },
     { "id": "sec_10", "type": "heading", "level": 2, "content": "string" },
-    { "id": "sec_11", "type": "paragraph", "content": "string (200+ words, Q&A format)" },
+    { "id": "sec_11", "type": "list", "items": ["<strong>Q: [Question]</strong><br>A: [Answer]", "<strong>Q: [Question]</strong><br>A: [Answer]", ...] },
     { "id": "sec_12", "type": "paragraph", "content": "string (100+ words, CTA with URL)" }
   ],
   "status": "published",
@@ -276,6 +276,7 @@ Create a unique, topic-specific image prompt that reflects the blog's main theme
 - NEVER prepend numbers or bullets (like "1.", "2.", "Step 1:", "-") inside the string values of your \`list\` items. The UI automatically adds bullets.
 - Include actual URLs in the content where you mention ResumeCraft features.
 - The FAQ section is MANDATORY — do not skip it.
+- FAQ sections MUST use type 'list' with each Q&A pair as a separate item. Use <strong> for questions and <br> to separate questions from answers.
 - Return ONLY valid JSON matching the schema.
 
 OUTPUT:
@@ -444,6 +445,7 @@ IMPORTANT STRUCTURAL & STYLISTIC RULES:
    - Use blockquotes (<blockquote>) for expert insights, call-outs, or important rules of thumb.
 4. NEVER manually type numbers or bullets (e.g., "1. ", "- ") inside <li> tags. The HTML handles the numbering/bullets automatically.
 5. Keep paragraphs short (3-4 sentences max) to ensure readability on mobile screens.
+6. When creating FAQ sections, use a <ul> and wrap each Q&A in an <li>. Format: <li><strong>Q: [Question]</strong><br>A: [Answer]</li>
 
 HTML OUTPUT RULES:
 1. Output ONLY raw HTML fragments using strictly these tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <blockquote>, <strong>, <em>

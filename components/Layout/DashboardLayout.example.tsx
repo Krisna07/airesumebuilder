@@ -53,7 +53,7 @@ export function DashboardWithActionBarExample() {
         <h3 className="border-b border-gray-300 pb-2 text-2xl font-medium dark:border-slate-600">
           All Items
         </h3>
-        <DashboardCardGrid columns={3}>
+        <DashboardCardGrid columns={3} children={undefined}>
           {/* Card items */}
         </DashboardCardGrid>
       </div>
@@ -133,7 +133,7 @@ export function EmptyStateDashboardExample() {
       }
     >
       {hasItems ? (
-        <DashboardCardGrid columns={3}>
+        <DashboardCardGrid columns={3} children={undefined}>
           {/* Project cards */}
         </DashboardCardGrid>
       ) : (
@@ -170,7 +170,7 @@ export function SearchResultsDashboardExample() {
       }
     >
       {results.length > 0 ? (
-        <DashboardCardGrid columns={3}>
+        <DashboardCardGrid columns={3} children={undefined}>
           {/* Result cards */}
         </DashboardCardGrid>
       ) : (

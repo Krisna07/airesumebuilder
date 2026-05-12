@@ -2,6 +2,11 @@ import FeaturesSection from '@/components/LandingPageComponents/FeaturesSection'
 import HeroSection from '@/components/LandingPageComponents/Herosection';
 import HowItWorks from '@/components/LandingPageComponents/HowItWorks';
 import TemplatesSection from '@/components/LandingPageComponents/TemplateSection';
+import BenefitsSection from '@/components/LandingPageComponents/BenefitsSection';
+import VisualCustomizationSection from '@/components/LandingPageComponents/VisualCustomizationSection';
+import TargetAudienceSection from '@/components/LandingPageComponents/TargetAudienceSection';
+import FAQSection from '@/components/LandingPageComponents/FAQSection';
+import BlogResourcesSection from '@/components/LandingPageComponents/BlogResourcesSection';
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -117,9 +122,14 @@ const page = () => {
 
       <div className='w-full text-center  flex flex-col items-center justify-center gap-8  min-h-[60vh] px-4 box-border'>
         <HeroSection />
+        <BenefitsSection />
         <HowItWorks />
         <FeaturesSection />
+        <VisualCustomizationSection />
         <TemplatesSection />
+        <TargetAudienceSection />
+        <BlogResourcesSection />
+        <FAQSection />
       </div>
     </>
   );
