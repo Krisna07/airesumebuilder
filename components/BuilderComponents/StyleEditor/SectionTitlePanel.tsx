@@ -1,7 +1,7 @@
 "use client"
 import React from 'react';
 import { ResumeData, ResumeStyle, SectionTitleStyle, SectionTitleType, TextAlign, FontWeight, TextTransform } from '@/types/types';
-import { AlignLeft, AlignCenter, AlignRight, Type, Bold, Italic, ALargeSmall } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Type, Bold, Italic, ALargeSmall, Palette } from 'lucide-react';
 import { DEFAULT_RESUME_STYLE, mergeWithDefault } from '@/lib/defaultStyle';
 
 interface Props {
@@ -33,8 +33,6 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Section Titles</h3>
-
       {/* Type Selector */}
       <div>
         <label className="block text-xs text-gray-500 mb-1">Style Type</label>
@@ -156,6 +154,23 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
                <span className="ml-2">Press <kbd className="px-1 bg-gray-100 rounded">Win</kbd> + <kbd className="px-1 bg-gray-100 rounded">.</kbd> to pick emoji (PDF safe)</span>
             </div>
          )}
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-500 mb-1 flex items-center gap-1">
+          <Palette size={12}/> Title Color
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={settings.color || DEFAULT_RESUME_STYLE.sectionTitleStyle.color}
+            onChange={(e) => update({ color: e.target.value })}
+            className="w-8 h-8 rounded cursor-pointer border-0 p-0 overflow-hidden bg-transparent outline-none"
+          />
+          <span className="text-xs text-gray-600 font-mono uppercase">
+            {settings.color || DEFAULT_RESUME_STYLE.sectionTitleStyle.color}
+          </span>
+        </div>
       </div>
 
     </div>

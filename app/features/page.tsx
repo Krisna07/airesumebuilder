@@ -1,4 +1,3 @@
-"use client"
 import { 
   Sparkles,
   Target, 
@@ -17,9 +16,50 @@ import {
   ArrowRight
 } from 'lucide-react'
 import Link from 'next/link'
-import Head from 'next/head'
+import type { Metadata } from 'next'
 import ResumePreview from '@/components/Templates/ResumePreview'
 import dummyResume from '@/app/data/dummyResume.json'
+
+export const metadata: Metadata = {
+  title: 'AI Resume Builder Features | Free Resume Tools & Templates',
+  description: 'Discover powerful AI-powered resume building features including unlimited free downloads, ATS optimization, keyword targeting, and professional templates. No credit card required.',
+  keywords: [
+    'AI resume builder features',
+    'free resume tools',
+    'ATS optimization',
+    'resume templates',
+    'AI-powered writing',
+    'resume keyword targeting',
+    'cover letter generator',
+    'resume scoring',
+    'professional resume builder',
+    'free resume downloads',
+  ],
+  alternates: {
+    canonical: 'https://airesumecraft.xyz/features',
+  },
+  openGraph: {
+    title: 'AI Resume Builder Features | Free Resume Tools & Templates',
+    description: 'Discover powerful AI-powered resume building features including unlimited free downloads, ATS optimization, and professional templates.',
+    url: 'https://airesumecraft.xyz/features',
+    siteName: 'AI Resume Craft',
+    type: 'website',
+    images: [
+      {
+        url: 'https://airesumecraft.xyz/icon.svg',
+        width: 1200,
+        height: 630,
+        alt: 'AI Resume Craft Features - Free AI Resume Builder',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI Resume Builder Features | Free Resume Tools & Templates',
+    description: 'Discover powerful AI-powered resume building features including unlimited free downloads and ATS optimization.',
+    images: ['https://airesumecraft.xyz/icon.svg'],
+  },
+}
 
 const FeaturesPage = () => {
   // Structured data for features page
@@ -230,26 +270,6 @@ const FeaturesPage = () => {
 
   return (
     <>
-      <Head>
-        <title>AI Resume Builder Features | Free Resume Tools & Templates</title>
-        <meta name="description" content="Discover powerful AI-powered resume building features including unlimited free downloads, ATS optimization, keyword targeting, and professional templates. No credit card required." />
-        <meta name="keywords" content="AI resume builder features, free resume tools, ATS optimization, resume templates, AI-powered writing, resume keyword targeting, cover letter generator, resume scoring, professional resume builder, free resume downloads" />
-        <link rel="canonical" href="https://airesumecraft.xyz/features" />
-        <meta property="og:title" content="AI Resume Builder Features | Free Resume Tools & Templates" />
-        <meta property="og:description" content="Discover powerful AI-powered resume building features including unlimited free downloads, ATS optimization, and professional templates." />
-        <meta property="og:url" content="https://airesumecraft.xyz/features" />
-        <meta property="og:site_name" content="AI Resume Craft" />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://airesumecraft.xyz/icon.svg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="AI Resume Craft Features - Free AI Resume Builder" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="AI Resume Builder Features | Free Resume Tools & Templates" />
-        <meta name="twitter:description" content="Discover powerful AI-powered resume building features including unlimited free downloads and ATS optimization." />
-        <meta name="twitter:image" content="https://airesumecraft.xyz/icon.svg" />
-      </Head>
-
       {/* Structured Data */}
       <script
         type="application/ld+json"

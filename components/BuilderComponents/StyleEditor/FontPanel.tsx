@@ -38,8 +38,7 @@ export default function FontPanel({ resumeData, handleStyleChange }: Props) {
   };
 
   return (
-    <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Typography</h3>
+    <div className="space-y-4">
 
       <div className="grid grid-cols-2 gap-3">
         {/* Heading Font */}

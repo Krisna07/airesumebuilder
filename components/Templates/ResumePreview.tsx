@@ -14,6 +14,7 @@ type ResumePreviewProps = {
   maxScale?: number;
   regenerating?:boolean;
   className?: string; // Add className prop
+  pdfMatchMode?: boolean;
 };
 
 const PAGE_WIDTH_PX = 794; // ~210mm at 96dpi
@@ -26,6 +27,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   maxScale = 1,
   regenerating,
   className,
+  pdfMatchMode = false,
 }) => {
   const [data, setData] = useState<ResumeData | undefined>(resumeData);
   const [scale, setScale] = useState(1);
@@ -106,7 +108,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`overflow-hidden max-w-full min-h-fit aspect-3/4 flex justify-center relative p-4 ${className}`}
+      className={`overflow-hidden max-w-full min-h-fit aspect-3/4 flex justify-center relative ${pdfMatchMode ? 'p-0' : 'p-4'} ${className}`}
       aria-busy={!!regenerating}
     >
       <div
@@ -132,8 +134,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
             style={{
               width: PAGE_WIDTH_PX,
               height: docHeight,
-              border: '1px solid #e5e7eb',
-              borderRadius: 12,
+              border: pdfMatchMode ? 'none' : '1px solid #e5e7eb',
+              borderRadius: pdfMatchMode ? 0 : 12,
               background: '#fff',
               display: 'block',
             }}

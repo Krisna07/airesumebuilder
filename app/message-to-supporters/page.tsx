@@ -55,8 +55,8 @@ export default function Page() {
                     <div className='min-h-[60vh] sm:h-[86vh] flex items-center justify-center'>
                         <div className='w-full h-full flex items-start justify-center' >
                             <div className='w-11/12 max-w-[640px] p-4 sm:p-6 md:p-8' style={{ maxHeight: '74vh', overflowY: 'auto' }}>
-                                <div style={{ fontFamily: `'Mea Culpa', cursive`, fontSize: '16px', lineHeight: 1.9, padding: '20px', borderRadius: 6 }}>
-                                    <Typewriter text={message} speed={56} initialDelay={350} />
+                                <div style={{ fontSize: '16px', lineHeight: 1.9, padding: '20px', borderRadius: 6 }}>
+                                    <Typewriter text={message} speed={56} initialDelay={200} />
                                 </div>
 
                             </div>

@@ -24,6 +24,9 @@ const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: strin
       3. EXPERIENCE:
          - Keep bullet points concise (max 2 lines each).
          - Focus on "Action + Context + Result".
+        - Use metrics sparingly. Not every bullet needs numbers.
+        - Include quantified results only when they are clearly supported by SOURCE_RESUME.
+        - Aim for at most 1 quantified bullet for every 2-3 bullets.
          - Do not exceed the original number of bullets per role unless necessary for ATS keywords.
          - Avoid generic fluff like "Responsible for...". Use strong verbs.
       4. SKILLS: Only list skills present in SOURCE_RESUME or strongly implied by the experience. Do not stuff keywords that the candidate doesn't have.
@@ -155,10 +158,13 @@ Context/Specialization: ${specialization}
 Exclude these existing points: ${JSON.stringify(existingBullets)}
 
 STRICT RULES:
-1. DO NOT include placeholders like {{metric}}. Integrate realistic, varied metrics (percentages, dollar amounts, time savings) directly into the text.
-2. Each bullet should follow the Action Verb + Task + Result format.
-3. Bullets must be unique from the excluded list.
-4. RETURN ONLY VALID JSON. NO MARKDOWN.
+1. DO NOT include placeholders like {{metric}}.
+2. Use metrics selectively. Do not force numbers into every bullet.
+3. Keep most bullets impact-focused but natural, with only occasional quantified outcomes.
+4. If a metric is used, keep it realistic and context-appropriate.
+5. Each bullet should follow the Action Verb + Task + Result format.
+6. Bullets must be unique from the excluded list.
+7. RETURN ONLY VALID JSON. NO MARKDOWN.
 
 SCHEMA:
 {
@@ -184,6 +190,7 @@ GUIDELINES:
 - Keep factual integrity; do not invent employers, degrees, or certifications.
 - Prefer concise, achievement-focused writing.
 - Use action verbs for bullet points.
+- For experience responsibilities, avoid over-quantifying. Use numbers only when they feel natural and credible.
 - Keep structure compatible with ResumeData.
 
 ${jd ? `JOB_DESCRIPTION:\n${jd}` : ''}

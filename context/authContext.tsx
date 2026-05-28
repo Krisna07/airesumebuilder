@@ -43,6 +43,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const subscriptionRef = useRef<Subscription | null>(null)
   const sessionUser = session?.user
 
+  const sessionDerivedUser = useMemo<User | null>(() => {
+    if (!sessionUser?.id) {
+      return null
+    }
+
+    return {
+      id: sessionUser.id,
+      name: sessionUser.name,
+      email: sessionUser.email,
+      image: sessionUser.image,
+      isVerified: sessionUser.isVerified || false,
+      plan: sessionUser.plan ?? 'FREE',
+      isAdmin: sessionUser.isAdmin ?? false,
+    }
+  }, [sessionUser])
+
   const toast = useToast()
   const register = async (user: RegisterData) => {
     const response = await UserService.createUser(user)
@@ -221,7 +237,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const loading = status === 'loading'
-  const isGuest = !user && !loading
+  const userDetail = useMemo(() => user ?? sessionDerivedUser, [user, sessionDerivedUser])
+  const isGuest = !userDetail && !loading
 
   const logOut = async () => {
     setUser(null);
@@ -295,8 +312,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null
     }
   }
-  const userDetail = useMemo(() => (user), [user])
-
   return (
     <AuthContext.Provider value={{
       user: userDetail,

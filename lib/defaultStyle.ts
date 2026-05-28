@@ -16,6 +16,7 @@ export const DEFAULT_RESUME_STYLE: ResumeStyle = {
     type: 'underline',
     icon: '',
     iconEnabled: false,
+    color: '#0ea5e9',
     fontSize: 11.5,
     fontWeight: 700,
     fontStyle: 'normal',
@@ -25,6 +26,8 @@ export const DEFAULT_RESUME_STYLE: ResumeStyle = {
   sectionOrder: [...DEFAULT_SECTION_ORDER],
   bodyTextAlign: 'left',
   skillsGrouped: true,
+  skillsWithBackground: true,
+  skillsWithBorder: true,
 };
 
 /**

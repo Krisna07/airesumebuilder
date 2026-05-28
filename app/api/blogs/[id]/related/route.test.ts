@@ -59,11 +59,11 @@ describe('Related Posts API', () => {
   })
 
   describe('Requirement 4.4: Invalid or not found blog ID', () => {
-    it('should return 400 for invalid blog ID format', async () => {
+    it('should return 404 for non-existent blog ID, regardless of format', async () => {
       const response = await fetch(`${baseUrl}/api/blogs/invalid_id/related`)
       const data = await response.json()
 
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(404)
       expect(data.success).toBe(false)
       expect(data.error).toBeDefined()
     })

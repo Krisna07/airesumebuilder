@@ -6,6 +6,7 @@ import { ResumeStyle } from '@/types/types';
  */
 export function buildSectionTitleCSS(style: ResumeStyle): string {
     const { sectionTitleStyle: s, accentColor, lineColor } = style;
+    const titleColor = s.color || accentColor;
 
     const base = `
       font-weight: ${s.fontWeight};
@@ -19,17 +20,17 @@ export function buildSectionTitleCSS(style: ResumeStyle): string {
 
     const typeStyles: Record<string, string> = {
         plain: `
-            color: ${accentColor};
+            color: ${titleColor};
             border: none;
             padding: 0;
         `,
         underline: `
-            color: ${accentColor};
+            color: ${titleColor};
             border-bottom: 2px solid ${lineColor};
             padding-bottom: 3px;
         `,
         overline: `
-            color: ${accentColor};
+            color: ${titleColor};
             border-top: 2px solid ${lineColor};
             padding-top: 3px;
         `,
@@ -41,7 +42,7 @@ export function buildSectionTitleCSS(style: ResumeStyle): string {
             display: inline-block;
         `,
         'left-bar': `
-            color: ${accentColor};
+            color: ${titleColor};
             border-left: 4px solid ${accentColor};
             padding-left: 8px;
         `,
@@ -57,6 +58,8 @@ export function buildSectionTitleCSS(style: ResumeStyle): string {
  * and font overrides based on ResumeStyle.
  */
 export function buildGlobalStyleCSS(style: ResumeStyle): string {
+    const skillBackground = style.skillsWithBackground === false ? 'transparent' : '#f8fafc';
+    const skillBorderColor = style.skillsWithBorder === false ? 'transparent' : style.lineColor;
     return `
       body {
         font-size: ${style.bodyFontSize}px;
@@ -71,6 +74,17 @@ export function buildGlobalStyleCSS(style: ResumeStyle): string {
             .custom-subsection {
                 border-left-color: ${style.accentColor};
                 border-color: ${style.lineColor};
+            }
+            .skill-item,
+            .skill-tag,
+            .skill-pill,
+            .skill-chip,
+            .skill-bg,
+            .chip,
+            .skill-block {
+                background-color: ${skillBackground};
+                border-color: ${skillBorderColor};
+                border-bottom-color: ${skillBorderColor};
             }
     `;
 }

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
 import {
     resumeGenerationPrompt,
@@ -22,91 +21,15 @@ import {
     isValidAnalysisResult,
     isValidCoverLetter
 } from "@/lib/aiSchemas";
-import { OpenRouter } from '@openrouter/sdk';
+import { callGeminiModel } from "@/services/geminiService";
+import { callOpenRouterModel } from "@/services/openRouterService";
+import { geminiModels, MODEL_ROUTING, openRouterModels } from "@/services/aiModelConfig";
 
-const openRouterKey = process.env.OPENROUTER_API_KEY;
-const api = process.env.GEMINI_API_KEY;
+const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY);
+const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY);
 
-if (!openRouterKey && !api) {
+if (!hasOpenRouterKey && !hasGeminiKey) {
     console.warn('AIService: No API keys found for Gemini or OpenRouter. AI functionalities will be disabled.');
-}
-const openRouter = openRouterKey ? new OpenRouter({ apiKey: openRouterKey }) : null;
-const genAI = api ? new GoogleGenAI({ apiKey: api }) : null;
-
-// Model waterfall configuration
-const geminiModels = ['gemini-3.1-flash-lite-preview', 'gemma-3-27b-it', 'gemini-3.1-flash'];
-const openRouterModels = [
-    'google/gemini-3.1-flash-lite-001:free',
-    'mistralai/mistral-small-24b-instruct-2501:free',
-    'meta-llama/llama-3.3-70b-instruct:free'
-];
-
-/**
- * Model routing configuration for specific tasks
- * Each task can specify preferred models that will be tried first before falling back to the general waterfall
- */
-type ModelProvider = 'gemini' | 'openrouter';
-type PreferredModel = {
-    provider: ModelProvider;
-    model: string;
-};
-
-const MODEL_ROUTING: Record<string, PreferredModel[]> = {
-    // Resume generation and cover letters - use fast Gemini model
-    'resume-generation': [
-        { provider: 'gemini', model: 'gemini-3.1-flash-lite-preview' }
-    ],
-    'cover-letter': [
-        { provider: 'gemini', model: 'gemini-3.1-flash-lite-preview' }
-    ],
-
-    // Analysis - use reasoning model
-    'resume-analysis': [
-        { provider: 'openrouter', model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free' }
-    ],
-
-    // Extraction - use specialized model
-    'resume-extraction': [
-        { provider: 'openrouter', model: 'openrouter/owl-alpha' }
-    ],
-    'job-extraction': [
-        { provider: 'openrouter', model: 'openrouter/owl-alpha' }
-    ],
-
-    // Section generation - use specialized model
-    'section-generation': [
-        { provider: 'openrouter', model: 'openrouter/owl-alpha' }
-    ],
-};
-
-/**
- * Helper to extract JSON from markdown code blocks or raw text
- */
-function extractJsonCandidate(content: string): string | null {
-    // Try to extract from markdown code block
-    const fenced = content.match(/```json\s*([\s\S]*?)\s*```/i);
-    if (fenced?.[1]) {
-        return fenced[1].trim();
-    }
-
-    // Try to find JSON object boundaries
-    const firstBrace = content.indexOf('{');
-    const lastBrace = content.lastIndexOf('}');
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-        return content.slice(firstBrace, lastBrace + 1).trim();
-    }
-
-    return null;
-}
-
-/**
- * Build a structured prompt for JSON output
- */
-function buildStructuredPrompt(prompt: string): string {
-    return [
-        'Return ONLY valid JSON. Do not include markdown, code fences, or commentary.',
-        prompt,
-    ].join('\n\n');
 }
 
 /**
@@ -117,44 +40,15 @@ async function callSpecificGeminiModel(
     prompt: string,
     outputSchema?: any
 ): Promise<any> {
-    if (!genAI) {
+    if (!hasGeminiKey) {
         throw new Error('Gemini client not available');
     }
 
-    const config: any = {};
-    if (outputSchema) {
-        config.responseMimeType = "application/json";
-        config.responseSchema = outputSchema;
-    }
-
-    const response: GenerateContentResponse = await genAI.models.generateContent({
+    return callGeminiModel({
         model,
-        config,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        prompt,
+        outputSchema,
     });
-
-    const candidate = response?.candidates?.[0];
-    const content = candidate?.content;
-    const raw = content?.parts?.map((part: any) => part.text).join('') || '';
-
-    if (!raw) {
-        throw new Error('Empty response from Gemini');
-    }
-
-    // If schema provided, parse as JSON
-    if (outputSchema) {
-        try {
-            return JSON.parse(raw);
-        } catch (parseError) {
-            const extracted = extractJsonCandidate(raw);
-            if (extracted) {
-                return JSON.parse(extracted);
-            }
-            throw new Error('Failed to parse JSON response from Gemini');
-        }
-    }
-
-    return raw;
 }
 
 /**
@@ -165,54 +59,15 @@ async function callSpecificOpenRouterModel(
     prompt: string,
     outputSchema?: any
 ): Promise<any> {
-    if (!openRouter) {
+    if (!hasOpenRouterKey) {
         throw new Error('OpenRouter client is not initialized');
     }
 
-    const response = await openRouter.chat.send({
+    return callOpenRouterModel({
         model,
-        messages: [{
-            role: 'user',
-            content: outputSchema ? buildStructuredPrompt(prompt) : prompt
-        }],
-        responseFormat: outputSchema
-            ? {
-                type: 'json_schema',
-                jsonSchema: {
-                    name: 'ai_response',
-                    schema: outputSchema,
-                    strict: true,
-                },
-            }
-            : undefined,
-        stream: false,
+        prompt,
+        outputSchema,
     });
-
-    const choice = response?.choices?.[0];
-    const content = choice?.message?.content;
-
-    if (!content) {
-        throw new Error('Empty response from OpenRouter');
-    }
-
-    if (typeof content !== 'string') {
-        return content;
-    }
-
-    // If schema provided, parse as JSON
-    if (outputSchema) {
-        try {
-            return JSON.parse(content);
-        } catch (parseError) {
-            const extracted = extractJsonCandidate(content);
-            if (extracted) {
-                return JSON.parse(extracted);
-            }
-            throw new Error('Failed to parse JSON response from OpenRouter');
-        }
-    }
-
-    return content;
 }
 /**
  * Call Gemini AI with structured output schema
@@ -226,7 +81,7 @@ async function callGeminiWithSchema(
     outputSchema?: any,
     retries = 3
 ): Promise<any> {
-    if (retries <= 0 || !genAI) {
+    if (retries <= 0 || !hasGeminiKey) {
         throw new Error('Gemini client not available or retries exhausted');
     }
 
@@ -261,7 +116,7 @@ async function callOpenRouterWithSchema(
     outputSchema?: any,
     retries = 3
 ): Promise<any> {
-    if (!openRouter) {
+    if (!hasOpenRouterKey) {
         throw new Error('OpenRouter client is not initialized.');
     }
 
@@ -309,9 +164,9 @@ async function callAIWithSchema(
             try {
                 console.log(`Attempting preferred ${provider} model: ${model}`);
 
-                if (provider === 'gemini' && genAI) {
+                if (provider === 'gemini' && hasGeminiKey) {
                     return await callSpecificGeminiModel(model, prompt, outputSchema);
-                } else if (provider === 'openrouter' && openRouter) {
+                } else if (provider === 'openrouter' && hasOpenRouterKey) {
                     return await callSpecificOpenRouterModel(model, prompt, outputSchema);
                 }
             } catch (error: any) {
@@ -327,7 +182,7 @@ async function callAIWithSchema(
     }
 
     // Standard waterfall: Try Gemini first (3 models)
-    if (genAI) {
+    if (hasGeminiKey) {
         try {
             console.log('Attempting Gemini models...');
             return await callGeminiWithSchema(prompt, outputSchema, 3);
@@ -337,7 +192,7 @@ async function callAIWithSchema(
     }
 
     // Fallback to OpenRouter (3 models)
-    if (openRouter) {
+    if (hasOpenRouterKey) {
         try {
             console.log('Attempting OpenRouter models...');
             return await callOpenRouterWithSchema(prompt, outputSchema, 3);

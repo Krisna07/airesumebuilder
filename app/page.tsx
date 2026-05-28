@@ -10,9 +10,11 @@ import BlogResourcesSection from '@/components/LandingPageComponents/BlogResourc
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Free AI Resume Builder | Craft Your Resume in Minutes',
-  description: 'Build, tailor, and optimize your resume for free with our AI-powered resume builder. Get past ATS systems and land your dream job faster. 100% free, no credit card required.',
+  title: 'AireResumeBuilder - Free AI Resume Builder | Craft Your Resume in Minutes',
+  description: 'AireResumeBuilder lets you build, tailor, and optimize your resume for free with AI. Get ATS-friendly resumes and land your dream job faster. 100% free, no credit card required.',
   keywords: [
+    'AireResumeBuilder',
+    'aire resume builder',
     'free resume builder',
     'AI resume builder',
     'resume maker',
