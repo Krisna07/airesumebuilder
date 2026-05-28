@@ -11,8 +11,8 @@ export async function GET(
   try {
     const { id } = await params
 
-    // Validate ID format
-    if (!id || !id.startsWith('blog_')) {
+    // Validate presence only; blog documents may use different ID formats.
+    if (!id || !id.trim()) {
       return NextResponse.json(
         { success: false, error: 'Invalid blog post ID' },
         { status: 400 }

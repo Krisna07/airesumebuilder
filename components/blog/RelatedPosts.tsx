@@ -29,7 +29,8 @@ export default function RelatedPosts({ blogId, limit = 5 }: RelatedPostsProps) {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/blogs/${blogId}/related?limit=${limit}`)
+        const encodedBlogId = encodeURIComponent(blogId)
+        const response = await fetch(`/api/blogs/${encodedBlogId}/related?limit=${limit}`)
         const data: RelatedPostsResponse = await response.json()
 
         if (!response.ok) {

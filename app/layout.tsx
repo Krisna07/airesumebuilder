@@ -10,11 +10,13 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://airesumecraft.xyz'),
   title: {
-    default: 'Free AI Resume Builder | Craft Your Resume in Minutes',
-    template: '%s | AI Resume Craft',
+    default: 'AireResumeBuilder - Free AI Resume Builder | AI Resume Craft',
+    template: '%s | AireResumeBuilder',
   },
-  description: 'Build, tailor, and optimize your resume for free with our AI-powered resume builder. Get past ATS systems and land your dream job faster.',
+  description: 'AireResumeBuilder helps you build, tailor, and optimize your resume for free with AI. Create ATS-friendly resumes and land interviews faster.',
   keywords: [
+    'AireResumeBuilder',
+    'aire resume builder',
     'AI resume builder',
     'free resume builder',
     'resume maker',

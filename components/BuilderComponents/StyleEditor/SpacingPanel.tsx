@@ -19,8 +19,7 @@ export default function SpacingPanel({ resumeData, handleStyleChange }: Props) {
   };
 
   return (
-    <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Spacing and Text</h3>
+    <div className="space-y-4">
 
       <div>
         <div className="flex justify-between text-xs text-gray-500 mb-1">

@@ -74,11 +74,9 @@ export function generateClassicHTML(data: ResumeData, _style?: ResumeStyle): str
     ],
     data,
   );
-
-  const fullSections = orderedSections.filter((section) => (section.side ?? 'full') === 'full');
   const leftSections = orderedSections.filter((section) => section.side === 'left');
   const rightSections = orderedSections.filter((section) => section.side === 'right');
-  const hasAlignedColumns = leftSections.length > 0 || rightSections.length > 0;
+  const fullSections = orderedSections.filter((section) => (section.side ?? 'full') === 'full');
 
   return `
     <!DOCTYPE html>
@@ -96,7 +94,7 @@ export function generateClassicHTML(data: ResumeData, _style?: ResumeStyle): str
           <div class="contact-info">${renderContactInfo(data)}</div>
         </div>
         ${safeJoin(fullSections.map((section) => renderSection(section.key)))}
-        ${hasAlignedColumns ? `
+        ${leftSections.length > 0 || rightSections.length > 0 ? `
           <div class="aligned-columns">
             <div>${safeJoin(leftSections.map((section) => renderSection(section.key)))}</div>
             <div>${safeJoin(rightSections.map((section) => renderSection(section.key)))}</div>

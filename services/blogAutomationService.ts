@@ -8,6 +8,7 @@ import { generateBlogTitlePlanPrompt, generateSeoBlogPrompt, regenerateBlogPromp
 import { prisma } from '@/lib/prisma'
 import sanityClient from '@/lib/sanity'
 import { createBlog, getBlogById, saveImage, updateBlog } from '@/services/blogCmsService'
+import { callCloudFlareModel } from '@/services/cloudFlareService'
 import type { BlogActor, BlogSection, BlogStatus, CreateBlogInput } from '@/types/blog'
 
 // Internal type for Sanity blog document structure
@@ -338,19 +339,12 @@ async function requestBlogDraftFromWorker(prompt: string, title: string) {
 }
 
 async function requestGatewayText(prompt: string, model: string) {
-  const client = getGatewayClient()
-
-  const response = await client.chat.completions.create({
+  return callCloudFlareModel({
     model,
-    messages: [{ role: 'user', content: prompt }],
+    prompt,
+    token: getGatewayToken(),
+    baseURL: getGatewayBaseUrl(),
   })
-
-  const content = response.choices[0]?.message?.content
-  if (!content) {
-    throw new Error('No content in Cloudflare AI response')
-  }
-
-  return content
 }
 
 async function requestBlogDraftFromGateway(prompt: string) {

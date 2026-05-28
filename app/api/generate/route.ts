@@ -128,10 +128,10 @@ export async function POST(req: NextRequest) {
 
         // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
         const pageGap = body.pageGap || {
-            top: '4mm',
-            bottom: '4mm',
-            left: '10mm',
-            right: '10mm',
+            top: '0mm',
+            bottom: '0mm',
+            left: '0mm',
+            right: '0mm',
         };
 
         const pdfBuffer = await page.pdf({

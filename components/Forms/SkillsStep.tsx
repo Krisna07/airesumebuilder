@@ -12,7 +12,6 @@ interface SkillsStepProps {
 }
 
 const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
-  const [skillsList, setSkills] = useState<skills[]>(data);
   const [skill, setSkill] = useState<string>('');
   const [type, setType] = useState<string>('');
   const toast = useToast()
@@ -28,7 +27,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
     // Split by comma and trim whitespace
     const skillsToAdd = skill.split(',').map(s => s.trim()).filter(s => s);
 
-    let updatedSkills = [...skillsList];
+    let updatedSkills = [...data];
     const skillType = type || 'General';
 
     for (const skillToAdd of skillsToAdd) {
@@ -59,7 +58,7 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
   };
 
   const removeSkill = (skillToRemove: string) => {
-    const restSkills = skillsList
+    const restSkills = data
       .map((item) => ({
         ...item,
         skills: item.skills?.filter((skill) => skill !== skillToRemove)
@@ -70,16 +69,15 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
   };
 
   const removeType = (typeToRemove: string) => {
-    const restSkills = skillsList.filter((item) => item.type !== typeToRemove); // Remove the entire type
-    setSkills(restSkills);
+    const restSkills = data.filter((item) => item.type !== typeToRemove); // Remove the entire type
     updateSkills(restSkills);
   };
 
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
-        {skillsList.length > 0 &&
-          skillsList.map(({ type, skills }, index) => (
+        {data.length > 0 &&
+          data.map(({ type, skills }, index) => (
             <div key={index} className=' grid  px-2 text-sm gap-2 w-full p-4 dark:shadow-[0_0_2px_0_white] shadow-[0_0_2px_0_gray] rounded-2xl'>
               <h3 className='w-full flex items-center justify-between '>
                 <span className='font-semibold'>{type || 'General'}</span>

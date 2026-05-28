@@ -3,9 +3,12 @@ import { getToken } from 'next-auth/jwt';
 import { AIService } from '@/services/aiServices';
 import { ResumeData } from '@/types/types';
 import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
+import { createRequestGuard } from '@/lib/ai-request-guard'
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+const generateSectionGuard = createRequestGuard(5000)
 
 type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'customSections';
 
@@ -40,6 +43,7 @@ function buildSectionPatch(sectionKey: SectionKey, resumeData: ResumeData, gener
 }
 
 export async function POST(req: NextRequest) {
+  let requestKey: string | null = null
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const userId = typeof token?.id === 'string'
@@ -74,6 +78,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing sectionKey or resumeData' }, { status: 400 });
     }
 
+    requestKey = `generate-section:${userId ?? 'guest'}:${JSON.stringify({ sectionKey, resumeId: resumeData.id, resumeData, jobDescription })}`
+    const guardResult = generateSectionGuard.tryAcquire(requestKey)
+    if (!guardResult.allowed) {
+      return NextResponse.json(
+        { error: guardResult.message || 'Duplicate request blocked' },
+        { status: guardResult.status || 409 },
+      )
+    }
+
     const generated = await AIService.generateSection(sectionKey, resumeData, jobDescription);
     const patch = buildSectionPatch(sectionKey, resumeData, generated);
 
@@ -88,11 +101,20 @@ export async function POST(req: NextRequest) {
       await consumeGuestUsage('regen');
     }
 
+    if (requestKey) {
+      generateSectionGuard.release(requestKey)
+      requestKey = null
+    }
+
     return NextResponse.json({
       success: true,
       data: patch,
     });
   } catch (error) {
+    if (requestKey) {
+      generateSectionGuard.release(requestKey)
+      requestKey = null
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

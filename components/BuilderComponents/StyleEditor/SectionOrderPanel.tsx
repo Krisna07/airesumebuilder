@@ -23,7 +23,6 @@ import { DEFAULT_RESUME_STYLE } from '@/lib/defaultStyle';
 
 interface SortableItemProps {
   section: SectionOrder;
-  isTwoColumnTemplate: boolean;
   onAlignChange?: (key: string, side: 'left' | 'right' | 'full') => void;
 }
 
@@ -35,7 +34,7 @@ const SECTION_LABELS: Record<string, string> = {
   custom: 'Custom Sections',
 };
 
-function SortableItem({ section, isTwoColumnTemplate, onAlignChange }: SortableItemProps) {
+function SortableItem({ section, onAlignChange }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -58,8 +57,7 @@ function SortableItem({ section, isTwoColumnTemplate, onAlignChange }: SortableI
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between p-3 mb-2 bg-transparent border rounded-md ${
-        isDragging ? 'border-teal-500 ring-1 ring-teal-500/50' : 'border-slate-300 dark:border-slate-600'
+      className={`flex items-center justify-between p-3 mb-2 bg-white/80 dark:bg-slate-900/40 border rounded-xl shadow-sm transition-colors ${isDragging ? 'border-teal-500 ring-2 ring-teal-500/40' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500'
       }`}
     >
       <div className="flex items-center flex-1">
@@ -74,49 +72,44 @@ function SortableItem({ section, isTwoColumnTemplate, onAlignChange }: SortableI
         <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
       </div>
 
-      {onAlignChange && (
-        <div className="flex bg-slate-100/70 dark:bg-slate-700/60 rounded p-0.5">
+      <div className="flex bg-slate-100/70 dark:bg-slate-700/60 rounded-lg p-0.5 border border-slate-200 dark:border-slate-600" title="Section alignment">
           <button
-            onClick={() => onAlignChange(section.key, 'left')}
-            className={`p-1 rounded ${section.side === 'left' ? 'bg-white dark:bg-slate-600 shadow-sm text-teal-600 dark:text-teal-300' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
+          onClick={() => onAlignChange?.(section.key, 'left')}
+          className={`p-1.5 rounded-md ${section.side === 'left' ? 'bg-white dark:bg-slate-600 shadow-sm text-teal-600 dark:text-teal-300' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
             title="Left Column"
-            aria-label={`Align ${label} left column${isTwoColumnTemplate ? '' : ' (applies in 2-column templates)'}`}
+          aria-label={`Align ${label} left column`}
           >
             <AlignLeft size={14} />
           </button>
           <button
-            onClick={() => onAlignChange(section.key, 'full')}
-            className={`p-1 rounded ${section.side === 'full' || !section.side ? 'bg-white dark:bg-slate-600 shadow-sm text-teal-600 dark:text-teal-300' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
+          onClick={() => onAlignChange?.(section.key, 'full')}
+          className={`p-1.5 rounded-md ${section.side === 'full' || !section.side ? 'bg-white dark:bg-slate-600 shadow-sm text-teal-600 dark:text-teal-300' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
             title="Full Width"
             aria-label={`Align ${label} full width`}
           >
             <Columns size={14} />
           </button>
           <button
-            onClick={() => onAlignChange(section.key, 'right')}
-            className={`p-1 rounded ${section.side === 'right' ? 'bg-white dark:bg-slate-600 shadow-sm text-teal-600 dark:text-teal-300' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
+          onClick={() => onAlignChange?.(section.key, 'right')}
+          className={`p-1.5 rounded-md ${section.side === 'right' ? 'bg-white dark:bg-slate-600 shadow-sm text-teal-600 dark:text-teal-300' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
             title="Right Column"
-            aria-label={`Align ${label} right column${isTwoColumnTemplate ? '' : ' (applies in 2-column templates)'}`}
+          aria-label={`Align ${label} right column`}
           >
             <AlignRight size={14} />
           </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
 interface SectionOrderPanelProps {
   resumeData: ResumeData;
-  templateId: string;
   handleStyleChange: (updates: Partial<ResumeStyle>) => void;
 }
 
-const ALIGNMENT_TEMPLATES = new Set(['template01', 'template02', 'atlas']);
-
-export default function SectionOrderPanel({ resumeData, templateId, handleStyleChange }: SectionOrderPanelProps) {
+export default function SectionOrderPanel({ resumeData, handleStyleChange }: SectionOrderPanelProps) {
   const style = resumeData.styleConfig ?? DEFAULT_RESUME_STYLE;
-  const isTwoColumnTemplate = ALIGNMENT_TEMPLATES.has(templateId);
+  const isTwoColumnTemplate = true;
   const computedItems = useMemo(() => {
     const fallbackItems: SectionOrder[] = [
       { key: 'summary', side: 'full', enabled: true, label: 'Summary' },
@@ -231,13 +224,11 @@ export default function SectionOrderPanel({ resumeData, templateId, handleStyleC
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-slate-500 dark:text-slate-300 mb-2">
+      <div className="text-sm text-slate-600 dark:text-slate-300 mb-2 leading-relaxed">
         Drag to reorder sections. Use the alignment buttons to choose left, full, or right placement.
       </div>
       <div className="text-xs text-slate-500 dark:text-slate-400 -mt-2">
-        {isTwoColumnTemplate
-          ? 'Alignment is active in this template.'
-          : 'Alignment settings are saved here and become visible in Sidebar/Canvas templates.'}
+        Alignment controls are active and apply immediately.
       </div>
       <DndContext
         sensors={sensors}
@@ -254,10 +245,9 @@ export default function SectionOrderPanel({ resumeData, templateId, handleStyleC
               <div key={section.key}>
                 <SortableItem
                   section={section}
-                  isTwoColumnTemplate={isTwoColumnTemplate}
                   onAlignChange={handleAlignChange}
                 />
-                <div className="-mt-1 mb-2 px-3 py-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <div className="-mt-1 mb-2 px-3 py-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/50 rounded-lg border border-slate-200/70 dark:border-slate-700">
                   <label className="inline-flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -266,7 +256,7 @@ export default function SectionOrderPanel({ resumeData, templateId, handleStyleC
                     />
                     Show section
                   </label>
-                  <span>{section.side ?? 'full'}</span>
+                  <span className="uppercase tracking-wide text-[10px] px-2 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600">{section.side ?? 'full'}</span>
                 </div>
               </div>
             ))}

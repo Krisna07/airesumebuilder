@@ -1,9 +1,24 @@
 import type { ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import type { Metadata } from 'next'
 
 interface AuthLayoutProps {
   children: ReactNode
+}
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      'max-snippet': 0,
+      'max-image-preview': 'none',
+      'max-video-preview': 0,
+    },
+  },
 }
 
 
