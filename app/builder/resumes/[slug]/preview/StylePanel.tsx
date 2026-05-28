@@ -1,5 +1,6 @@
 "use client"
-import { memo, type RefObject } from "react"
+import { memo, useState, type RefObject } from "react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import SectionTitlePanel from "@/components/BuilderComponents/StyleEditor/SectionTitlePanel"
 import FontPanel from "@/components/BuilderComponents/StyleEditor/FontPanel"
 import ColorPanel from "@/components/BuilderComponents/StyleEditor/ColorPanel"
@@ -21,24 +22,42 @@ interface StylePanelProps {
   templateOptions?: TemplateOption[]
   onTemplateChange?: (templateId: string) => void
   userSignedIn?: boolean
+  densityMode?: 'comfortable' | 'compact'
 }
 
-const StylePanel = memo(({ stylesRef, resumeData, templateId, handleStyleChange, templateOptions, onTemplateChange, userSignedIn }: StylePanelProps) => {
+const StylePanel = memo(({ stylesRef, resumeData, templateId, handleStyleChange, templateOptions, onTemplateChange, userSignedIn, densityMode = 'comfortable' }: StylePanelProps) => {
+  const [openPanel, setOpenPanel] = useState<string>(templateOptions?.length && onTemplateChange ? 'templates' : 'titles')
+  const compact = densityMode === 'compact'
+  const panelWrapClass = compact ? 'px-2.5 pb-2.5' : 'px-3 pb-3'
+
+  const togglePanel = (key: string) => {
+    setOpenPanel((prev) => (prev === key ? '' : key))
+  }
+
+  const Header = ({ panelKey, label }: { panelKey: string; label: string }) => (
+    <button type="button" onClick={() => togglePanel(panelKey)} className="w-full flex items-center justify-between text-left px-3.5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50/80 dark:hover:bg-slate-700/40 rounded-t-xl transition-colors touch-manipulation select-none">
+      <span>{label}</span>
+      {openPanel === panelKey ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+    </button>
+  )
+
   return (
     <div
       onClick={(e) => e.stopPropagation()}
       ref={stylesRef}
-      className="w-full max-w-xl xl:max-w-none max-h-[70vh] overflow-y-auto space-y-4 z-110 px-4 py-4 rounded-2xl shadow-lg dark:shadow-slate-700 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700"
+      data-style-panel="true"
+      className={`w-full max-w-xl xl:max-w-none max-h-[72vh] overflow-y-auto z-110 rounded-2xl shadow-[0_16px_38px_-24px_rgba(2,6,23,0.8)] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700 ${compact ? 'space-y-3 px-3 py-3' : 'space-y-4 px-4 py-4'}`}
     >
-      <div className="font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-2">
-        Style Editor
+      <div className="pb-2 border-b border-slate-200 dark:border-slate-700">
+        <div className="font-semibold tracking-tight text-slate-900 dark:text-white">Style Editor</div>
+        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Customize layout, typography, and visual tone.</div>
       </div>
 
-      <div className="grid gap-4">
+      <div className={`grid ${compact ? 'gap-2.5' : 'gap-3'}`}>
         {templateOptions?.length && onTemplateChange && (
-          <details open>
-            <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Templates</summary>
-            <div className="pt-3 space-y-3">
+          <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+            <Header panelKey="templates" label="Templates" />
+            {openPanel === 'templates' && <div className={`${panelWrapClass} space-y-3 anim-fade-in-soft`} style={{ animationDelay: '30ms' }}>
               <div className="grid grid-cols-2 gap-2">
                 {templateOptions.map((template) => (
                   <button
@@ -46,8 +65,8 @@ const StylePanel = memo(({ stylesRef, resumeData, templateId, handleStyleChange,
                     type="button"
                     onClick={() => onTemplateChange(template.id)}
                     className={`px-3 py-2 rounded-lg border text-sm text-left transition-all ${templateId === template.id
-                      ? 'border-teal-500 bg-teal-50 text-teal-800 shadow-sm'
-                      : 'border-gray-200/50 dark:border-slate-600 text-gray-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500'
+                      ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-800 dark:text-teal-300 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-500 bg-white/80 dark:bg-slate-900/30'
                       }`}
                   >
                     {template.name}
@@ -59,60 +78,59 @@ const StylePanel = memo(({ stylesRef, resumeData, templateId, handleStyleChange,
                   Sign in to access all templates.
                 </p>
               )}
-            </div>
-          </details>
+            </div>}
+          </div>
         )}
 
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Section Titles</summary>
-          <SectionTitlePanel
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+          <Header panelKey="titles" label="Section Titles" />
+          {openPanel === 'titles' && <div className={`${panelWrapClass} anim-fade-in-soft`} style={{ animationDelay: '45ms' }}><SectionTitlePanel
             resumeData={resumeData}
             handleStyleChange={handleStyleChange}
-          />
-        </details>
+          /></div>}
+        </div>
 
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Typography</summary>
-          <FontPanel
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+          <Header panelKey="typography" label="Typography" />
+          {openPanel === 'typography' && <div className={`${panelWrapClass} anim-fade-in-soft`} style={{ animationDelay: '60ms' }}><FontPanel
             resumeData={resumeData}
             handleStyleChange={handleStyleChange}
-          />
-        </details>
+          /></div>}
+        </div>
 
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Colors</summary>
-          <ColorPanel
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+          <Header panelKey="colors" label="Colors" />
+          {openPanel === 'colors' && <div className={`${panelWrapClass} anim-fade-in-soft`} style={{ animationDelay: '75ms' }}><ColorPanel
             resumeData={resumeData}
             handleStyleChange={handleStyleChange}
-          />
-        </details>
+          /></div>}
+        </div>
 
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Skills</summary>
-          <SkillsPanel
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+          <Header panelKey="skills" label="Skills" />
+          {openPanel === 'skills' && <div className={`${panelWrapClass} anim-fade-in-soft`} style={{ animationDelay: '90ms' }}><SkillsPanel
             resumeData={resumeData}
             handleStyleChange={handleStyleChange}
-          />
-        </details>
+          /></div>}
+        </div>
 
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Spacing</summary>
-          <SpacingPanel
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+          <Header panelKey="spacing" label="Spacing" />
+          {openPanel === 'spacing' && <div className={`${panelWrapClass} anim-fade-in-soft`} style={{ animationDelay: '105ms' }}><SpacingPanel
             resumeData={resumeData}
             handleStyleChange={handleStyleChange}
-          />
-        </details>
+          /></div>}
+        </div>
 
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">Section Order</summary>
-          <div className="pt-3">
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/50">
+          <Header panelKey="order" label="Section Order" />
+          {openPanel === 'order' && <div className={`${panelWrapClass} anim-fade-in-soft`} style={{ animationDelay: '120ms' }}>
             <SectionOrderPanel
               resumeData={resumeData}
-              templateId={templateId}
               handleStyleChange={handleStyleChange}
             />
-          </div>
-        </details>
+          </div>}
+        </div>
       </div>
     </div>
   )

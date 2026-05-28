@@ -190,13 +190,85 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
     }
   }, [formData, generateSectionMutation, showToast])
 
-  const getSectionAction = useCallback((sectionKey: RegenerateSectionKey) => (
-    <SectionRegenerateButton
-      onClick={() => handleRegenerateSection(sectionKey)}
-      loading={generateSectionMutation.isPending}
-      label="Regenerate"
-    />
-  ), [generateSectionMutation.isPending, handleRegenerateSection])
+  const hasProfileContent = useMemo(() => {
+    const profile = formData.profile
+    return Boolean(
+      profile.fullname.trim() ||
+      profile.email.trim() ||
+      profile.phone.trim() ||
+      profile.location.trim() ||
+      profile.summary.trim() ||
+      profile.links.some((link) => link.type.trim() || link.url.trim()),
+    )
+  }, [formData.profile])
+
+  const hasSkillsContent = useMemo(() => (
+    formData.skills.some((item) =>
+      Boolean(item.type?.trim() || item.skills?.some((skill) => skill.trim())),
+    )
+  ), [formData.skills])
+
+  const hasExperienceContent = useMemo(() => (
+    formData.experiences.some((experience) =>
+      Boolean(
+        experience.title.trim() ||
+        experience.company.trim() ||
+        experience.location.trim() ||
+        experience.startDate.trim() ||
+        experience.endDate?.trim() ||
+        experience.current ||
+        experience.responsibilities?.some((responsibility) => responsibility.trim()),
+      ),
+    )
+  ), [formData.experiences])
+
+  const hasCustomSectionsContent = useMemo(() => (
+    formData.customSections.some((section) =>
+      Boolean(
+        section.title.trim() ||
+        section.subsections.some((subsection) =>
+          Boolean(
+            subsection.title.trim() ||
+            subsection.content.trim() ||
+            subsection.url?.trim() ||
+            subsection.date?.trim(),
+          ),
+        ),
+      ),
+    )
+  ), [formData.customSections])
+
+  const canGenerateSection = useCallback((sectionKey: RegenerateSectionKey) => {
+    switch (sectionKey) {
+      case 'summary':
+        return hasProfileContent
+      case 'experience':
+        return hasExperienceContent
+      case 'skills':
+        return hasSkillsContent
+      case 'customSections':
+        return hasCustomSectionsContent
+      case 'education':
+        return false
+      default:
+        return false
+    }
+  }, [hasCustomSectionsContent, hasExperienceContent, hasProfileContent, hasSkillsContent])
+
+  const getSectionAction = useCallback((sectionKey: RegenerateSectionKey) => {
+    if (sectionKey === 'education') {
+      return undefined
+    }
+
+    return (
+      <SectionRegenerateButton
+        onClick={() => handleRegenerateSection(sectionKey)}
+        loading={generateSectionMutation.isPending}
+        disabled={!canGenerateSection(sectionKey)}
+        label="Regenerate"
+      />
+    )
+  }, [canGenerateSection, generateSectionMutation.isPending, handleRegenerateSection])
 
   const renderStep = useMemo(() => {
     switch (currentStep) {
@@ -220,7 +292,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
         )
       case 4:
         return (
-          <FormLayout heading="Add your education" subheading="Provide your academic qualifications." action={getSectionAction('education')}>
+          <FormLayout heading="Add your education" subheading="Provide your academic qualifications.">
             <EducationStep data={formData.educations} onChange={updateEducations} />
           </FormLayout>
         )
@@ -308,11 +380,11 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
   ])
 
   return (
-    <div className="w-full h-full flex flex-col items-start bg-slate-50 dark:bg-slate-900">
+    <div className="w-full h-full flex flex-col items-start">
       {/* Step indicators */}
       {currentStep !== FINAL_STEP_INDEX && (
         <div
-          className="shrink-0 w-full hide-scrollbar sticky top-14 flex items-center justify-center max-[500px]:justify-center md:justify-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm z-40 px-3 py-2 overflow-x-auto border-b border-slate-200 dark:border-slate-700"
+          className="shrink-0 w-full hide-scrollbar sticky top-14 flex items-center justify-center max-[500px]:justify-center md:justify-center gap-2 z-40 px-3 py-2 overflow-x-auto"
           role="tablist"
           aria-label="Form steps"
         >
@@ -356,7 +428,7 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
       {/* Content area */}
       <div
-        className="flex-1 overscroll-contain px-2 sm:px-4 mb-20 scroll-smooth w-full"
+        className="flex-1 overscroll-contain px-2 sm:px-4 mb-24 sm:mb-20 scroll-smooth w-full"
         id={`step-panel-${currentStep}`}
         role="tabpanel"
         aria-labelledby={`step-${currentStep}`}
@@ -367,49 +439,53 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
       {/* Navigation footer */}
       {currentStep !== FINAL_STEP_INDEX && (
-        <div className="shrink-0 w-full fixed bottom-0 z-50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-20 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            {/* Sync Status */}
-            <SyncIndicator status={syncStatus} lastSyncTime={lastSyncTime} className="hidden sm:block" />
+        <div className="w-full fixed inset-x-0 bottom-0 z-50 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
+          <div className="w-full max-w-[1200px] mx-auto lg:px-8">
+            <div className="shrink-0 w-full  ">
+              <div className="max-w-4xl w-full mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                {/* Sync Status */}
+                <SyncIndicator status={syncStatus} lastSyncTime={lastSyncTime} className="hidden sm:block" />
 
-            <div className="flex-1">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="small"
-                  onClick={handlePrevious}
-                  aria-label="Previous step"
-                >
-                  <ChevronLeft size={16} />
-                  Previous
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {currentStep < STEPS_LABELS.length && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="small"
-                  onClick={handleSaveDraft}
-                  disabled={syncStatus === 'syncing'}
-                  aria-label="Save draft"
-                >
-                  {syncStatus === 'syncing' ? "Saving..." : "Save Draft"}
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="primary"
-                size="small"
-                onClick={handleNext}
-                disabled={currentStep === FINAL_STEP_INDEX}
-                aria-label="Next step"
-              >
-                {currentStep === STEPS_LABELS.length ? "Preview Resume" : "Next"}
-                <ChevronRight size={16} />
-              </Button>
+                <div className="flex-1">
+                  {currentStep > 1 && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      onClick={handlePrevious}
+                      aria-label="Previous step"
+                    >
+                      <ChevronLeft size={16} />
+                      Previous
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {currentStep < STEPS_LABELS.length && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="small"
+                      onClick={handleSaveDraft}
+                      disabled={syncStatus === 'syncing'}
+                      aria-label="Save draft"
+                    >
+                      {syncStatus === 'syncing' ? "Saving..." : "Save Draft"}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="small"
+                    onClick={handleNext}
+                    disabled={currentStep === FINAL_STEP_INDEX}
+                    aria-label="Next step"
+                  >
+                    {currentStep === STEPS_LABELS.length ? "Preview Resume" : "Next"}
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -119,7 +119,7 @@ const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnal
                         {showDescription ? "Hide description" : "View description"}
                     </Button>
 
-                    <div className="w-full flex gap-2 flex-col sm:flex-row">
+                    <div className="w-full flex gap-2 flex-wrap flex-col sm:flex-row">
                         {resumeData && handleRegenerate && (
                             <Button variant="primary" className=" w-full whitespace-nowrap" size="small" onClick={handleOptimize}>
                                 <BotIcon size={14} />

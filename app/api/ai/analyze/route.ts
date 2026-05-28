@@ -4,9 +4,12 @@ import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma'
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { createRequestGuard } from '@/lib/ai-request-guard'
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+const analyzeGuard = createRequestGuard(5000)
 
 interface JobDetails extends JobDescription {
   id: string;
@@ -40,6 +43,7 @@ const fetchResume = async (resumeId: string) => {
 }
 
 export async function POST(req: NextRequest) {
+  let requestKey: string | null = null
   try {
 
     let userId: string
@@ -59,9 +63,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const analyzeResumeParams = body.analyzeResumeParams;
     const { resumeId, jobDetails, jobDescriptionId }: { resumeId: string; jobDetails?: JobDetails; jobDescriptionId?: string } = analyzeResumeParams;
+
     console.log(resumeId, jobDetails, jobDescriptionId);
     if (!resumeId || (!jobDetails && !jobDescriptionId)) {
       return NextResponse.json({ error: 'ResumeId and jobDescription are required' }, { status: 400 });
+    }
+
+    requestKey = `analyze:${userId}:${JSON.stringify({ resumeId, jobDetails, jobDescriptionId })}`
+
+    const guardResult = analyzeGuard.tryAcquire(requestKey)
+    if (!guardResult.allowed) {
+      return NextResponse.json(
+        { error: guardResult.message || 'Duplicate request blocked' },
+        { status: guardResult.status || 409 },
+      )
     }
 
     const resumeData = await fetchResume(resumeId);
@@ -123,10 +138,19 @@ export async function POST(req: NextRequest) {
 
     await consumeUsage(userId, 'analysis')
 
+    if (requestKey) {
+      analyzeGuard.release(requestKey)
+      requestKey = null
+    }
+
     return NextResponse.json({
       data: updated
     });
   } catch (error) {
+    if (requestKey) {
+      analyzeGuard.release(requestKey)
+      requestKey = null
+    }
     console.error('Analyze API error:', error);
     return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 });
   }

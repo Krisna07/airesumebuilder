@@ -9,8 +9,8 @@ const nextConfig = {
         contentDispositionType: 'attachment',
         contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     },
-    experimental: {
-        turbo: false // Disable Turbopack, use webpack
+    turbopack: {
+        root: __dirname,
     },
     serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
     async redirects() {

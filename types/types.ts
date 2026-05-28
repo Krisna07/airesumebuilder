@@ -37,6 +37,7 @@ export interface SectionTitleStyle {
   type: SectionTitleType;
   icon: string;           // emoji / unicode char — PDF-safe, no SVG
   iconEnabled: boolean;
+  color: string;
   fontSize: number;
   fontWeight: FontWeight;
   fontStyle: 'normal' | 'italic';
@@ -64,6 +65,8 @@ export interface ResumeStyle {
   sectionOrder: SectionOrder[];
   bodyTextAlign: BodyTextAlign;
   skillsGrouped: boolean;
+  skillsWithBackground: boolean;
+  skillsWithBorder: boolean;
 }
 
 
