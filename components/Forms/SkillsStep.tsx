@@ -51,7 +51,6 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
       }
     }
 
-    setSkills(updatedSkills);
     updateSkills(updatedSkills);
     setSkill('');
     setType('');
@@ -64,7 +63,6 @@ const SkillsStep: React.FC<SkillsStepProps> = ({ data, updateSkills }) => {
         skills: item.skills?.filter((skill) => skill !== skillToRemove)
       }))
       .filter((item) => item.skills && item.skills.length > 0); // Filter out empty skill types
-    setSkills(restSkills);
     updateSkills(restSkills);
   };
 
