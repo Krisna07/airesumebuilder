@@ -48,6 +48,10 @@ const DashboardPage = () => {
     }
   }, [isError, error])
 
+  const hasMinimumData = useCallback((r: { profile?: { fullname?: string; email?: string } }) => {
+    return !!(r.profile?.fullname && r.profile?.email)
+  }, [])
+
   // Calculate stats
   const stats = useMemo(() => {
     if (!resumes) return { total: 0, active: 0, drafts: 0 }
@@ -59,11 +63,16 @@ const DashboardPage = () => {
     return { total, active, drafts }
   }, [resumes])
 
-  // Get recent resumes (last 2)
+  // Get recent resumes (last 6)
   const recentResumes = useMemo(() => {
     if (!resumes) return []
-    return resumes.slice(0, 2)
+    return resumes.slice(0, 6)
   }, [resumes])
+
+  const draftResumes = useMemo(() => {
+    if (!resumes) return []
+    return resumes.filter((resume) => !hasMinimumData(resume))
+  }, [resumes, hasMinimumData])
 
   // Get current date and greeting
   const { currentDate, greeting } = useMemo(() => {
@@ -177,10 +186,6 @@ const DashboardPage = () => {
               <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-lg">
                 <FileText className="h-6 w-6 text-white" />
               </div>
-              <div className="flex items-center gap-1 text-white/80 text-xs font-medium">
-                <ArrowUp className="h-3 w-3" />
-                <span>100%</span>
-              </div>
             </div>
             <div>
               <p className="text-3xl font-bold text-white">{stats.total}</p>
@@ -197,14 +202,11 @@ const DashboardPage = () => {
               <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-lg">
                 <Activity className="h-6 w-6 text-white" />
               </div>
-              <div className="flex items-center gap-1 text-white/80 text-xs font-medium">
-                <ArrowUp className="h-3 w-3" />
-                <span>{stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%</span>
-              </div>
             </div>
             <div>
               <p className="text-3xl font-bold text-white">{stats.active}</p>
               <p className="text-sm text-white/80 font-medium mt-1">Active Resumes</p>
+              <p className="text-[11px] text-white/70 mt-0.5">Preview-ready resumes</p>
             </div>
           </div>
         </div>
@@ -217,13 +219,11 @@ const DashboardPage = () => {
               <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-lg">
                 <FilePlus className="h-6 w-6 text-white" />
               </div>
-              <div className="flex items-center gap-1 text-white/80 text-xs font-medium">
-                <span>{stats.total > 0 ? Math.round((stats.drafts / stats.total) * 100) : 0}%</span>
-              </div>
             </div>
             <div>
               <p className="text-3xl font-bold text-white">{stats.drafts}</p>
               <p className="text-sm text-white/80 font-medium mt-1">Draft Resumes</p>
+              <p className="text-[11px] text-white/70 mt-0.5">Need name and email to preview</p>
             </div>
           </div>
         </div>
@@ -253,18 +253,70 @@ const DashboardPage = () => {
       {/* Recent Resumes with Enhanced Styling */}
       {recentResumes.length > 0 && (
         <section className="space-y-4 anim-fade-in-soft" style={{ animationDelay: '150ms' }}>
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-              Recent Resumes
-            </h2>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Recent Resumes
+              </h2>
+              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {recentResumes.length}
+              </span>
+            </div>
+            <Link
+              href="/builder/resumes"
+              className="text-sm font-medium text-slate-600 hover:text-teal-600 dark:text-slate-300 dark:hover:text-teal-300"
+            >
+              View all resumes
+            </Link>
           </div>
-          <div className="relative p-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
               {recentResumes.map((resume) => (
-                <PreviewContainer key={resume.id} resume={resume} onDeleted={handleResumeDeleted} showDeleteOption={false} />
+                <PreviewContainer
+                  key={resume.id}
+                  resume={resume}
+                  onDeleted={handleResumeDeleted}
+                  showDeleteOption={!hasMinimumData(resume)}
+                  appearance="flat"
+                  size="compact"
+                />
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {draftResumes.length > 0 && (
+        <section className="space-y-4 anim-fade-in-soft" style={{ animationDelay: '175ms' }}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <FilePlus className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-amber-700 to-amber-600 dark:from-amber-300 dark:to-amber-200 bg-clip-text text-transparent">
+                Draft Resumes
+              </h2>
+              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+                {draftResumes.length}
+              </span>
+            </div>
+            <Link
+              href="/builder/resumes"
+              className="text-sm font-medium text-slate-600 hover:text-teal-600 dark:text-slate-300 dark:hover:text-teal-300"
+            >
+              View all resumes
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+            {draftResumes.map((resume) => (
+              <PreviewContainer
+                key={`draft-${resume.id}`}
+                resume={resume}
+                onDeleted={handleResumeDeleted}
+                showDeleteOption={true}
+                appearance="flat"
+                size="compact"
+              />
+            ))}
           </div>
         </section>
       )}
@@ -328,40 +380,9 @@ const DashboardPage = () => {
             Usage & Subscription
           </h2>
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className={`grid gap-4 ${subscription && subscription.plan !== 'FREE' ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
           {/* Subscription Status */}
           <SubscriptionStatus className="rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300" />
-
-          {/* Upgrade CTA (if on free plan) */}
-          {subscription?.plan === 'FREE' && (
-            <div className="relative overflow-hidden bg-gradient-to-br from-teal-50 via-teal-100 to-emerald-50 dark:from-teal-900/20 dark:via-teal-800/20 dark:to-emerald-900/20 border-2 border-teal-200 dark:border-teal-700 rounded-xl p-6 space-y-4 shadow-md hover:shadow-xl transition-all duration-300 group">
-              {/* Animated Background Pattern */}
-              <div className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-                  backgroundSize: '24px 24px'
-                }} />
-              </div>
-
-              <div className="relative z-10 space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-200/50 dark:bg-teal-700/50 rounded-full">
-                  <Sparkles className="h-4 w-4 text-teal-700 dark:text-teal-300" />
-                  <span className="text-xs font-semibold text-teal-900 dark:text-teal-100">Upgrade Available</span>
-                </div>
-                <h3 className="text-lg font-bold bg-gradient-to-r from-teal-700 to-emerald-700 dark:from-teal-300 dark:to-emerald-300 bg-clip-text text-transparent">
-                  Unlock Unlimited Power
-                </h3>
-                <p className="text-sm text-teal-700 dark:text-teal-300 leading-relaxed">
-                  Get unlimited resumes, downloads, cover letters, and AI analysis with our premium plans.
-                </p>
-                <Link href="/pricing">
-                  <Button variant="primary" size="medium" className="w-full animate-pulse-glow hover:scale-105 transition-transform duration-300">
-                    View Pricing Plans
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
 
           {/* Plan Info (if on paid plan) */}
           {subscription && subscription.plan !== 'FREE' && (

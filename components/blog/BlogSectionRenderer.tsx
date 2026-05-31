@@ -4,6 +4,26 @@ interface BlogSectionRendererProps {
   section: BlogSection
 }
 
+function normalizeFaqItem(item: string): string {
+  const trimmedItem = item.trim()
+
+  // Handle compact FAQ content like: Q:Question?A:Answer
+  const compactFaqMatch = trimmedItem.match(
+    /^(?:<strong>)?\s*Q:\s*(.*?)(?:<\/strong>)?\s*(?:<br\s*\/?>|\s+)?\s*A:\s*([\s\S]*)$/i
+  )
+
+  if (compactFaqMatch) {
+    const question = compactFaqMatch[1].trim()
+    const answer = compactFaqMatch[2].trim()
+    return `<strong>Q: ${question}</strong><br />A: ${answer}`
+  }
+
+  // Fallback cleanup for partially formatted FAQ strings.
+  return trimmedItem
+    .replace(/<strong>\s*Q:\s*/i, '<strong>Q: ')
+    .replace(/<\/strong>\s*(?:<br\s*\/?>)?\s*A:\s*/i, '</strong><br />A: ')
+}
+
 export default function BlogSectionRenderer({ section }: BlogSectionRendererProps) {
   if (section.type === 'heading') {
     const Tag = `h${section.level}` as 'h2' | 'h3' | 'h4'
@@ -33,7 +53,7 @@ export default function BlogSectionRenderer({ section }: BlogSectionRendererProp
   if (section.type === 'list') {
     // Detect if this is an FAQ list
     const isFaqList = section.items.some(item =>
-      item.trim().startsWith('<strong>Q:') ||
+      /^\s*(?:<strong>\s*)?Q:/i.test(item.trim()) ||
       item.includes('<strong>Q:')
     )
 
@@ -44,7 +64,7 @@ export default function BlogSectionRenderer({ section }: BlogSectionRendererProp
             <li
               key={`${section.id}-item-${idx}`}
               className="pl-4 border-l-2 border-teal-500/30 py-2"
-              dangerouslySetInnerHTML={{ __html: item }}
+              dangerouslySetInnerHTML={{ __html: normalizeFaqItem(item) }}
             />
           ))}
         </ul>

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/authContext'
 import Button from './Ui/Button';
 
 const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
-  const { verifyCode, resendVerification, user } = useAuth()
+  const { verifyCode, resendVerification, user, verificationExpiresAt, getVerificationStatus } = useAuth()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
@@ -13,23 +13,24 @@ const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ o
   const resendCooldownRef = useRef(false)
   
   useEffect(() => {
-    // Fetch current verification expiry for this user to display the timer
-    const fetchExpiry = async () => {
-      try {
-        if (!user?.email) return
-        const url = `/api/auth/verification?email=${encodeURIComponent(user.email)}`
-        const resp = await fetch(url)
-        if (!resp.ok) return
-        const data = await resp.json()
-        const e = data?.verification?.expiresAt ?? null
-        setExpiresAt(e)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (err) {
-        // ignore
-      }
+    if (!open || !user?.email) return
+
+    let mounted = true
+    const resolveVerificationStatus = async () => {
+      const status = await getVerificationStatus(false)
+      if (!mounted) return
+      setExpiresAt(status.expiresAt)
     }
-    fetchExpiry()
-  }, [user, open])
+
+    void resolveVerificationStatus()
+    return () => {
+      mounted = false
+    }
+  }, [user?.email, open, getVerificationStatus])
+
+  useEffect(() => {
+    setExpiresAt(verificationExpiresAt)
+  }, [verificationExpiresAt])
 
   useEffect(() => {
     if (!expiresAt) {

@@ -15,7 +15,7 @@
     "subscription:test": "ts-node scripts/subscription-tests.ts",
     "test:blog-cron": "tsx scripts/test-blog-cron.ts",
     "test:refresh-cron": "tsx scripts/test-refresh-cron.ts",
-    "postinstall": "npx puppeteer browsers install chrome && npx playwright install chromium --with-deps",
+    "postinstall": "node -e \"if (!process.env.VERCEL && !process.env.CI) { require('child_process').execSync('npx puppeteer browsers install chrome && npx playwright install chromium --with-deps', {stdio: 'inherit'}) }\"",
     "studio": "sanity start"
   },
   "dependencies": {

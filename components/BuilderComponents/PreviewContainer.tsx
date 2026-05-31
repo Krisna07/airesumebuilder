@@ -15,12 +15,15 @@ interface PreviewContainerProps {
   onDeleted: (id: string) => void
   index?: number
   showDeleteOption?: boolean
+  appearance?: 'default' | 'flat'
+  size?: 'default' | 'compact'
 }
 
-const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDeleted, showDeleteOption = true }) => {
+const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDeleted, showDeleteOption = true, appearance = 'default', size = 'default' }) => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isGone, setIsGone] = useState(false)
+  const [showDraftActions, setShowDraftActions] = useState(false)
   const router = useRouter()
 
   const hasMinimumData = useCallback((r: ResumeData) => {
@@ -65,13 +68,34 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
     if (!isDeleting) setShowConfirm(false)
   }, [isDeleting])
 
+  const handleToggleDraftActions = useCallback(() => {
+    setShowDraftActions((prev) => !prev)
+  }, [])
+
+  const handleEditFromDraftPanel = useCallback(() => {
+    setShowDraftActions(false)
+    handleEdit()
+  }, [handleEdit])
+
+  const handleDeleteFromDraftPanel = useCallback(() => {
+    setShowDraftActions(false)
+    setShowConfirm(true)
+  }, [])
+
+  const isFlat = appearance === 'flat'
+  const isCompact = size === 'compact'
+  const isPreviewReady = hasMinimumData(resume)
+  const isDraft = !isPreviewReady
+
   return (
     <>
       <div
         tabIndex={0}
-        className={`group relative min-h-[300px] w-full overflow-hidden rounded-2xl border border-transparent p-2 shadow-[0_0_4px_0_gray] dark:shadow-slate-700 select-none transition-all duration-300 
-          focus-within:shadow-[0_4px_12px_-1px_rgba(20,184,166,0.4)] hover:shadow-[0_4px_12px_-1px_rgba(20,184,166,0.4)] 
-          dark:bg-slate-800 ${isGone ? "opacity-0 scale-90 pointer-events-none" : "anim-fade-scale"}`}
+        className={`group relative w-full overflow-hidden rounded-2xl ${isCompact ? 'min-h-[220px] p-1' : 'min-h-[300px] p-2'} select-none transition-all duration-300 
+          ${isFlat
+            ? 'bg-transparent border-0 shadow-none'
+            : 'border border-transparent shadow-[0_0_4px_0_gray] dark:shadow-slate-700 focus-within:shadow-[0_4px_12px_-1px_rgba(20,184,166,0.4)] hover:shadow-[0_4px_12px_-1px_rgba(20,184,166,0.4)] dark:bg-slate-800'
+          } ${isGone ? "opacity-0 scale-90 pointer-events-none" : "anim-fade-scale"}`}
       >
         {/* Resume Preview Background */}
         <div
@@ -84,6 +108,36 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
         <div className="-z-10 group-hover:blur-[1.5px] group-hover:scale-[1.05] group-focus-within:scale-[1.05] group-focus-within:blur-[1.5px] transition-all">
           <ResumePreview template={resume.template} resumeData={resume} />
         </div>
+
+        {isDraft && (
+          <div className="absolute left-3 top-3 z-30">
+            <button
+              type="button"
+              onClick={handleToggleDraftActions}
+              className="inline-flex items-center rounded-full border border-amber-300/80 dark:border-amber-700/80 bg-amber-50/95 dark:bg-amber-900/80 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
+              aria-expanded={showDraftActions}
+              aria-label="Open draft actions"
+            >
+              Draft
+            </button>
+          </div>
+        )}
+
+        {isDraft && showDraftActions && (
+          <div className="absolute left-3 right-3 top-12 z-30 rounded-xl border border-amber-200 dark:border-amber-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm p-3 space-y-2">
+            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">This resume is incomplete. You can continue editing or remove the draft.</p>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleEditFromDraftPanel} variant="secondary" size="small" className="flex-1">
+                Edit Draft
+              </Button>
+              {showDeleteOption && (
+                <Button onClick={handleDeleteFromDraftPanel} variant="danger" size="small" className="flex-1" disabled={isDeleting}>
+                  Remove Draft
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Delete Icon */}
         {showDeleteOption && (
@@ -104,7 +158,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
             transition-all duration-500 ease-out group-hover:translate-y-0 group-focus-within:translate-y-0 
             ${isDeleting ? "opacity-50 pointer-events-none" : ""}`}
         >
-          {hasMinimumData(resume) && (
+          {isPreviewReady && (
             <Button onClick={handlePreview} variant="primary" size="small" className="flex-1">
               Preview
             </Button>
@@ -112,7 +166,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
           <Button onClick={handleEdit} variant="secondary" size="small" className="flex-1">
             Edit
           </Button>
-          {showDeleteOption && !hasMinimumData(resume) && (
+          {showDeleteOption && isDraft && (
             <Button
               onClick={handleShowConfirm}
               variant="danger"

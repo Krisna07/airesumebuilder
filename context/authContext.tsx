@@ -25,6 +25,8 @@ interface AuthContextType {
   register: (user: RegisterData) => Promise<void>
   verifyCode: (code: string) => Promise<boolean>
   resendVerification: () => Promise<{ expiresAt?: string | null } | null>
+  verificationExpiresAt: string | null
+  getVerificationStatus: (forceRefresh?: boolean) => Promise<{ isVerified: boolean; expiresAt: string | null }>
   isGuest: boolean
   migrateGuestData: () => Promise<void>
   subscription: Subscription | null
@@ -36,11 +38,73 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const VERIFICATION_CACHE_KEY = 'auth:verification:cache:v1'
+const VERIFICATION_INACTIVITY_MS = 60 * 60 * 1000
+
+type VerificationCachePayload = {
+  email: string
+  isVerified: boolean
+  expiresAt: string | null
+  lastCheckedAt: number
+  lastActiveAt: number
+}
+
+const readVerificationCache = (email: string | null | undefined): VerificationCachePayload | null => {
+  if (typeof window === 'undefined' || !email) return null
+
+  try {
+    const raw = sessionStorage.getItem(VERIFICATION_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as VerificationCachePayload
+
+    if (parsed.email !== email) {
+      sessionStorage.removeItem(VERIFICATION_CACHE_KEY)
+      return null
+    }
+
+    if (!parsed.lastActiveAt || Date.now() - parsed.lastActiveAt > VERIFICATION_INACTIVITY_MS) {
+      sessionStorage.removeItem(VERIFICATION_CACHE_KEY)
+      return null
+    }
+
+    return parsed
+  } catch {
+    sessionStorage.removeItem(VERIFICATION_CACHE_KEY)
+    return null
+  }
+}
+
+const writeVerificationCache = (payload: { email: string; isVerified: boolean; expiresAt: string | null }) => {
+  if (typeof window === 'undefined') return
+  const now = Date.now()
+  const cachePayload: VerificationCachePayload = {
+    ...payload,
+    lastCheckedAt: now,
+    lastActiveAt: now,
+  }
+  sessionStorage.setItem(VERIFICATION_CACHE_KEY, JSON.stringify(cachePayload))
+}
+
+const touchVerificationCache = (email: string | null | undefined) => {
+  if (typeof window === 'undefined' || !email) return
+  const current = readVerificationCache(email)
+  if (!current) return
+  current.lastActiveAt = Date.now()
+  sessionStorage.setItem(VERIFICATION_CACHE_KEY, JSON.stringify(current))
+}
+
+const clearVerificationCache = () => {
+  if (typeof window === 'undefined') return
+  sessionStorage.removeItem(VERIFICATION_CACHE_KEY)
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
+  const [verificationExpiresAt, setVerificationExpiresAt] = useState<string | null>(null)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const subscriptionRef = useRef<Subscription | null>(null)
+  const verificationInflightRef = useRef<Promise<{ isVerified: boolean; expiresAt: string | null }> | null>(null)
   const sessionUser = session?.user
 
   const sessionDerivedUser = useMemo<User | null>(() => {
@@ -60,6 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [sessionUser])
 
   const toast = useToast()
+  const effectiveUser = useMemo<User | null>(() => user ?? sessionDerivedUser, [user, sessionDerivedUser])
   const register = async (user: RegisterData) => {
     const response = await UserService.createUser(user)
     const data = await response.json()
@@ -189,6 +254,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [getSubscription])
 
+  const getVerificationStatus = useCallback(async (forceRefresh = false) => {
+    const email = effectiveUser?.email
+    const alreadyVerified = Boolean(effectiveUser?.isVerified)
+
+    if (!email) {
+      return { isVerified: false, expiresAt: null }
+    }
+
+    if (alreadyVerified) {
+      setVerificationExpiresAt(null)
+      writeVerificationCache({ email, isVerified: true, expiresAt: null })
+      return { isVerified: true, expiresAt: null }
+    }
+
+    const cached = !forceRefresh ? readVerificationCache(email) : null
+    if (cached) {
+      setVerificationExpiresAt(cached.expiresAt)
+      return { isVerified: cached.isVerified, expiresAt: cached.expiresAt }
+    }
+
+    if (verificationInflightRef.current) {
+      return verificationInflightRef.current
+    }
+
+    verificationInflightRef.current = (async () => {
+      try {
+        const url = `/api/auth/verification?email=${encodeURIComponent(email)}`
+        const resp = await fetch(url)
+        if (!resp.ok) {
+          return { isVerified: false, expiresAt: null }
+        }
+
+        const data = await resp.json()
+        const nextExpiresAt = data?.verification?.expiresAt ?? null
+        setVerificationExpiresAt(nextExpiresAt)
+        writeVerificationCache({ email, isVerified: false, expiresAt: nextExpiresAt })
+        return { isVerified: false, expiresAt: nextExpiresAt }
+      } catch (err) {
+        console.error('Error fetching verification status:', err)
+        return { isVerified: false, expiresAt: null }
+      } finally {
+        verificationInflightRef.current = null
+      }
+    })()
+
+    return verificationInflightRef.current
+  }, [effectiveUser?.email, effectiveUser?.isVerified])
+
   useEffect(() => {
     const getUser = async () => {
       if (sessionUser) {
@@ -205,6 +318,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     getUser()
   }, [sessionUser])
+
+  useEffect(() => {
+    const email = effectiveUser?.email
+    if (!email) {
+      setVerificationExpiresAt(null)
+      return
+    }
+
+    const cached = readVerificationCache(email)
+    if (cached) {
+      setVerificationExpiresAt(cached.expiresAt)
+      if (cached.isVerified) {
+        setUser(prev => (prev ? { ...prev, isVerified: true } : prev))
+      }
+      return
+    }
+
+    void getVerificationStatus(false)
+  }, [effectiveUser?.email, getVerificationStatus])
+
+  useEffect(() => {
+    const email = effectiveUser?.email
+    if (!email) return
+
+    const onActivity = () => touchVerificationCache(email)
+    const events: Array<keyof WindowEventMap> = ['click', 'keydown', 'mousemove', 'touchstart', 'scroll']
+    events.forEach((eventName) => window.addEventListener(eventName, onActivity, { passive: true }))
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        onActivity()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      events.forEach((eventName) => window.removeEventListener(eventName, onActivity))
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [effectiveUser?.email])
 
   useEffect(() => {
     if (user?.id && !subscription) {
@@ -237,11 +390,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const loading = status === 'loading'
-  const userDetail = useMemo(() => user ?? sessionDerivedUser, [user, sessionDerivedUser])
-  const isGuest = !userDetail && !loading
+  const isGuest = !effectiveUser && !loading
 
   const logOut = async () => {
     setUser(null);
+    clearVerificationCache()
     sessionStorage.removeItem('user');
     sessionStorage.clear()
     // Prevent NEXTAUTH_URL from forcing prod domain; we handle redirect manually
@@ -256,7 +409,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // server to mark the user verified and updates local user state.
   const verifyCode = async (code: string) => {
     try {
-      if (!user?.email) {
+      if (!effectiveUser?.email) {
         toast.showToast('No user email available for verification', 'error', 3000)
         return false
       }
@@ -264,7 +417,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const resp = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, code }),
+        body: JSON.stringify({ email: effectiveUser.email, code }),
       })
 
       const result = await resp.json()
@@ -275,6 +428,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Update local user state
       setUser(prev => prev ? { ...prev, isVerified: true } : prev)
+      if (effectiveUser?.email) {
+        writeVerificationCache({ email: effectiveUser.email, isVerified: true, expiresAt: null })
+      }
+      setVerificationExpiresAt(null)
       toast.showToast('Email verified successfully!', 'success', 3000)
       return true
     } catch (err) {
@@ -286,7 +443,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resendVerification = async () => {
     try {
-      if (!user?.email) {
+      if (!effectiveUser?.email) {
         toast.showToast('No user email available to resend code', 'error', 3000)
         return null
       }
@@ -294,7 +451,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const resp = await fetch('/api/auth/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email }),
+        body: JSON.stringify({ email: effectiveUser.email }),
       })
 
       if (!resp.ok) {
@@ -304,8 +461,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const data = await resp.json()
+      const nextExpiresAt = data.expiresAt ?? null
+      if (effectiveUser?.email) {
+        writeVerificationCache({ email: effectiveUser.email, isVerified: false, expiresAt: nextExpiresAt })
+      }
+      setVerificationExpiresAt(nextExpiresAt)
       toast.showToast('Verification code resent', 'success', 2500)
-      return { expiresAt: data.expiresAt }
+      return { expiresAt: nextExpiresAt }
     } catch (err) {
       console.error('Error resending verification code', err)
       toast.showToast('Error resending code', 'error', 3000)
@@ -314,7 +476,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
   return (
     <AuthContext.Provider value={{
-      user: userDetail,
+      user: effectiveUser,
       loading,
       signIn,
       logOut,
@@ -322,6 +484,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       register,
       verifyCode,
       resendVerification,
+      verificationExpiresAt,
+      getVerificationStatus,
       subscription,
       getSubscription,
       setSubscriptionPlan,
