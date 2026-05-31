@@ -21,6 +21,7 @@ import {
     isValidAnalysisResult,
     isValidCoverLetter
 } from "@/lib/aiSchemas";
+import { captureServerError } from "@/lib/monitoring/server";
 import { callGeminiModel } from "@/services/geminiService";
 import { callOpenRouterModel } from "@/services/openRouterService";
 import { geminiModels, MODEL_ROUTING, openRouterModels } from "@/services/aiModelConfig";
@@ -198,6 +199,12 @@ async function callAIWithSchema(
             return await callOpenRouterWithSchema(prompt, outputSchema, 3);
         } catch (openRouterError: any) {
             console.error('All OpenRouter models failed:', openRouterError?.message);
+            await captureServerError(openRouterError, {
+                source: 'AIService.callAIWithSchema',
+                severity: 'critical',
+                tags: ['ai', 'provider-fallback-failure'],
+                extra: { taskType },
+            });
             throw new Error(`AI service exhausted all providers: ${openRouterError?.message || 'Unknown error'}`);
         }
     }
@@ -262,6 +269,11 @@ export class AIService {
             return response as ResumeData;
         } catch (error: any) {
             console.error("Error generating resume:", error?.message || error);
+            await captureServerError(error, {
+                source: 'AIService.generateResume',
+                severity: 'critical',
+                tags: ['ai', 'resume-generation'],
+            });
             throw new Error("Failed to generate resume");
         }
     }
@@ -320,6 +332,11 @@ export class AIService {
             return response as AnalysisResult;
         } catch (error: any) {
             console.error("Error analyzing resume:", error?.message || error);
+            await captureServerError(error, {
+                source: 'AIService.analyzeResume',
+                severity: 'error',
+                tags: ['ai', 'resume-analysis'],
+            });
             throw new Error("Failed to analyze resume");
         }
     }

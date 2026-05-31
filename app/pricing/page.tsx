@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import PricingClient from './PricingClient'
 
 export const metadata: Metadata = {
-  title: 'Pricing',
+  title: 'AI Resume Builder Pricing | Free and Pro Plan Options',
   description: 'Simple, transparent pricing for AI Resume Craft. Start free and upgrade when you need more AI-powered resume features. No hidden fees.',
   alternates: {
     canonical: 'https://airesumecraft.xyz/pricing',

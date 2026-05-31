@@ -76,6 +76,7 @@ const TemplateSlider = () => {
               <ResumePreview
                 resumeData={mockResume}
                 template={template.name}
+                deferUntilVisible
                 className='pointer-events-none h-full w-full rounded p-0! aspect-3/4!'
               />
 

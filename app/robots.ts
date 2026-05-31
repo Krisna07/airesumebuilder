@@ -4,9 +4,10 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/', '/blogs', '/features', '/blogs/', '/builder', '/contact', '/pricing', '/privacy', '/terms'],
-      disallow: ['/api/', '/account/', '/auth/', '/addblog/', '/addblogs/'],
+      allow: ['/', '/llms.txt', '/blogs', '/features', '/blogs/', '/contact', '/pricing', '/privacy', '/terms'],
+      disallow: ['/api/', '/account/', '/auth/', '/addblog/', '/addblogs/', '/builder', '/builder/'],
     },
+    host: 'https://airesumecraft.xyz',
     sitemap: 'https://airesumecraft.xyz/sitemap.xml',
   }
 }

@@ -23,6 +23,7 @@ import LiquidNav from './LiqidNav';
 import StylePanel from './StylePanel';
 import { ResumeStyle } from '@/types/types';
 import { DEFAULT_RESUME_STYLE } from '@/lib/defaultStyle';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '@/lib/analytics/events';
 
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
@@ -261,6 +262,10 @@ const PreviewPage = () => {
       try {
         await ResumeService.save(user.id, slug, templateId, updatedData);
         ResumeCache.markSynced(slug);
+        trackAnalyticsEvent(ANALYTICS_EVENTS.RESUME_SAVE, {
+          source: 'template_change',
+          resume_id: slug,
+        });
         showToast('Template updated', 'success', 1500);
       } catch {
         showToast('Failed to save template', 'error', 2000);
@@ -331,7 +336,7 @@ const PreviewPage = () => {
     setDownloading(true);
     setRegenerating(true);
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch('/api/download/v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -343,7 +348,7 @@ const PreviewPage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ PDF generation error:', errorData);
+        console.error('PDF generation error:', errorData);
         showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
         return;
       }
@@ -366,14 +371,13 @@ const PreviewPage = () => {
       showToast('PDF downloaded', 'success', 1500);
       await refreshUsageState();
     } catch (error) {
-      console.error('❌ PDF download error:', error);
+      console.error('PDF download error:', error);
       showToast('Error generating PDF. Please try again.', 'error', 3000);
     } finally {
       setDownloading(false);
       setRegenerating(false);
     }
   };
-
 
   const performDelete = async () => {
     if (!resumeData) return;
@@ -444,6 +448,10 @@ const PreviewPage = () => {
 
       ResumeCache.set(slug, nextResume, false);
       setResumeData(nextResume);
+      trackAnalyticsEvent(ANALYTICS_EVENTS.RESUME_SAVE, {
+        source: 'ai_regeneration',
+        resume_id: slug,
+      });
       showToast('Resume has been regenerated Successfully', 'success', 3000);
       await refreshUsageState();
       return;
@@ -585,18 +593,18 @@ const PreviewPage = () => {
   // Unified rendering logic to prevent 'No Resume Data' flash
   if (loadingResume || (!resumeData && status === 'loading')) {
     return (
-      <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="w-full min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-6 transition-colors duration-200">
         <div className="w-full max-w-5xl grid gap-8">
-          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-10 w-64 rounded-md bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
+                className="h-28 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 animate-pulse"
               />
             ))}
           </div>
-          <div className="h-[70vh] w-full rounded-2xl border border-dashed border-gray-300 bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_12px,#eee_12px,#eee_24px)] animate-pulse" />
+          <div className="h-[70vh] w-full rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 bg-[repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5_12px,#eee_12px,#eee_24px)] dark:bg-[repeating-linear-gradient(45deg,#0f172a,#0f172a_12px,#1e293b_12px,#1e293b_24px)] animate-pulse" />
         </div>
       </div>
     );
@@ -733,7 +741,6 @@ const PreviewPage = () => {
               >
                 <Download size={16} /> Download
               </button>
-
               <button
                 onClick={() => handleRegerate(resumeData, selectedAnalysis)}
                 className={`max-[500px]:w-full ${actionButtonBase} border-emerald-200 dark:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 ${generating ? 'animate-pulse' : 'hover:bg-emerald-100 dark:hover:bg-emerald-900/50'} ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}

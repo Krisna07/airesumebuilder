@@ -84,6 +84,7 @@ export default async function BlogResourcesSection() {
                         src={`/api/blog-images/${post.coverImageId}`}
                         alt={post.title}
                         fill
+                        sizes="(max-width: 767px) 100vw, 33vw"
                         className="object-cover"
                       />
                     </div>

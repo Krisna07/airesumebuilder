@@ -12,7 +12,20 @@ const nextConfig = {
     turbopack: {
         root: __dirname,
     },
-    serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+    serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium', 'playwright-core', 'playwright'],
+    async headers() {
+        return [
+            {
+                source: '/builder/:path*',
+                headers: [
+                    {
+                        key: 'X-Robots-Tag',
+                        value: 'noindex, nofollow, noarchive, nosnippet, noimageindex',
+                    },
+                ],
+            },
+        ]
+    },
     async redirects() {
         return [
             {
@@ -47,7 +60,9 @@ const nextConfig = {
                 'pdfjs-dist',
                 'puppeteer',
                 'puppeteer-core',
-                '@sparticuz/chromium'
+                '@sparticuz/chromium',
+                'playwright',
+                'playwright-core'
             ];
         }
         return config;

@@ -11,8 +11,6 @@ const chromiumArch = process.arch === 'arm64' ? 'arm64' : 'x64';
 const remotePackUrl = `https://github.com/Sparticuz/chromium/releases/download/v${chromiumVersion}/chromium-v${chromiumVersion}-pack.${chromiumArch}.tar`;
 
 export async function POST(req: NextRequest) {
-    let browser = null;
-
     try {
         const body = await req.json();
         let content = body.content;
@@ -32,7 +30,8 @@ export async function POST(req: NextRequest) {
         const isProd = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 
         // Match the preview component's PAGE_WIDTH_PX (794) and PAGE_HEIGHT_PX (1123)
-        const viewport = {
+        const playwrightViewport = { width: 794, height: 1123 };
+        const puppeteerViewport = {
             deviceScaleFactor: 1,
             hasTouch: false,
             height: 1123,
@@ -41,38 +40,7 @@ export async function POST(req: NextRequest) {
             width: 794,
         };
 
-        // 3. Launch Browser (dynamic imports avoid bundling heavy binaries unnecessarily)
-        if (isProd) {
-            const puppeteer = await import('puppeteer-core');
-            const chromium = (await import('@sparticuz/chromium')).default;
-
-            browser = await puppeteer.launch({
-                args: puppeteer.defaultArgs({ args: chromium.args, headless: 'shell' }),
-                defaultViewport: viewport,
-                executablePath: await chromium.executablePath(remotePackUrl),
-                headless: 'shell',
-            });
-        } else {
-            const puppeteer = await import('puppeteer');
-            const executablePath = typeof puppeteer.executablePath === 'function'
-                ? await puppeteer.executablePath()
-                : puppeteer.executablePath;
-
-            browser = await puppeteer.launch({
-                args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox', '--disable-extensions'],
-                defaultViewport: viewport,
-                executablePath,
-                headless: true,
-            });
-        }
-
-        // 4. Create page
-        const page = await browser.newPage();
-        
-        // Use 'networkidle0' to ensure all CSS/Images are loaded before PDFing
-        await page.setContent(content, { waitUntil: 'networkidle0' });
-
-        // 5. PDF Configuration
+        // 3. PDF margin config
         const pageGap = body.pageGap || {
             top: '4mm',
             bottom: '4mm',
@@ -80,15 +48,79 @@ export async function POST(req: NextRequest) {
             right: '10mm',
         };
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: pageGap,
-            preferCSSPageSize: false,
-        });
+        let pdfBuffer!: Buffer;
 
-        // 6. Cleanup
-        await browser.close();
+        // ── Playwright (primary) ──────────────────────────────────────────────
+        try {
+            let pwBrowser: any;
+            if (isProd) {
+                const { chromium } = await import('playwright-core');
+                const chromiumBin = (await import('@sparticuz/chromium')).default;
+                pwBrowser = await chromium.launch({
+                    args: chromiumBin.args,
+                    executablePath: await chromiumBin.executablePath(remotePackUrl),
+                    headless: true,
+                });
+            } else {
+                const { chromium } = await import('playwright');
+                pwBrowser = await chromium.launch({
+                    args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox', '--disable-extensions'],
+                    headless: true,
+                });
+            }
+            const ctx = await pwBrowser.newContext({ viewport: playwrightViewport });
+            const pwPage = await ctx.newPage();
+            await pwPage.setContent(content, { waitUntil: 'networkidle' });
+            pdfBuffer = await pwPage.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: pageGap,
+                preferCSSPageSize: false,
+            });
+            await pwBrowser.close();
+            console.log('[pdf] playwright success');
+        } catch (playwrightError) {
+            console.warn('[pdf] playwright failed, falling back to puppeteer:', playwrightError instanceof Error ? playwrightError.message : playwrightError);
+
+            // ── Puppeteer (fallback) ──────────────────────────────────────────
+            let puppeteerBrowser: any;
+            try {
+                if (isProd) {
+                    const puppeteer = await import('puppeteer-core');
+                    const chromiumBin = (await import('@sparticuz/chromium')).default;
+                    puppeteerBrowser = await puppeteer.launch({
+                        args: puppeteer.defaultArgs({ args: chromiumBin.args, headless: 'shell' }),
+                        defaultViewport: puppeteerViewport,
+                        executablePath: await chromiumBin.executablePath(remotePackUrl),
+                        headless: 'shell',
+                    });
+                } else {
+                    const puppeteer = await import('puppeteer');
+                    const executablePath = typeof puppeteer.executablePath === 'function'
+                        ? await puppeteer.executablePath()
+                        : puppeteer.executablePath;
+                    puppeteerBrowser = await puppeteer.launch({
+                        args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox', '--disable-extensions'],
+                        defaultViewport: puppeteerViewport,
+                        executablePath,
+                        headless: true,
+                    });
+                }
+                const page = await puppeteerBrowser.newPage();
+                await page.setContent(content, { waitUntil: 'networkidle0' });
+                pdfBuffer = await page.pdf({
+                    format: 'A4',
+                    printBackground: true,
+                    margin: pageGap,
+                    preferCSSPageSize: false,
+                });
+                await puppeteerBrowser.close();
+                console.log('[pdf] puppeteer fallback success');
+            } catch (puppeteerError) {
+                if (puppeteerBrowser) await puppeteerBrowser.close().catch(() => { });
+                throw puppeteerError;
+            }
+        }
 
         // 7. Prepare Filename
         const filename = body.resumeData?.profile?.fullname
@@ -96,9 +128,7 @@ export async function POST(req: NextRequest) {
             : 'Resume.pdf';
 
         // 8. Return PDF Response
-        const pdfArrayBuffer = Uint8Array.from(pdfBuffer).buffer;
-
-        return new NextResponse(pdfArrayBuffer, {
+        return new NextResponse(Uint8Array.from(pdfBuffer), {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `attachment; filename="${filename}"`,
@@ -108,8 +138,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('❌ PDF Generation Error:', error);
-        
-        if (browser) await (browser as any).close();
 
         return NextResponse.json({
             error: 'PDF generation failed',

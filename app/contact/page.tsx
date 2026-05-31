@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import ContactForm from './ContactForm'
 
 export const metadata: Metadata = {
-  title: 'Contact Us',
+  title: 'Contact AI Resume Builder Team | Support and Partnerships',
   description: 'Get in touch with the AI Resume Craft team. Send us feedback, bug reports, or partnership inquiries and we\'ll respond as soon as possible.',
   alternates: {
     canonical: 'https://airesumecraft.xyz/contact',

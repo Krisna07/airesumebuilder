@@ -1,5 +1,12 @@
 "use client"
-import TemplateSlider from "./TemplateSlider"
+import dynamic from "next/dynamic"
+
+const TemplateSlider = dynamic(() => import("./TemplateSlider"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 sm:h-[360px] md:h-[420px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60" />
+  ),
+})
 
 const TemplatesSection = () => {
 

@@ -1,19 +1,22 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { Suspense } from 'react';
 import './global.css';
 import Providers from '@/components/Providers';
 import { ToastContainer } from 'react-toastify';
 import ConditionalLayout from '@/components/ConditionalLayout';
+import TelemetryBootstrap from '@/components/TelemetryBootstrap';
 
 const inter = Inter({ subsets: ['latin'] });
+const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://airesumecraft.xyz'),
   title: {
-    default: 'AireResumeBuilder - Free AI Resume Builder | AI Resume Craft',
-    template: '%s | AireResumeBuilder',
+    default: 'AI Resume Craft | Free AI Resume Builder',
+    template: '%s | AI Resume Craft',
   },
-  description: 'AireResumeBuilder helps you build, tailor, and optimize your resume for free with AI. Create ATS-friendly resumes and land interviews faster.',
+  description: 'Use our AI resume builder to create ATS-friendly resumes in minutes, tailor sections for each job, and download polished PDFs for free.',
   keywords: [
     'AireResumeBuilder',
     'aire resume builder',
@@ -70,6 +73,13 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  ...(googleSiteVerification
+    ? {
+      verification: {
+        google: googleSiteVerification,
+      },
+    }
+    : {}),
 
 };
 
@@ -82,15 +92,17 @@ export default function RootLayout({
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': 'https://airesumecraft.xyz/#organization',
     name: 'AI Resume Craft',
     url: 'https://airesumecraft.xyz',
     logo: 'https://airesumecraft.xyz/icon.svg',
     description: 'Free AI-powered resume builder to help you create professional resumes and land your dream job',
     sameAs: [
-      // Add your social media profiles here
       'https://x.com/airesumecraft',
-      // 'https://linkedin.com/company/airesumecraft',
-      // 'https://facebook.com/airesumecraft',
+      'https://www.linkedin.com/company/airesumecraft',
+      'https://www.facebook.com/airesumecraft',
+      'https://www.instagram.com/airesumecraft',
+      'https://www.youtube.com/@airesumecraft',
     ],
     contactPoint: {
       '@type': 'ContactPoint',
@@ -103,6 +115,7 @@ export default function RootLayout({
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': 'https://airesumecraft.xyz/#website',
     name: 'AI Resume Craft',
     url: 'https://airesumecraft.xyz',
     description: 'Free AI-powered resume builder',
@@ -155,7 +168,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} w-full min-h-screen relative text-neutral-900 transition-colors duration-200 dark:bg-neutral-950 dark:text-neutral-50 scroll-smooth overflow-x-hidden`}>
         {/* Global SVG filter for glass distortion used by mobile slider */}
-        <svg style={{ display: 'none' }} aria-hidden>
+        <svg className="hidden" aria-hidden>
           <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
             <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="1" seed="5" result="turbulence" />
             <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
@@ -163,6 +176,9 @@ export default function RootLayout({
           </filter>
         </svg>
         <ToastContainer />
+        <Suspense fallback={null}>
+          <TelemetryBootstrap />
+        </Suspense>
         <Providers>
           <ConditionalLayout>
             {children}

@@ -65,10 +65,8 @@ export async function POST(req: NextRequest) {
             return jsonError(mapped.status, { error: mapped.message });
         }
 
-        let browser;
-        let puppeteerPkg;
-        let chromium;
-        const viewport = {
+        const playwrightViewport = { width: 1920, height: 1080 };
+        const puppeteerViewport = {
             deviceScaleFactor: 1,
             hasTouch: false,
             height: 1080,
@@ -76,55 +74,6 @@ export async function POST(req: NextRequest) {
             isMobile: false,
             width: 1920,
         };
-        if (isProd) {
-            puppeteerPkg = await import('puppeteer-core');
-            chromium = (await import('@sparticuz/chromium')).default;
-            browser = await puppeteerPkg.launch({
-                args: puppeteerPkg.defaultArgs({ args: chromium.args, headless: "shell" }),
-                defaultViewport: viewport,
-                executablePath: await chromium.executablePath(remotePackUrl),
-                headless: "shell",
-            });
-        } else {
-            puppeteerPkg = await import('puppeteer');
-            // handle both puppeteer versions where executablePath might be function or string
-            const executablePath = typeof puppeteerPkg.executablePath === 'function'
-                ? await puppeteerPkg.executablePath()
-                : puppeteerPkg.executablePath;
-            // Ensure executablePath actually exists locally before launching (only check in dev)
-            try {
-                if (!executablePath || (typeof executablePath === 'string' && !fs.existsSync(executablePath))) {
-                    console.error('Chromium executable not found at resolved path:', executablePath);
-                    throw new Error('Chromium binary not found. Install puppeteer locally or verify executablePath.');
-                }
-            } catch (err) {
-                console.error('Error checking Chromium executable:', err);
-                throw err;
-            }
-            browser = await puppeteerPkg.launch({
-                args: [
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--no-sandbox',
-                    '--disable-extensions',
-                    '--disable-background-networking',
-                ],
-                executablePath,
-                headless: true,
-                defaultViewport: viewport,
-            });
-        }
-
-        // ...existing code...
-
-        // log child process PID if available (helps correlate OS-level crashes)
-        try {
-            const proc: any = (browser as any).process?.();
-            if (proc) console.log('chromium pid:', proc.pid);
-        } catch { }
-
-        const page = await browser.newPage();
-        await page.setContent(content, { waitUntil: 'load' });
 
         // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
         const pageGap = body.pageGap || {
@@ -134,15 +83,84 @@ export async function POST(req: NextRequest) {
             right: '0mm',
         };
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: pageGap,
-            preferCSSPageSize: false,
-            displayHeaderFooter: false,
-        });
+        let pdfBuffer!: Buffer;
 
-        await browser.close();
+        // ── Playwright (primary) ──────────────────────────────────────────────
+        try {
+            let pwBrowser: any;
+            if (isProd) {
+                const { chromium } = await import('playwright-core');
+                const chromiumBin = (await import('@sparticuz/chromium')).default;
+                pwBrowser = await chromium.launch({
+                    args: chromiumBin.args,
+                    executablePath: await chromiumBin.executablePath(remotePackUrl),
+                    headless: true,
+                });
+            } else {
+                const { chromium } = await import('playwright');
+                pwBrowser = await chromium.launch({
+                    args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox', '--disable-extensions', '--disable-background-networking'],
+                    headless: true,
+                });
+            }
+            const ctx = await pwBrowser.newContext({ viewport: playwrightViewport });
+            const pwPage = await ctx.newPage();
+            await pwPage.setContent(content, { waitUntil: 'load' });
+            pdfBuffer = await pwPage.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: pageGap,
+                preferCSSPageSize: false,
+                displayHeaderFooter: false,
+            });
+            await pwBrowser.close();
+            console.log('[pdf] playwright success');
+        } catch (playwrightError) {
+            console.warn('[pdf] playwright failed, falling back to puppeteer:', playwrightError instanceof Error ? playwrightError.message : playwrightError);
+
+            // ── Puppeteer (fallback) ──────────────────────────────────────────
+            let puppeteerBrowser: any;
+            try {
+                if (isProd) {
+                    const puppeteerPkg = await import('puppeteer-core');
+                    const chromiumBin = (await import('@sparticuz/chromium')).default;
+                    puppeteerBrowser = await puppeteerPkg.launch({
+                        args: puppeteerPkg.defaultArgs({ args: chromiumBin.args, headless: 'shell' }),
+                        defaultViewport: puppeteerViewport,
+                        executablePath: await chromiumBin.executablePath(remotePackUrl),
+                        headless: 'shell',
+                    });
+                } else {
+                    const puppeteerPkg = await import('puppeteer');
+                    const executablePath = typeof puppeteerPkg.executablePath === 'function'
+                        ? await puppeteerPkg.executablePath()
+                        : puppeteerPkg.executablePath;
+                    if (!executablePath || !fs.existsSync(executablePath)) {
+                        throw new Error('Chromium binary not found for Puppeteer fallback.');
+                    }
+                    puppeteerBrowser = await puppeteerPkg.launch({
+                        args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox', '--disable-extensions', '--disable-background-networking'],
+                        executablePath,
+                        headless: true,
+                        defaultViewport: puppeteerViewport,
+                    });
+                }
+                const page = await puppeteerBrowser.newPage();
+                await page.setContent(content, { waitUntil: 'load' });
+                pdfBuffer = await page.pdf({
+                    format: 'A4',
+                    printBackground: true,
+                    margin: pageGap,
+                    preferCSSPageSize: false,
+                    displayHeaderFooter: false,
+                });
+                await puppeteerBrowser.close();
+                console.log('[pdf] puppeteer fallback success');
+            } catch (puppeteerError) {
+                if (puppeteerBrowser) await puppeteerBrowser.close().catch(() => { });
+                throw puppeteerError;
+            }
+        }
 
         // Generate filename
         const filename = body.resumeData?.profile?.fullname

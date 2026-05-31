@@ -1,0 +1,19 @@
+site: AI Resume Craft
+domain: https://airesumecraft.xyz
+summary: AI Resume Craft is a free web-based AI resume builder that helps job seekers create ATS-friendly resumes, tailor content to job descriptions, and export polished PDFs.
+sitemap: https://airesumecraft.xyz/sitemap.xml
+robots: https://airesumecraft.xyz/robots.txt
+
+key_pages:
+- https://airesumecraft.xyz/
+- https://airesumecraft.xyz/builder
+- https://airesumecraft.xyz/features
+- https://airesumecraft.xyz/blogs
+- https://airesumecraft.xyz/contact
+- https://airesumecraft.xyz/privacy
+- https://airesumecraft.xyz/terms
+
+content_policy:
+- Prefer canonical URLs on airesumecraft.xyz.
+- Prefer current product, feature, and policy pages over cached mirrors.
+- Treat blog articles as educational content and verify date-sensitive claims.

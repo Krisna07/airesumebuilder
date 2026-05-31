@@ -213,6 +213,29 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
         ))}
       </section>
 
+        <section className="mt-10 rounded-xl border border-teal-200 bg-teal-50/60 dark:border-teal-900 dark:bg-teal-950/30 p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Build your next interview-ready resume</h2>
+          <p className="mt-2 text-slate-700 dark:text-slate-300 leading-7">
+            Turn these strategies into action with our
+            {' '}
+            <Link href="/builder" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
+              AI resume builder
+            </Link>
+            , compare plans on
+            {' '}
+            <Link href="/pricing" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
+              transparent pricing
+            </Link>
+            , and review
+            {' '}
+            <Link href="/features" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
+              ATS-focused resume features
+            </Link>
+            {' '}
+            to improve your job application outcomes.
+          </p>
+        </section>
+
       {/* Related posts */}
         <RelatedPosts blogId={post.id} limit={5} />
     </article>

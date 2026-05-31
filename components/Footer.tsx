@@ -20,6 +20,8 @@ export default function Footer() {
           <Link href="/terms" className="text-sm text-slate-600 hover:text-teal-600 dark:text-slate-300">Terms</Link>
           <Link href="/message-to-supporters" className="text-sm text-slate-600 hover:text-teal-600 dark:text-slate-300">Supporters</Link>
           <Link href="/contact" className="text-sm text-slate-600 hover:text-teal-600 dark:text-slate-300">Contact</Link>
+          <a href="https://x.com/airesumecraft" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-600 hover:text-teal-600 dark:text-slate-300">X</a>
+          <a href="https://www.reddit.com/u/airesumecraft" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-600 hover:text-teal-600 dark:text-slate-300">Reddit</a>
         </nav>
       </div>
     </footer>

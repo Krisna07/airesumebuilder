@@ -1,17 +1,30 @@
 import FeaturesSection from '@/components/LandingPageComponents/FeaturesSection';
 import HeroSection from '@/components/LandingPageComponents/Herosection';
-import HowItWorks from '@/components/LandingPageComponents/HowItWorks';
-import TemplatesSection from '@/components/LandingPageComponents/TemplateSection';
 import BenefitsSection from '@/components/LandingPageComponents/BenefitsSection';
 import VisualCustomizationSection from '@/components/LandingPageComponents/VisualCustomizationSection';
 import TargetAudienceSection from '@/components/LandingPageComponents/TargetAudienceSection';
-import FAQSection from '@/components/LandingPageComponents/FAQSection';
 import BlogResourcesSection from '@/components/LandingPageComponents/BlogResourcesSection';
 import { Metadata } from 'next'
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+
+const HowItWorks = dynamic(() => import('@/components/LandingPageComponents/HowItWorks'), {
+  loading: () => <section aria-hidden className="w-full min-h-[560px]" />,
+});
+
+const TemplatesSection = dynamic(() => import('@/components/LandingPageComponents/TemplateSection'), {
+  loading: () => <section aria-hidden className="w-full min-h-[640px]" />,
+});
+
+const FAQSection = dynamic(() => import('@/components/LandingPageComponents/FAQSection'), {
+  loading: () => <section aria-hidden className="w-full min-h-[520px]" />,
+});
 
 export const metadata: Metadata = {
-  title: 'AireResumeBuilder - Free AI Resume Builder | Craft Your Resume in Minutes',
-  description: 'AireResumeBuilder lets you build, tailor, and optimize your resume for free with AI. Get ATS-friendly resumes and land your dream job faster. 100% free, no credit card required.',
+  title: {
+    absolute: 'Free AI Resume Builder for ATS-Friendly Resumes Online',
+  },
+  description: 'Use our AI resume builder to create ATS-friendly resumes in minutes, tailor every section to each job, and download polished PDFs for free.',
   keywords: [
     'AireResumeBuilder',
     'aire resume builder',

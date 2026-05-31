@@ -15,6 +15,7 @@ type ResumePreviewProps = {
   regenerating?:boolean;
   className?: string; // Add className prop
   pdfMatchMode?: boolean;
+  deferUntilVisible?: boolean;
 };
 
 const PAGE_WIDTH_PX = 794; // ~210mm at 96dpi
@@ -28,12 +29,15 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   regenerating,
   className,
   pdfMatchMode = false,
+  deferUntilVisible = false,
 }) => {
   const [data, setData] = useState<ResumeData | undefined>(resumeData);
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeMountRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [docHeight, setDocHeight] = useState<number>(PAGE_HEIGHT_PX);
+  const [canRenderIframe, setCanRenderIframe] = useState(!deferUntilVisible);
 
   // Sync local state when resumeData prop is provided
   useEffect(() => {
@@ -57,23 +61,51 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     };
 
     updateScale();
-    // Use ResizeObserver for efficient layout/responding to container changes
-    const ro = new ResizeObserver(updateScale);
-    ro.observe(el);
+    // Use ResizeObserver when available and fall back to resize events.
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(updateScale);
+      ro.observe(el);
+    }
     // keep window.resize as a lightweight fallback
     window.addEventListener('resize', updateScale);
 
     return () => {
-      ro.disconnect();
+      ro?.disconnect();
       window.removeEventListener('resize', updateScale);
     };
   }, [maxScale]);
 
+  useEffect(() => {
+    if (!deferUntilVisible || canRenderIframe) return;
+    const target = iframeMountRef.current;
+    if (!target) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setCanRenderIframe(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const isVisible = entries.some((entry) => entry.isIntersecting);
+        if (isVisible) {
+          setCanRenderIframe(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px 0px' }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [canRenderIframe, deferUntilVisible]);
+
   const srcDoc = useMemo(() => {
-    if (!data) return '';
+    if (!data || !canRenderIframe) return '';
     // previewMode = true so iframe HTML stays A4-clean but can include tiny screen-only tweaks if desired
     return generateTemplateHTML(template, data);
-  }, [data, template]);
+  }, [canRenderIframe, data, template]);
 
   // Measure iframe content to show full length (multi-page preview)
   useEffect(() => {
@@ -126,21 +158,34 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
             transformOrigin: 'top left',
           }}
         >
-          <iframe
-            title="Resume Preview"
-            loading="lazy"
-            ref={iframeRef}
-            onLoad={handleIframeLoad}
-            style={{
-              width: PAGE_WIDTH_PX,
-              height: docHeight,
-              border: pdfMatchMode ? 'none' : '1px solid #e5e7eb',
-              borderRadius: pdfMatchMode ? 0 : 12,
-              background: '#fff',
-              display: 'block',
-            }}
-            srcDoc={srcDoc}
-          />
+          <div ref={iframeMountRef}>
+            {canRenderIframe ? (
+              <iframe
+                title="Resume Preview"
+                loading="lazy"
+                ref={iframeRef}
+                onLoad={handleIframeLoad}
+                style={{
+                  width: PAGE_WIDTH_PX,
+                  height: docHeight,
+                  border: pdfMatchMode ? 'none' : '1px solid #e5e7eb',
+                  borderRadius: pdfMatchMode ? 0 : 12,
+                  background: '#fff',
+                  display: 'block',
+                }}
+                srcDoc={srcDoc}
+              />
+            ) : (
+              <div
+                className="bg-white border border-slate-200"
+                style={{
+                  width: PAGE_WIDTH_PX,
+                  height: PAGE_HEIGHT_PX,
+                  borderRadius: pdfMatchMode ? 0 : 12,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
 

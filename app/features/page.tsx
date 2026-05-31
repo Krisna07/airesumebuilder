@@ -22,7 +22,7 @@ import dummyResume from '@/app/data/dummyResume.json'
 
 export const metadata: Metadata = {
   title: 'AI Resume Builder Features | Free Resume Tools & Templates',
-  description: 'Discover powerful AI-powered resume building features including unlimited free downloads, ATS optimization, keyword targeting, and professional templates. No credit card required.',
+  description: 'Explore AI resume builder features including ATS optimization, keyword targeting, AI writing help, and professional templates to create resumes faster.',
   keywords: [
     'AI resume builder features',
     'free resume tools',

@@ -11,6 +11,7 @@ import { PreviewContainer } from "@/components/BuilderComponents/PreviewContaine
 import LoadingResumeState from "@/components/BuilderComponents/LoadingResumeState"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "react-toastify"
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from "@/lib/analytics/events"
 
 /**
  * All Resumes Page
@@ -57,6 +58,10 @@ const AllResumesPage = () => {
         toast.error(data.message || response.statusText)
         return
       }
+
+      trackAnalyticsEvent(ANALYTICS_EVENTS.BUILDER_START, {
+        source: 'all_resumes',
+      })
 
       toast.success("Resume created successfully")
       router.push(`/builder/resumes/${data.data.id}`)
