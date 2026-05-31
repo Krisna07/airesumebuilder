@@ -6,6 +6,9 @@ import { generateTemplateHTML } from "@/lib/template-utils";
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+const enableProdPlaywright = !['0', 'false', 'no', 'off'].includes(
+    String(process.env.ENABLE_PROD_PLAYWRIGHT ?? 'true').toLowerCase()
+);
 
 const chromiumVersion = process.env.CHROMIUM_VERSION || '141.0.0';
 const chromiumArch = process.arch === 'arm64' ? 'arm64' : 'x64';
@@ -35,9 +38,24 @@ export async function POST(req: NextRequest) {
         // Match the preview component's PAGE_WIDTH_PX (794) and PAGE_HEIGHT_PX (1123)
         const viewport = { width: 794, height: 1123 };
 
-        // 3. Launch Browser via Playwright
-        if (isProd) {
-            // Production: use playwright-core with @sparticuz/chromium binary
+        // 3. Launch Browser (Playwright local/dev, Puppeteer in prod by default)
+        if (isProd && !enableProdPlaywright) {
+            const puppeteerPkg = await import('puppeteer-core');
+            const chromiumBin = (await import('@sparticuz/chromium')).default;
+            browser = await puppeteerPkg.launch({
+                args: puppeteerPkg.defaultArgs({ args: chromiumBin.args, headless: 'shell' }),
+                defaultViewport: {
+                    deviceScaleFactor: 1,
+                    hasTouch: false,
+                    height: 1123,
+                    isLandscape: false,
+                    isMobile: false,
+                    width: 794,
+                },
+                executablePath: await chromiumBin.executablePath(remotePackUrl),
+                headless: 'shell',
+            });
+        } else if (isProd) {
             const { chromium } = await import('playwright-core');
             const chromiumBin = (await import('@sparticuz/chromium')).default;
             browser = await chromium.launch({
@@ -55,10 +73,13 @@ export async function POST(req: NextRequest) {
         }
 
         // 4. Create context + page
-        const context = await browser.newContext({ viewport });
-        const page = await context.newPage();
+        const page = typeof browser.newContext === 'function'
+            ? await (async () => {
+                const context = await browser.newContext({ viewport });
+                return context.newPage();
+            })()
+            : await browser.newPage();
 
-        // Use 'networkidle' (Playwright equivalent of Puppeteer's 'networkidle0')
         await page.setContent(content, { waitUntil: 'networkidle' });
 
         // 5. PDF Configuration

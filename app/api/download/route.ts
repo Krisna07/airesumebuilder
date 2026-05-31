@@ -6,6 +6,9 @@ import { generateTemplateHTML } from "@/lib/template-utils";
 export const maxDuration = 60; 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+const enableProdPlaywright = !['0', 'false', 'no', 'off'].includes(
+    String(process.env.ENABLE_PROD_PLAYWRIGHT ?? 'true').toLowerCase()
+);
 const chromiumVersion = process.env.CHROMIUM_VERSION || '141.0.0';
 const chromiumArch = process.arch === 'arm64' ? 'arm64' : 'x64';
 const remotePackUrl = `https://github.com/Sparticuz/chromium/releases/download/v${chromiumVersion}/chromium-v${chromiumVersion}-pack.${chromiumArch}.tar`;
@@ -53,6 +56,10 @@ export async function POST(req: NextRequest) {
         // ── Playwright (primary) ──────────────────────────────────────────────
         try {
             let pwBrowser: any;
+            if (isProd && !enableProdPlaywright) {
+                throw new Error('Playwright disabled in production; using Puppeteer fallback.');
+            }
+
             if (isProd) {
                 const { chromium } = await import('playwright-core');
                 const chromiumBin = (await import('@sparticuz/chromium')).default;

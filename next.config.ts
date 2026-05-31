@@ -12,7 +12,25 @@ const nextConfig = {
     turbopack: {
         root: __dirname,
     },
-    serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium', 'playwright-core', 'playwright'],
+    serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+    outputFileTracingIncludes: {
+        '/api/generate': [
+            './node_modules/playwright-core/**/*',
+            './node_modules/playwright/**/*'
+        ],
+        '/api/generate/v2': [
+            './node_modules/playwright-core/**/*',
+            './node_modules/playwright/**/*'
+        ],
+        '/api/download': [
+            './node_modules/playwright-core/**/*',
+            './node_modules/playwright/**/*'
+        ],
+        '/api/download/v2': [
+            './node_modules/playwright-core/**/*',
+            './node_modules/playwright/**/*'
+        ]
+    },
     async headers() {
         return [
             {
@@ -60,9 +78,7 @@ const nextConfig = {
                 'pdfjs-dist',
                 'puppeteer',
                 'puppeteer-core',
-                '@sparticuz/chromium',
-                'playwright',
-                'playwright-core'
+                '@sparticuz/chromium'
             ];
         }
         return config;

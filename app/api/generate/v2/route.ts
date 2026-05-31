@@ -8,6 +8,9 @@ import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/g
 export const runtime = "nodejs";
 
 const isProd = process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL;
+const enableProdPlaywright = !['0', 'false', 'no', 'off'].includes(
+    String(process.env.ENABLE_PROD_PLAYWRIGHT ?? 'true').toLowerCase()
+);
 const chromiumVersion = process.env.CHROMIUM_VERSION || '141.0.0';
 const chromiumArch = process.arch === 'arm64' ? 'arm64' : 'x64';
 const remotePackUrl = `https://github.com/Sparticuz/chromium/releases/download/v${chromiumVersion}/chromium-v${chromiumVersion}-pack.${chromiumArch}.tar`;
@@ -63,35 +66,56 @@ export async function POST(req: NextRequest) {
         }
 
         let browser: any;
+        let page: any;
         const viewport = { width: 1920, height: 1080 };
 
-        if (isProd) {
-            // Production: use playwright-core with @sparticuz/chromium binary
-            const { chromium } = await import('playwright-core');
+        if (isProd && !enableProdPlaywright) {
+            const puppeteerPkg = await import('puppeteer-core');
             const chromiumBin = (await import('@sparticuz/chromium')).default;
-            browser = await chromium.launch({
-                args: chromiumBin.args,
+            browser = await puppeteerPkg.launch({
+                args: puppeteerPkg.defaultArgs({ args: chromiumBin.args, headless: 'shell' }),
+                defaultViewport: {
+                    deviceScaleFactor: 1,
+                    hasTouch: false,
+                    height: 1080,
+                    isLandscape: true,
+                    isMobile: false,
+                    width: 1920,
+                },
                 executablePath: await chromiumBin.executablePath(remotePackUrl),
-                headless: true,
+                headless: 'shell',
             });
+            page = await browser.newPage();
+            await page.setContent(content, { waitUntil: 'load' });
         } else {
-            // Local dev: use full playwright with its own Chromium
-            const { chromium } = await import('playwright');
-            browser = await chromium.launch({
-                args: [
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--no-sandbox',
-                    '--disable-extensions',
-                    '--disable-background-networking',
-                ],
-                headless: true,
-            });
-        }
+            if (isProd) {
+                // Production opt-in: use playwright-core with @sparticuz/chromium binary
+                const { chromium } = await import('playwright-core');
+                const chromiumBin = (await import('@sparticuz/chromium')).default;
+                browser = await chromium.launch({
+                    args: chromiumBin.args,
+                    executablePath: await chromiumBin.executablePath(remotePackUrl),
+                    headless: true,
+                });
+            } else {
+                // Local dev: use full playwright with its own Chromium
+                const { chromium } = await import('playwright');
+                browser = await chromium.launch({
+                    args: [
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu',
+                        '--no-sandbox',
+                        '--disable-extensions',
+                        '--disable-background-networking',
+                    ],
+                    headless: true,
+                });
+            }
 
-        const context = await browser.newContext({ viewport });
-        const page = await context.newPage();
-        await page.setContent(content, { waitUntil: 'load' });
+            const context = await browser.newContext({ viewport });
+            page = await context.newPage();
+            await page.setContent(content, { waitUntil: 'load' });
+        }
 
         // Allow dynamic margin (page gap) config via body.pageGap or fallback to defaults
         const pageGap = body.pageGap || {
