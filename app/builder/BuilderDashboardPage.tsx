@@ -1,8 +1,8 @@
 "use client"
 import Button from "@/components/Ui/Button"
 import Link from "next/link"
-import { useCallback, useMemo, useState } from "react"
-import { Plus, File, TrendingUp, FileText, FilePlus, Activity, Calendar, ArrowUp, Sparkles, Loader2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Plus, File, TrendingUp, FileText, FilePlus, Activity, Calendar, ArrowUp, Sparkles, Loader2, FolderOpen } from "lucide-react"
 import { useAuth } from "@/context/authContext"
 import { ResumeService } from "@/services/resumeServices"
 import GuestUser from "@/components/BuilderComponents/GuestUser"
@@ -13,6 +13,12 @@ import { toast } from "react-toastify"
 import SubscriptionStatus from "@/components/SubscriptionStatus"
 import { useRouter } from "next/navigation"
 import { ANALYTICS_EVENTS, trackAnalyticsEvent } from "@/lib/analytics/events"
+
+function getPreviewLimitByWidth(width: number) {
+  if (width >= 1280) return 4 // large (xl)
+  if (width >= 768) return 3 // medium (md)
+  return 2 // small
+}
 
 /**
  * Dashboard Overview Page
@@ -27,7 +33,18 @@ import { ANALYTICS_EVENTS, trackAnalyticsEvent } from "@/lib/analytics/events"
 const DashboardPage = () => {
   const { user, loading: authLoading, subscription } = useAuth()
   const [creating, setCreating] = useState(false)
+  const [previewLimit, setPreviewLimit] = useState(4)
   const router = useRouter()
+
+  useEffect(() => {
+    const syncPreviewLimit = () => {
+      setPreviewLimit(getPreviewLimitByWidth(window.innerWidth))
+    }
+
+    syncPreviewLimit()
+    window.addEventListener('resize', syncPreviewLimit)
+    return () => window.removeEventListener('resize', syncPreviewLimit)
+  }, [])
 
   const {
     data: resumes,
@@ -63,16 +80,20 @@ const DashboardPage = () => {
     return { total, active, drafts }
   }, [resumes])
 
-  // Get recent resumes (last 6)
+  // Get recent resumes preview (limited)
   const recentResumes = useMemo(() => {
     if (!resumes) return []
-    return resumes.slice(0, 6)
-  }, [resumes])
+    return resumes.slice(0, previewLimit)
+  }, [resumes, previewLimit])
 
-  const draftResumes = useMemo(() => {
+  const allDraftResumes = useMemo(() => {
     if (!resumes) return []
     return resumes.filter((resume) => !hasMinimumData(resume))
   }, [resumes, hasMinimumData])
+
+  const draftResumes = useMemo(() => {
+    return allDraftResumes.slice(0, previewLimit)
+  }, [allDraftResumes, previewLimit])
 
   // Get current date and greeting
   const { currentDate, greeting } = useMemo(() => {
@@ -260,7 +281,7 @@ const DashboardPage = () => {
                 Recent Resumes
               </h2>
               <span className="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                {recentResumes.length}
+                {recentResumes.length}{resumes && resumes.length > recentResumes.length ? ` / ${resumes.length}` : ''}
               </span>
             </div>
             <Link
@@ -271,13 +292,13 @@ const DashboardPage = () => {
             </Link>
           </div>
           <div className="relative">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {recentResumes.map((resume) => (
                 <PreviewContainer
                   key={resume.id}
                   resume={resume}
                   onDeleted={handleResumeDeleted}
-                  showDeleteOption={!hasMinimumData(resume)}
+                  allowDelete={false}
                   appearance="flat"
                   size="compact"
                 />
@@ -296,7 +317,7 @@ const DashboardPage = () => {
                 Draft Resumes
               </h2>
               <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-                {draftResumes.length}
+                {draftResumes.length}{allDraftResumes.length > draftResumes.length ? ` / ${allDraftResumes.length}` : ''}
               </span>
             </div>
             <Link
@@ -306,13 +327,13 @@ const DashboardPage = () => {
               View all resumes
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {draftResumes.map((resume) => (
               <PreviewContainer
                 key={`draft-${resume.id}`}
                 resume={resume}
                 onDeleted={handleResumeDeleted}
-                showDeleteOption={true}
+                allowDelete={true}
                 appearance="flat"
                 size="compact"
               />
@@ -329,7 +350,7 @@ const DashboardPage = () => {
             Quick Actions
           </h2>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <button onClick={handleCreateResume} disabled={creating} className="block group w-full">
             <div className="relative overflow-hidden bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-2 border-teal-200 dark:border-teal-700 rounded-xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
               {/* Animated Icon Background */}
@@ -365,6 +386,22 @@ const DashboardPage = () => {
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white text-lg">Upload PDF</h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Import existing</p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/builder/resumes" className="block group">
+            <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/30 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-200/30 dark:bg-slate-700/20 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500" />
+
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="p-4 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                  <FolderOpen className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-lg">All Resumes</h3>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">Browse everything</p>
                 </div>
               </div>
             </div>

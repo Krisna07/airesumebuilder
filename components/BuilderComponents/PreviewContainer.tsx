@@ -14,12 +14,12 @@ interface PreviewContainerProps {
   resume: ResumeData
   onDeleted: (id: string) => void
   index?: number
-  showDeleteOption?: boolean
+  allowDelete?: boolean
   appearance?: 'default' | 'flat'
   size?: 'default' | 'compact'
 }
 
-const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDeleted, showDeleteOption = true, appearance = 'default', size = 'default' }) => {
+const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDeleted, allowDelete = true, appearance = 'default', size = 'default' }) => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isGone, setIsGone] = useState(false)
@@ -130,7 +130,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
               <Button onClick={handleEditFromDraftPanel} variant="secondary" size="small" className="flex-1">
                 Edit Draft
               </Button>
-              {showDeleteOption && (
+              {allowDelete && (
                 <Button onClick={handleDeleteFromDraftPanel} variant="danger" size="small" className="flex-1" disabled={isDeleting}>
                   Remove Draft
                 </Button>
@@ -140,7 +140,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
         )}
 
         {/* Delete Icon */}
-        {showDeleteOption && (
+        {allowDelete && (
           <Trash2
             onClick={handleShowConfirm}
             className="absolute z-40 right-0 top-0 bg-red-50 dark:bg-red-900/50 p-1.5 rounded-bl-lg translate-x-8 m-0 opacity-0 -translate-y-4 
@@ -166,7 +166,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = memo(({ resume, onDele
           <Button onClick={handleEdit} variant="secondary" size="small" className="flex-1">
             Edit
           </Button>
-          {showDeleteOption && isDraft && (
+          {allowDelete && isDraft && (
             <Button
               onClick={handleShowConfirm}
               variant="danger"

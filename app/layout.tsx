@@ -12,6 +12,14 @@ const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://airesumecraft.xyz'),
+  icons: {
+    icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: ['/favicon.ico'],
+    apple: ['/favicon.ico'],
+  },
   title: {
     default: 'AI Resume Craft | Free AI Resume Builder',
     template: '%s | AI Resume Craft',
@@ -22,6 +30,8 @@ export const metadata: Metadata = {
     'aire resume builder',
     'AI resume builder',
     'free resume builder',
+    'fee cv maker',
+    'job ready cv',
     'resume maker',
     'CV builder',
     'ATS resume',
@@ -135,8 +145,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.ico" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icon.svg" />
 
         {/* Structured Data */}
         <script

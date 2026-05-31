@@ -116,7 +116,7 @@ const AllResumesPage = () => {
             </div>
             <div className="w-full h-fit grid grid-cols-3 max-[500px]:grid-cols-2 gap-4 items-start justify-center mb-32 sm:mb-24">
               {resumes.map((resume) => (
-                <PreviewContainer key={resume.id} resume={resume} onDeleted={handleResumeDeleted} />
+                <PreviewContainer key={resume.id} resume={resume} onDeleted={handleResumeDeleted} allowDelete />
               ))}
             </div>
           </>
