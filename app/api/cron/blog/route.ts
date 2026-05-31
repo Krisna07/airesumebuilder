@@ -5,6 +5,23 @@ export const runtime = 'nodejs'
 // Must match vercel.json maxDuration
 export const maxDuration = 300
 
+export type BlogCronJobOptions = {
+  dryRun?: boolean
+  title?: string
+}
+
+export type BlogCronJobResult = {
+  success: boolean
+  state?: string
+  title?: string
+  slug?: string
+  blogId?: string
+  traceId?: string
+  durationMs?: number
+  reason?: string
+  error?: string
+}
+
 function toBoolean(value: string | undefined | null) {
   if (!value) return false
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
@@ -56,11 +73,23 @@ async function handleCron(req: Request) {
   }
 
   const url = new URL(req.url)
-  const dryRun = url.searchParams.has('dryRun')
-    ? toBoolean(url.searchParams.get('dryRun'))
-    : toBoolean(process.env.BLOG_CRON_DRYRUN || process.env.DRY_RUN || 'false')
+  const result = await runBlogCronJob({
+    dryRun: url.searchParams.has('dryRun') ? toBoolean(url.searchParams.get('dryRun')) : undefined,
+    title: url.searchParams.get('title') || undefined,
+  })
 
-  const title = url.searchParams.get('title') || undefined
+  if (!result.success) {
+    return NextResponse.json({ success: false, error: result.error || 'Unexpected cron error' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true, data: result }, { status: 200 })
+}
+
+export async function runBlogCronJob(options?: BlogCronJobOptions): Promise<BlogCronJobResult> {
+  const dryRun = options?.dryRun !== undefined
+    ? options.dryRun
+    : toBoolean(process.env.BLOG_CRON_DRYRUN || process.env.DRY_RUN || 'false')
+  const title = options?.title
 
   console.log(`[cron/blog] Starting — dryRun=${dryRun}, title=${title ?? 'auto'}`)
 
@@ -68,12 +97,23 @@ async function handleCron(req: Request) {
     const result = await runHourlyBlogAutomation({ dryRun, title })
 
     console.log(`[cron/blog] Done — state=${result.state}, title="${result.title}", duration=${result.durationMs}ms`)
-
-    return NextResponse.json({ success: true, data: result }, { status: 200 })
+    return {
+      success: true,
+      state: result.state,
+      title: result.title,
+      slug: result.slug,
+      blogId: result.blogId,
+      traceId: result.traceId,
+      durationMs: result.durationMs,
+      reason: result.reason,
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected cron error'
     console.error('[cron/blog] Failed:', message, error)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    return {
+      success: false,
+      error: message,
+    }
   }
 }
 

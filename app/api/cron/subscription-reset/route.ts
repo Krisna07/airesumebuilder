@@ -5,6 +5,14 @@ import { resetCountsData } from '@/lib/subscription'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+export type SubscriptionResetJobResult = {
+  success: boolean
+  resetCount: number
+  durationMs: number
+  timestamp: string
+  error?: string
+}
+
 /**
  * Authorization strategy (checked in order):
  * 1. Vercel cron invocations send `x-vercel-cron: 1` — always trust these.
@@ -40,8 +48,24 @@ async function handleCron(req: Request) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
+  const result = await runSubscriptionResetJob()
+
+  if (!result.success) {
+    return NextResponse.json({ success: false, error: result.error || 'Unexpected cron error' }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    success: true,
+    resetCount: result.resetCount,
+    durationMs: result.durationMs,
+    timestamp: result.timestamp,
+  }, { status: 200 })
+}
+
+export async function runSubscriptionResetJob(): Promise<SubscriptionResetJobResult> {
+  const startTime = Date.now()
+
   try {
-    const startTime = Date.now()
     console.log('[cron/subscription-reset] Starting daily subscription reset...')
 
     // Get all FREE plan subscriptions that need reset
@@ -73,16 +97,22 @@ async function handleCron(req: Request) {
     const durationMs = Date.now() - startTime
     console.log(`[cron/subscription-reset] Done — reset ${subscriptionsToReset.length} subscriptions in ${durationMs}ms`)
 
-    return NextResponse.json({
+    return {
       success: true,
       resetCount: subscriptionsToReset.length,
       durationMs,
       timestamp: now.toISOString(),
-    }, { status: 200 })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected cron error'
     console.error('[cron/subscription-reset] Failed:', message, error)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    return {
+      success: false,
+      resetCount: 0,
+      durationMs: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+      error: message,
+    }
   }
 }
 
