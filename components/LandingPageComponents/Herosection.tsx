@@ -13,7 +13,7 @@ type HeroProps = {
 }
 
 const HeroSection: React.FC<HeroProps> = ({
-  title = "The 100% Free AI Resume Builder for Tech Professionals",
+  title = "The 100% Free AI Resume Builder for Professionals",
   subtitle = "Build professional, ATS-optimized resumes in minutes. Let AI craft compelling bullet points while you focus on landing the job—all at absolutely no cost.",
   ctaLabel = "Start Building Free",
   ctaHref = "/builder",
