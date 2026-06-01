@@ -26,11 +26,16 @@ export const metadata: Metadata = {
   },
   description: 'Use our AI resume builder to create ATS-friendly resumes in minutes, tailor sections for each job, and download polished PDFs for free.',
   keywords: [
+    'ai resume builder',
+    'free resume maker',
+    'ats resume template',
+    'cv builder online',
+    'airesumebuilder',
     'AireResumeBuilder',
     'aire resume builder',
     'AI resume builder',
     'free resume builder',
-    'fee cv maker',
+    'free cv maker',
     'job ready cv',
     'resume maker',
     'CV builder',
@@ -139,6 +144,23 @@ export default function RootLayout({
     },
   }
 
+  const softwareApplicationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'AI Resume Craft',
+    operatingSystem: 'All',
+    applicationCategory: 'BusinessApplication',
+    browserRequirements: 'Requires HTML5',
+    offers: {
+      '@type': 'Offer',
+      price: '0.00',
+      priceCurrency: 'USD',
+    },
+    description:
+      'An open, free AI-powered resume builder designed to generate professional, ATS-optimized resumes instantly using markdown inputs.',
+    url: 'https://airesumecraft.xyz',
+  }
+
   return (
     <html lang='en' data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
@@ -158,6 +180,10 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
         />
 
         <script

@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/', '/llms.txt', '/blogs', '/features', '/blogs/', '/contact', '/pricing', '/privacy', '/terms'],
+      allow: ['/', '/llms.txt', '/blogs', '/features', '/blogs/', '/contact', '/pricing', '/privacy', '/terms', '/templates', '/templates/'],
       disallow: ['/api/', '/account/', '/auth/', '/addblog/', '/addblogs/', '/builder', '/builder/'],
     },
     host: 'https://airesumecraft.xyz',

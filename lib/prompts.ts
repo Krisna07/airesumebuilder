@@ -248,14 +248,14 @@ You MUST include these section types in this order:
 - Blog: https://airesumecraft.xyz/blogs
 
 ### IMAGE PROMPT REQUIREMENTS
-Create a unique, topic-specific image prompt that reflects the blog's main theme. Include relevant visual metaphors (e.g., "resume document with checkmarks", "career ladder", "magnifying glass over text", "professional handshake"). Keep the flat vector, SaaS isometric style with teal/slate palette. ABSOLUTELY NO TEXT, NO WORDS, NO TYPOGRAPHY in the image.
+Create a unique, topic-specific image prompt that reflects the blog's main theme using PHOTOREALISTIC, PROFESSIONAL PHOTOGRAPHY style. Include relevant visual metaphors (e.g., "modern office desk with laptop and resume", "professional workspace with documents", "clean minimalist desk setup", "business professional reviewing documents"). Use descriptors like: "professional photography", "high-quality", "modern", "clean aesthetic", "natural lighting", "shallow depth of field", "corporate environment". ABSOLUTELY NO TEXT, NO WORDS, NO TYPOGRAPHY, NO ILLUSTRATIONS, NO CARTOONS in the image. Focus on real-world professional scenarios.
 
 ### OUTPUT SCHEMA (JSON ONLY)
 {
   "title": "string (SEO-optimised, max 70 chars, include primary keyword)",
   "excerpt": "string (keyword-led, max 155 chars, ends with clear value promise)",
   "slug": { "current": "string" },
-  "imagePrompt": "string (topic-specific flat vector illustration, SaaS isometric style, teal/slate palette. NO TEXT, NO WORDS, NO TYPOGRAPHY)",
+  "imagePrompt": "string (photorealistic professional photography, modern corporate aesthetic, natural lighting, shallow depth of field. NO TEXT, NO WORDS, NO TYPOGRAPHY, NO ILLUSTRATIONS)",
   "seoKeywords": ["string", "string", "string"],
   "sections": [
     { "id": "sec_1", "type": "paragraph", "content": "string (200+ words)" },

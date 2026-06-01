@@ -36,10 +36,10 @@ export default function BenefitsSection() {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-            Land Your Dream Job Fast
+            Why Choose Our Free AI Resume Generator?
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-            Elevate your job search with a resume that's sure to make an impact. Use our AI resume builder to showcase your relevant skills and experience on paper.
+            Elevate your job search with a resume that&apos;s sure to make an impact. Use our AI resume builder to showcase your relevant skills and experience on paper.
           </p>
         </div>
 

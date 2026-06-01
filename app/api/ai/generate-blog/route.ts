@@ -8,6 +8,35 @@ import {
 } from '@/services/blogAutomationService'
 import { saveImage } from '@/services/blogCmsService'
 
+// Image style presets with brand color integration (teal/slate palette)
+const IMAGE_STYLE_PRESETS = [
+  {
+    name: 'modern-workspace',
+    description: 'Modern minimalist office workspace with laptop and documents, teal accent lighting, slate gray surfaces, natural window light, shallow depth of field, professional photography, clean aesthetic, corporate environment',
+  },
+  {
+    name: 'professional-desk',
+    description: 'Professional business desk setup with resume documents, teal colored notebook or accessories, slate gray background, soft studio lighting, high-quality photography, contemporary office interior, sharp focus',
+  },
+  {
+    name: 'tech-workspace',
+    description: 'Contemporary tech workspace with computer screen, teal ambient lighting, slate colored desk and walls, natural lighting from window, photorealistic, modern corporate aesthetic, professional photography',
+  },
+  {
+    name: 'career-concept',
+    description: 'Professional career development concept, business documents on clean desk, teal and slate color scheme, natural daylight, shallow depth of field, high-end photography, modern minimalist style',
+  },
+  {
+    name: 'office-interior',
+    description: 'Modern office interior with professional workspace, teal accent wall or decor, slate gray furniture, natural lighting, photorealistic photography, clean lines, corporate environment, 8k quality',
+  },
+]
+
+function selectRandomImageStyle(): string {
+  const randomIndex = Math.floor(Math.random() * IMAGE_STYLE_PRESETS.length)
+  return IMAGE_STYLE_PRESETS[randomIndex].description
+}
+
 export const runtime = 'nodejs'
 
 /**
@@ -20,13 +49,6 @@ export const runtime = 'nodejs'
  *   { error: "message" }           — on failure
  */
 
-const imageStyles = [
-  'Flat vector illustration, SaaS isometric style, clean minimalist tech blog cover',
-  'Photorealistic 3D render, modern tech workspace, soft studio lighting, depth of field',
-  'Abstract geometric shapes, gradient mesh background, bold color blocks, futuristic digital art',
-  'Hand-drawn sketch style, editorial illustration, ink and watercolor wash, editorial tech blog',
-]
-const choosenStyle = imageStyles[Math.floor(Math.random() * imageStyles.length)]
 export async function GET(req: Request) {
   const admin = await requireAdminOrForbidden()
   if (!admin.ok) return admin.response
@@ -99,8 +121,8 @@ export async function GET(req: Request) {
 
         // ── Step 3: Generate cover image (non-fatal) ───────────────────────────
         try {
-
-          const imagePrompt = `${choosenStyle} for "${derivedTitle}". Digital career concept. Teal and slate color palette. ABSOLUTELY NO TEXT, NO TYPOGRAPHY, NO LETTERS, AND NO WORDS in the image whatsoever.`
+          const selectedStyle = selectRandomImageStyle()
+          const imagePrompt = `${selectedStyle} for "${derivedTitle}". Professional career development concept. ABSOLUTELY NO TEXT, NO TYPOGRAPHY, NO LETTERS, NO WORDS, NO ILLUSTRATIONS, NO CARTOONS in the image whatsoever. Photorealistic only.`
           const imagePayload = await generateCoverImageFromPrompt(imagePrompt)
           const imageMeta = await saveImage({
             bytes: imagePayload.bytes,
@@ -152,7 +174,9 @@ export async function POST(req: Request) {
     }
 
     const draft = await generateBlogDraftFromTitle(title, targetKeywords)
-    const imagePayload = await generateCoverImageFromPrompt(`${choosenStyle}, ${draft.imagePrompt}`)
+
+    // The image generation function now handles random style selection internally
+    const imagePayload = await generateCoverImageFromPrompt(draft.imagePrompt)
 
     const imageMeta = await saveImage({
       bytes: imagePayload.bytes,

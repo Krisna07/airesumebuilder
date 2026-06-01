@@ -7,6 +7,7 @@ import BlogResourcesSection from '@/components/LandingPageComponents/BlogResourc
 import { Metadata } from 'next'
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import Templates from '@/components/Templates/templates';
 
 const HowItWorks = dynamic(() => import('@/components/LandingPageComponents/HowItWorks'), {
   loading: () => <section aria-hidden className="w-full min-h-[560px]" />,
@@ -22,14 +23,18 @@ const FAQSection = dynamic(() => import('@/components/LandingPageComponents/FAQS
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Free AI Resume Builder for ATS-Friendly Resumes Online',
+    absolute: 'Free AI Resume Builder & ATS Resume Editor | AI Resume Craft',
   },
-  description: 'Use our AI resume builder to create ATS-friendly resumes in minutes, tailor every section to each job, and download polished PDFs for free.',
+  description: 'Create, edit, and export unlimited ATS-friendly resumes for free. AI Resume Craft includes markdown support, live previews, and recruiter-ready templates.',
   keywords: [
+    'ai resume builder',
+    'free resume maker',
+    'ats resume template',
+    'cv builder online',
+    'airesumebuilder',
     'AireResumeBuilder',
     'aire resume builder',
     'free resume builder',
-    'AI resume builder',
     'resume maker',
     'CV builder',
     'ATS-friendly resume',
@@ -43,8 +48,8 @@ export const metadata: Metadata = {
     canonical: 'https://airesumecraft.xyz',
   },
   openGraph: {
-    title: 'Free AI Resume Builder | Craft Your Resume in Minutes',
-    description: 'Build, tailor, and optimize your resume for free with our AI-powered resume builder. Get past ATS systems and land your dream job faster.',
+    title: 'Free AI Resume Builder & ATS Resume Editor | AI Resume Craft',
+    description: 'Create ATS-friendly resumes online for free with markdown support, live previews, and professional resume templates.',
     url: 'https://airesumecraft.xyz',
     siteName: 'AI Resume Craft',
     type: 'website',
@@ -59,8 +64,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free AI Resume Builder | Craft Your Resume in Minutes',
-    description: 'Build, tailor, and optimize your resume for free with our AI-powered resume builder.',
+    title: 'Free AI Resume Builder & ATS Resume Editor | AI Resume Craft',
+    description: 'Create ATS-friendly resumes online for free with markdown support and live previews.',
     images: ['https://airesumecraft.xyz/icon.svg'],
   },
 }
@@ -135,7 +140,7 @@ const page = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      <div className='w-full text-center  flex flex-col items-center justify-center gap-8  min-h-[60vh] px-4 box-border'>
+      <main className='w-full text-center flex flex-col items-center justify-center gap-8 min-h-[60vh] px-4 box-border'>
         <HeroSection />
         <BenefitsSection />
         <HowItWorks />
@@ -145,7 +150,30 @@ const page = () => {
         <TargetAudienceSection />
         <BlogResourcesSection />
         <FAQSection />
-      </div>
+
+        <section className='w-full max-w-6xl mx-auto px-4 pb-20 text-left'>
+          <div className='rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 p-6 sm:p-8'>
+            <h2 className='text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white'>
+              Browse ATS-optimized resume templates
+            </h2>
+            <p className='mt-3 text-slate-600 dark:text-slate-300'>
+              Explore public template pages to compare resume styles, identify recruiter-friendly formats, and choose the best layout for your role.
+            </p>
+            <ul className='mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3'>
+              {Templates.map((template) => (
+                <li key={template.id}>
+                  <Link
+                    href={`/templates/${template.id}`}
+                    className='inline-flex w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:border-teal-500 hover:text-teal-700 dark:hover:text-teal-300 transition-colors'
+                  >
+                    {template.name} template
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      </main>
     </>
   );
 };

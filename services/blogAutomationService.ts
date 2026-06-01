@@ -857,8 +857,43 @@ function createFallbackCoverImagePayload(imagePrompt: string, reason?: string): 
   }
 }
 
+// Image style presets with brand color integration (teal/slate palette)
+const IMAGE_STYLE_PRESETS = [
+  {
+    name: 'modern-workspace',
+    prompt: 'Modern minimalist office workspace with laptop and documents, teal accent lighting, slate gray surfaces, natural window light, shallow depth of field, professional photography, clean aesthetic, corporate environment',
+  },
+  {
+    name: 'professional-desk',
+    prompt: 'Professional business desk setup with resume documents, teal colored notebook or accessories, slate gray background, soft studio lighting, high-quality photography, contemporary office interior, sharp focus',
+  },
+  {
+    name: 'tech-workspace',
+    prompt: 'Contemporary tech workspace with computer screen, teal ambient lighting, slate colored desk and walls, natural lighting from window, photorealistic, modern corporate aesthetic, professional photography',
+  },
+  {
+    name: 'career-concept',
+    prompt: 'Professional career development concept, business documents on clean desk, teal and slate color scheme, natural daylight, shallow depth of field, high-end photography, modern minimalist style',
+  },
+  {
+    name: 'office-interior',
+    prompt: 'Modern office interior with professional workspace, teal accent wall or decor, slate gray furniture, natural lighting, photorealistic photography, clean lines, corporate environment, 8k quality',
+  },
+]
+
+function selectRandomImageStyle(): string {
+  const randomIndex = Math.floor(Math.random() * IMAGE_STYLE_PRESETS.length)
+  return IMAGE_STYLE_PRESETS[randomIndex].prompt
+}
+
 export async function generateCoverImageFromPrompt(imagePrompt: string): Promise<GeneratedImagePayload> {
   const token = getGatewayToken()
+
+  // Select a random style preset and combine with the AI-generated prompt
+  const stylePreset = selectRandomImageStyle()
+
+  // Enhance the prompt for better photorealistic results with brand colors
+  const enhancedPrompt = `${stylePreset}, ${imagePrompt}, high quality, sharp focus, professional color grading, teal and slate color palette, no text, no words, no typography, no illustrations, photorealistic, 8k resolution`
 
   if (token) {
     // Step 1: try OpenAI compat endpoint (workers-ai/ prefix + cf-aig-authorization header)
@@ -871,7 +906,7 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
 
       const result = await client.images.generate({
         model: compatModelId,
-        prompt: imagePrompt,
+        prompt: enhancedPrompt,
         size,
       })
 
@@ -894,9 +929,13 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
       const [width, height] = (process.env.BLOG_IMAGE_API_SIZE || '1024x1024').split('x')
 
       const form = new FormData()
-      form.append('prompt', imagePrompt)
+      form.append('prompt', enhancedPrompt)
       form.append('width', width || '1024')
       form.append('height', height || '1024')
+      // Add guidance scale for better quality (higher = more prompt adherence)
+      form.append('guidance', '7.5')
+      // Add steps for better quality (more steps = better detail)
+      form.append('num_steps', '30')
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -931,7 +970,7 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
       
       try {
         // Fallback to a free community image generator before resorting to SVG
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=680&nologo=true`
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=680&nologo=true&model=flux`
         const fallbackRes = await fetch(fallbackUrl, { method: 'GET' })
         
         if (fallbackRes.ok) {
@@ -968,9 +1007,11 @@ export async function generateCoverImageFromPrompt(imagePrompt: string): Promise
         ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
       },
       body: JSON.stringify({
-        prompt: imagePrompt,
+        prompt: enhancedPrompt,
         model,
         size: process.env.BLOG_IMAGE_API_SIZE || '1536x1024',
+        guidance: 7.5,
+        num_steps: 30,
       }),
     },
     Number.isNaN(timeoutMs) ? 90000 : timeoutMs
