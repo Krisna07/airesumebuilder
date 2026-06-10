@@ -16,7 +16,7 @@
     "test:blog-cron": "tsx scripts/test-blog-cron.ts",
     "test:refresh-cron": "tsx scripts/test-refresh-cron.ts",
     "postinstall": "node -e \"if (!process.env.VERCEL && !process.env.CI) { require('child_process').execSync('npx puppeteer browsers install chrome && npx playwright install chromium --with-deps', {stdio: 'inherit'}) }\"",
-    "studio": "sanity start"
+    "studio": "sanity build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -30,7 +30,7 @@
     "@prisma/adapter-pg": "7.6.0",
     "@prisma/client": "7.6.0",
     "@sanity/client": "^7.17.0",
-    "@sanity/vision": "^5.17.1",
+    "@sanity/vision": "^5.30.0",
     "@sparticuz/chromium": "^141.0.0",
     "@sparticuz/chromium-min": "^131.0.1",
     "@stripe/react-stripe-js": "^5.4.1",
@@ -62,9 +62,10 @@
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "react-toastify": "^11.0.5",
-    "sanity": "^5.17.1",
+    "sanity": "^5.30.0",
     "slugify": "^1.6.8",
     "stripe": "^20.2.0",
+    "styled-components": "^6.4.2",
     "tw-animate-css": "^1.4.0",
     "unpdf": "^1.4.0",
     "uuid": "^13.0.0",

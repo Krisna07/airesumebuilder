@@ -76,25 +76,35 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Confirmation text must be DELETE' }, { status: 400 })
   }
 
-  // Verify password for credentials users
+  // ALWAYS require password for account deletion (security requirement)
+  if (!password) {
+    return NextResponse.json({ error: 'Password required to delete account' }, { status: 400 })
+  }
+
+  // Verify password
   if (user.password) {
-    if (!password) {
-      return NextResponse.json({ error: 'Password required to delete account' }, { status: 400 })
-    }
     const ok = await bcrypt.compare(password, user.password)
     if (!ok) {
       return NextResponse.json({ error: 'Incorrect password' }, { status: 400 })
     }
+  } else {
+    // OAuth user without password - they should reset password first
+    return NextResponse.json({
+      error: 'Please set a password before deleting your account. Use "Forgot password?" to set one.'
+    }, { status: 400 })
   }
 
-  // Delete user and ALL related data (Prisma cascade will handle this)
-  const deleted = await prisma.user.delete({ where: { id: user.id } })
+  // Soft delete: mark user as deleted instead of hard delete
+  const deleted = await prisma.user.update({
+    where: { id: user.id },
+    data: { deletedAt: new Date() }
+  })
 
   // Return success response
   // Frontend will handle calling signOut() to clear the session
   return NextResponse.json({
     success: true,
-    message: 'Account and all associated data deleted successfully',
+    message: 'Account deletion initiated (soft delete)',
     deletedUserId: deleted.id
   })
 }

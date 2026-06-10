@@ -221,11 +221,6 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ blo
             <Link href="/builder" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
               AI resume builder
             </Link>
-            , compare plans on
-            {' '}
-            <Link href="/pricing" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
-              transparent pricing
-            </Link>
             , and review
             {' '}
             <Link href="/features" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">

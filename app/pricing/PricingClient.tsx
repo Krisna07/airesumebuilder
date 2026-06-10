@@ -65,7 +65,7 @@ export default function PricingClient() {
     return (
       <section className="py-20 px-6 sm:px-8 lg:px-12 text-center">
         <div className="mx-auto max-w-3xl">
-          <h2 className="text-3xl font-extrabold">Pricing (Hidden)</h2>
+          <h2 className="text-3xl font-extrabold">Plans (Hidden)</h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
             This page is not publicly linked yet. We&apos;re polishing plans and limits — stay tuned.
           </p>
@@ -79,10 +79,10 @@ export default function PricingClient() {
   }
 
   return (
-    <section aria-labelledby="pricing-heading" className="py-12 px-6 sm:px-8 lg:px-12">
+    <section aria-labelledby="plans-heading" className="py-12 px-6 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
         <header className="text-center mb-8">
-          <h1 id="pricing-heading" className="text-3xl font-extrabold">Plans for every resume builder</h1>
+          <h1 id="plans-heading" className="text-3xl font-extrabold">Plans for every resume builder</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl mx-auto">
             Start free — upgrade for higher AI/PDF limits with Supporter or go unlimited with Ultimate.
           </p>

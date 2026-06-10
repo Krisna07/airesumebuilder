@@ -33,7 +33,7 @@ interface BuilderLayoutProps {
  * these patterns as needed.
  * 
  * Note: This layout uses DashboardNav instead of the global Navbar to provide
- * dashboard-specific navigation links (Dashboard, My Resumes, Account, Pricing)
+ * dashboard-specific navigation links (Dashboard, My Resumes, Account)
  * without homepage-specific links (Home, Blogs).
  */
 export default function BuilderLayout({ children }: BuilderLayoutProps) {

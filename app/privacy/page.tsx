@@ -54,7 +54,7 @@ export default function PrivacyPage() {
             <p className="mt-2">You are responsible for your account security and any activity that occurs under your account.</p>
 
             <h3 className="mt-4 text-lg font-semibold">Paid plans and billing</h3>
-            <p className="mt-2">Subscriptions are billed monthly and can be canceled at any time. See our <a href="/pricing" className="text-indigo-600 hover:underline">Pricing</a> page for details.</p>
+            <p className="mt-2">Subscriptions are billed monthly and can be canceled at any time. Contact us for current plan details.</p>
 
             <h3 className="mt-4 text-lg font-semibold">Acceptable use</h3>
             <p className="mt-2">Don't use the service for unlawful activity, harassment, or to submit other people's private data without consent.</p>

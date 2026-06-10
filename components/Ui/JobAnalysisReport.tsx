@@ -50,10 +50,11 @@ interface JobAnalysisReportProps {
     analysis: AnalysisResult & {
         company?: string | null
     }
+    guestMode?: boolean
 }
 
-const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnalysisReportProps) {
-    const [showDetails, setShowDetails] = useState(false)
+const JobAnalysisReport = memo(function JobAnalysisReport({ analysis, guestMode = false }: JobAnalysisReportProps) {
+    const [showDetails, setShowDetails] = useState(guestMode)
     const percent = useMemo(() => {
         const raw = Number(analysis ? analysis.matchingPercentage : 0)
         return Number.isFinite(raw) && !Number.isNaN(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0
@@ -61,6 +62,10 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
 
     const dashOffset = useMemo(() => String(100 - percent), [percent])
     const report = useMemo(() => generateReport(percent), [percent])
+    const summaryText = useMemo(() => {
+        if (!guestMode) return report.description
+        return 'Your resume has potential, and there are clear areas that can be improved for stronger ATS performance.'
+    }, [guestMode, report.description])
 
     // Animation state
     const [animatedOffset, setAnimatedOffset] = useState("100")
@@ -90,6 +95,12 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
         }
     }, [dashOffset, percent])
 
+    useEffect(() => {
+        if (guestMode) {
+            setShowDetails(true)
+        }
+    }, [guestMode])
+
     const toggleDetails = useCallback(() => {
         setShowDetails((prev) => !prev)
     }, [])
@@ -108,7 +119,10 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
                     <div className="grid gap-2">
                         <div>  <p className="text-xs text-slate-500 dark:text-slate-400">Position</p>
                             <p className="text-slate-800 dark:text-slate-200 font-medium">{analysis?.role ?? "—"}</p>
-                            <span className={`text-xs font-semibold ${report.colorClass}`}>{report.label}</span></div>
+                            <span className={`text-xs font-semibold ${guestMode ? 'text-amber-600 dark:text-amber-400' : report.colorClass}`}>
+                                {guestMode ? 'Can be improved' : report.label}
+                            </span>
+                        </div>
                         <div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">Company</p>
                             <p className="text-slate-800 dark:text-slate-200 font-medium">{analysis?.company ?? "—"}</p>
@@ -117,42 +131,44 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
 
 
                     {/* Circular progress */}
-                    <div className="relative w-20 h-20 sm:w-24 sm:h-24">
-                        <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                            <circle
-                                cx="18"
-                                cy="18"
-                                r="16"
-                                fill="none"
-                                className="stroke-slate-200 dark:stroke-slate-700"
-                                strokeWidth={2}
-                            />
-                            <circle
-                                cx="18"
-                                cy="18"
-                                r="16"
-                                fill="none"
-                                className={`stroke-current ${report.colorClass}`}
-                                strokeWidth={2}
-                                strokeDasharray={100}
-                                strokeDashoffset={animatedOffset}
-                                style={{ transition: "stroke-dashoffset 900ms cubic-bezier(0.22,1,0.36,1)" }}
-                                strokeLinecap="round"
-                            />
-                        </svg>
-                        <div className="absolute inset-0  flex flex-col items-center justify-center">
-                            <span className={`text-[1rem] font-bold ${report.colorClass}`}>{displayPercent}%</span>
-                            {percent >= 70 && <span className="text-[10px] text-teal-500">Match</span>}
+                    {!guestMode && (
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24">
+                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                <circle
+                                    cx="18"
+                                    cy="18"
+                                    r="16"
+                                    fill="none"
+                                    className="stroke-slate-200 dark:stroke-slate-700"
+                                    strokeWidth={2}
+                                />
+                                <circle
+                                    cx="18"
+                                    cy="18"
+                                    r="16"
+                                    fill="none"
+                                    className={`stroke-current ${report.colorClass}`}
+                                    strokeWidth={2}
+                                    strokeDasharray={100}
+                                    strokeDashoffset={animatedOffset}
+                                    style={{ transition: "stroke-dashoffset 900ms cubic-bezier(0.22,1,0.36,1)" }}
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <div className="absolute inset-0  flex flex-col items-center justify-center">
+                                <span className={`text-[1rem] font-bold ${report.colorClass}`}>{displayPercent}%</span>
+                                {percent >= 70 && <span className="text-[10px] text-teal-500">Match</span>}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Summary */}
                 <div>
                     <span className="font-medium text-slate-700 dark:text-slate-300">Summary</span>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                        {truncatedDescription}
-                        {!showDetails && "..."}
+                        {guestMode ? summaryText : truncatedDescription}
+                        {!guestMode && !showDetails && "..."}
                     </p>
                 </div>
 
@@ -194,7 +210,7 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
                             {analysis?.suggestions?.length > 0 && (
                                 <div>
                                     <span className="font-semibold text-slate-700 dark:text-slate-300">AI Suggestions</span>
-                                    <ul className="mt-1 space-y-1">
+                                    <ul className={`mt-1 space-y-1 ${guestMode ? 'blur-[4px] select-none pointer-events-none' : ''}`}>
                                         {analysis.suggestions.map((suggestion, i) => (
                                             <li key={i} className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-1">
                                                 <span className="text-amber-500 mt-0.5">•</span>
@@ -212,8 +228,9 @@ const JobAnalysisReport = memo(function JobAnalysisReport({ analysis }: JobAnaly
                 <button
                     onClick={toggleDetails}
                     className="text-xs text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-left"
+                    disabled={guestMode}
                 >
-                    {showDetails ? "← Show less" : "Show more →"}
+                    {guestMode ? 'Sign in to unlock AI suggestions' : showDetails ? "← Show less" : "Show more →"}
                 </button>
             </div>
         </div>

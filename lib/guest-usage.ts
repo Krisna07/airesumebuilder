@@ -2,11 +2,12 @@ import crypto from 'crypto'
 import { cookies } from 'next/headers'
 import { shouldResetDaily } from './subscription'
 
-export type GuestUsageKey = 'download' | 'regen'
+export type GuestUsageKey = 'download' | 'regen' | 'analysis'
 
 interface GuestUsageState {
   downloadCount: number
   regenCount: number
+  analysisCount: number
   lastResetDate: string
 }
 
@@ -14,6 +15,7 @@ export interface GuestUsageSnapshot {
   plan: 'GUEST'
   download: { used: number; limit: number; remaining: number }
   regen: { used: number; limit: number; remaining: number }
+  analysis: { used: number; limit: number; remaining: number }
   lastResetDate: string
 }
 
@@ -23,6 +25,7 @@ const GUEST_USAGE_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 const GUEST_QUOTAS: Record<GuestUsageKey, number> = {
   download: 5,
   regen: 5,
+  analysis: 1,
 }
 
 class GuestQuotaError extends Error {
@@ -45,6 +48,7 @@ function getDefaultGuestUsageState(now = new Date()): GuestUsageState {
   return {
     downloadCount: 0,
     regenCount: 0,
+    analysisCount: 0,
     lastResetDate: now.toISOString(),
   }
 }
@@ -70,6 +74,7 @@ function parseState(rawValue?: string | null): GuestUsageState | null {
     return {
       downloadCount: Math.max(0, Number(parsed.downloadCount ?? 0)),
       regenCount: Math.max(0, Number(parsed.regenCount ?? 0)),
+      analysisCount: Math.max(0, Number(parsed.analysisCount ?? 0)),
       lastResetDate: typeof parsed.lastResetDate === 'string' ? parsed.lastResetDate : new Date().toISOString(),
     }
   } catch {
@@ -97,20 +102,32 @@ async function persistState(state: GuestUsageState) {
 }
 
 function ensureWithinQuota(state: GuestUsageState, key: GuestUsageKey, amount: number) {
-  const current = key === 'download' ? state.downloadCount : state.regenCount
+  const current =
+    key === 'download'
+      ? state.downloadCount
+      : key === 'regen'
+        ? state.regenCount
+        : state.analysisCount
   const quota = GUEST_QUOTAS[key]
 
   if (current + amount > quota) {
     throw new GuestQuotaError(
       key === 'download'
         ? 'Guest daily download limit reached. Sign in to continue or try again tomorrow.'
-        : 'Guest daily regeneration limit reached. Sign in to continue or try again tomorrow.',
+        : key === 'regen'
+          ? 'Guest daily regeneration limit reached. Sign in to continue or try again tomorrow.'
+          : 'Guest analysis limit reached for this guest account. Sign in to continue.',
     )
   }
 }
 
 function buildUsageEntry(key: GuestUsageKey, state: GuestUsageState) {
-  const used = key === 'download' ? state.downloadCount : state.regenCount
+  const used =
+    key === 'download'
+      ? state.downloadCount
+      : key === 'regen'
+        ? state.regenCount
+        : state.analysisCount
   const limit = GUEST_QUOTAS[key]
   return {
     used,
@@ -141,6 +158,7 @@ export async function consumeGuestUsage(key: GuestUsageKey, amount = 1) {
     ...state,
     downloadCount: key === 'download' ? state.downloadCount + amount : state.downloadCount,
     regenCount: key === 'regen' ? state.regenCount + amount : state.regenCount,
+    analysisCount: key === 'analysis' ? state.analysisCount + amount : state.analysisCount,
   }
 
   await persistState(updatedState)
@@ -153,6 +171,7 @@ export async function getGuestUsageSnapshot(): Promise<GuestUsageSnapshot> {
     plan: 'GUEST',
     download: buildUsageEntry('download', state),
     regen: buildUsageEntry('regen', state),
+    analysis: buildUsageEntry('analysis', state),
     lastResetDate: state.lastResetDate,
   }
 }

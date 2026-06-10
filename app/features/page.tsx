@@ -226,48 +226,6 @@ const FeaturesPage = () => {
     },
   ]
 
-  const pricingPlans = [
-    {
-      name: "Free",
-      price: "$0",
-      features: [
-        "20 AI regenerations per day",
-        "20 cover letters per day",
-        "20 resume analyses per day",
-        "Unlimited downloads",
-        "Unlimited PDF uploads",
-        "All 10 templates",
-        "Full customization",
-      ]
-    },
-    {
-      name: "Supporter",
-      price: "$9/mo",
-      features: [
-        "Unlimited AI regenerations",
-        "Unlimited cover letters",
-        "Unlimited analyses",
-        "Unlimited downloads",
-        "Unlimited uploads",
-        "All templates & features",
-        "Priority support",
-      ],
-      popular: true
-    },
-    {
-      name: "Ultimate",
-      price: "$19/mo",
-      features: [
-        "Everything in Supporter",
-        "Premium templates (coming soon)",
-        "Advanced AI models",
-        "Priority processing",
-        "Dedicated support",
-        "Early access to new features",
-      ]
-    }
-  ]
-
   return (
     <>
       {/* Structured Data */}

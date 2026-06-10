@@ -244,8 +244,8 @@ You MUST include these section types in this order:
 
 ### INTERNAL LINKS (include at least 3 throughout the content)
 - Resume builder: https://airesumecraft.xyz/builder
-- Pricing: https://airesumecraft.xyz/pricing
 - Blog: https://airesumecraft.xyz/blogs
+- Features: https://airesumecraft.xyz/features
 
 ### IMAGE PROMPT REQUIREMENTS
 Create a unique, topic-specific image prompt that reflects the blog's main theme using PHOTOREALISTIC, PROFESSIONAL PHOTOGRAPHY style. Include relevant visual metaphors (e.g., "modern office desk with laptop and resume", "professional workspace with documents", "clean minimalist desk setup", "business professional reviewing documents"). Use descriptors like: "professional photography", "high-quality", "modern", "clean aesthetic", "natural lighting", "shallow depth of field", "corporate environment". ABSOLUTELY NO TEXT, NO WORDS, NO TYPOGRAPHY, NO ILLUSTRATIONS, NO CARTOONS in the image. Focus on real-world professional scenarios.
@@ -333,9 +333,13 @@ const generateBlogTitlePlanPrompt = (input: {
   resumeContext: unknown
   existingTitles: string[]
   blockedTitles?: string[]
+  appKeywords?: string[]
+  crmKeywords?: string[]
   attempt?: number
 }) => {
   const blocked = input.blockedTitles || [];
+  const appKeywords = input.appKeywords || [];
+  const crmKeywords = input.crmKeywords || [];
   const attempt = input.attempt || 1;
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString('en-US', { month: 'long' });
@@ -356,12 +360,15 @@ Propose ONE high-authority, SEO-optimized blog title derived from the candidate'
 - **RESUME CONTEXT (JSON):** ${JSON.stringify(input.resumeContext)}
 - **CONTENT HISTORY (DO NOT DUPLICATE):** ${JSON.stringify(input.existingTitles)}
 - **REJECTED ITERATIONS:** ${JSON.stringify(blocked)}
+- **APP KEYWORDS (must influence title/topic angle):** ${JSON.stringify(appKeywords)}
+- **CRM KEYWORD SIGNALS (optional relevance hints):** ${JSON.stringify(crmKeywords)}
 
 ### STRATEGIC CONSTRAINTS
 1. **Market Alignment:** The title must reflect current hiring behaviors (e.g., "Skills-based hiring," "ATS optimization," or "Role-specific impact metrics").
 2. **Search Intent:** Prioritize "Informational" intent (how to solve a problem) or "Navigational" intent (how to reach a career milestone).
 3. **No Hallucinations:** Do not reference non-existent certifications, tools, or niche trends that aren't verified in the current professional landscape.
 4. **Length & Formatting:** 45-70 characters. Sentence case or Title Case. No clickbait superlatives (e.g., avoid "Shocking," "Secrets," or "Magic").
+5. **Uniqueness First:** The title must be materially different from CONTENT HISTORY in structure and angle (not just swapping 1-2 words).
 5. **Format Variety:** Alternate between these formats across attempts:
    - How-to: "How to [Achieve Goal] in ${currentYear}"
    - Listicle: "[Number] [Topic] Tips for [Audience]"

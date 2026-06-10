@@ -1,13 +1,15 @@
 import type React from "react"
 import Link from "next/link"
 import Button from "../Ui/Button"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, BarChart3, Sparkles } from "lucide-react"
 
 type HeroProps = {
   title?: string
   subtitle?: string
   ctaLabel?: string
   ctaHref?: string
+  analysisLabel?: string
+  analysisHref?: string
   secondaryLabel?: string
   onSecondaryClick?: () => void
 }
@@ -17,6 +19,8 @@ const HeroSection: React.FC<HeroProps> = ({
   subtitle = "Build professional, ATS-optimized resumes in minutes. Let AI craft compelling bullet points while you focus on landing the job—all at absolutely no cost.",
   ctaLabel = "Start Building Free",
   ctaHref = "/builder",
+  analysisLabel = "Analyze My Resume",
+  analysisHref = "/analysis",
   secondaryLabel = "See templates",
 }) => {
   const [left, right] = title.split("—").map((s) => s.trim())
@@ -57,6 +61,13 @@ const HeroSection: React.FC<HeroProps> = ({
             <Button variant="primary" size="medium" className="group px-8">
               {ctaLabel}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </Link>
+
+          <Link href={analysisHref}>
+            <Button variant="secondary" size="medium" className="group px-8">
+              <BarChart3 className="w-4 h-4" />
+              {analysisLabel}
             </Button>
           </Link>
 

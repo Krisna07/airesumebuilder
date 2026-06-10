@@ -27,6 +27,12 @@ const handleLogin = async (email: string, password: string) => {
   if (!user) {
     throw new Error('User not found, please register.');
   }
+
+  // Check if user account is deleted
+  if (user.deletedAt) {
+    throw new Error('ACCOUNT_DELETED');
+  }
+
   if (!user.password) {
     throw new Error('User has no password set, use SSO login. or Sign up to set password.');
   }
@@ -40,6 +46,9 @@ const handleLogin = async (email: string, password: string) => {
 
 const handleOAuthUserRegister = async (email: string, name: string | null | undefined, image: string | null | undefined, provider: string, providerId: string) => {
   let user = await prisma.user.findUnique({ where: { email } });
+  const isNewUser = !user;
+  let isRestoredAccount = false;
+
   if (!user) {
     user = await prisma.user.create({
       data: {
@@ -52,18 +61,72 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
       },
     });
   } else {
-    user = await prisma.user.update({
-      where: { email: email },
-      data: {
-        email: email,
-        name: name || email.split('@')[0],
-        image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
-        provider: provider || 'credentials',
-        providerId: providerId || null,
-        isVerified: true
-      },
-    });
+    // If user exists and has password - they should login with email/password, not OAuth
+    if (user.password && !user.deletedAt) {
+      throw new Error('EXISTING_ACCOUNT_WITH_PASSWORD');
+    }
+
+    // If user was deleted but within grace period, restore the account
+    if (user.deletedAt) {
+      const GRACE_PERIOD_DAYS = 15;
+      const deletionDate = new Date(user.deletedAt);
+      const expirationDate = new Date(deletionDate.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+
+      if (expirationDate > new Date()) {
+        // Grace period still active - restore account
+        user = await prisma.user.update({
+          where: { email: email },
+          data: {
+            deletedAt: null,
+            name: name || email.split('@')[0],
+            image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
+            provider: provider || 'credentials',
+            providerId: providerId || null,
+            isVerified: true
+          },
+        });
+        isRestoredAccount = true;
+      } else {
+        // Grace period expired - cannot restore
+        throw new Error('ACCOUNT_PERMANENTLY_DELETED');
+      }
+    } else {
+      user = await prisma.user.update({
+        where: { email: email },
+        data: {
+          email: email,
+          name: name || email.split('@')[0],
+          image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
+          provider: provider || 'credentials',
+          providerId: providerId || null,
+          isVerified: true
+        },
+      });
+    }
   }
+
+  // Send welcome email to new OAuth users
+  if (isNewUser) {
+    try {
+      const { EmailService } = await import('@/utils/sendEmail');
+      await EmailService.sendWelcomeEmail(email, user.name);
+    } catch (error) {
+      console.error('Failed to send welcome email to OAuth user:', error);
+      // Don't throw error - user registration should succeed even if email fails
+    }
+  }
+
+  // Send restoration email to restored accounts
+  if (isRestoredAccount) {
+    try {
+      const { EmailService } = await import('@/utils/sendEmail');
+      await EmailService.sendAccountRestoredEmail(email, user.name);
+    } catch (error) {
+      console.error('Failed to send account restored email:', error);
+      // Don't throw error - restoration should succeed even if email fails
+    }
+  }
+
   return {
     stored: true,
     ...user
@@ -134,8 +197,27 @@ export const authOptions = {
           try {
             console.log('Handling OAuth user register/login for:', token.email)
             user = await handleOAuthUserRegister(token.email!, token.name, token.picture, token.provider, token.providerId as string)
+
+            // Mark if account was restored
+            if (user && !user.deletedAt && (user as any).isRestoredAccount) {
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              token.accountRestored = true
+            }
           } catch (error) {
-            console.log(error)
+            const errorMessage = error instanceof Error ? error.message : 'OAuth error';
+            console.log('OAuth error:', errorMessage)
+
+            // If existing account with password, mark token for redirection
+            if (errorMessage === 'EXISTING_ACCOUNT_WITH_PASSWORD') {
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              token.existingAccountError = true
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              token.userEmail = token.email
+            }
+
             return token
           }
         }
@@ -194,6 +276,17 @@ export const authOptions = {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, token }: { session: any; token: JWT }) {
+      // Handle existing account with password error
+      if ((token as any).existingAccountError) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        session.error = 'EXISTING_ACCOUNT_WITH_PASSWORD';
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        session.userEmail = (token as any).userEmail;
+        return session;
+      }
+
       if (session.user) {
         ; session.user.id = token.id as string | undefined
           ; session.user.provider = token.provider as string | undefined

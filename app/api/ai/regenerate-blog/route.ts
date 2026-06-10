@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireAdminOrForbidden } from '@/lib/blogAuth'
 import { polishBlogPrompt } from '@/lib/prompts'
 import { parseResponse } from '@/lib/jsonParse'
-import { GoogleGenAI } from '@google/genai'
 import { OpenRouter } from '@openrouter/sdk'
+import { OPENROUTER_FAST_MODEL } from '@/services/aiModelConfig'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -15,30 +15,14 @@ const requestSchema = z.object({
   sections: z.array(z.record(z.string(), z.unknown())).min(1),
 })
 
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-  : null
 const openRouter = process.env.OPENROUTER_API_KEY
   ? new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
   : null
 
 async function callAI(prompt: string): Promise<string> {
-  if (genAI) {
-    try {
-      const res = await genAI.models.generateContent({
-        model: 'gemini-3.1-flash-lite-preview',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      })
-      const raw =
-        res?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text).join('') || ''
-      if (raw) return raw
-    } catch {
-      // fall through to OpenRouter
-    }
-  }
   if (openRouter) {
     const res = await openRouter.chat.send({
-      model: 'google/gemini-3.1-flash-lite-001:free',
+      model: OPENROUTER_FAST_MODEL,
       messages: [{ role: 'user', content: prompt }],
       stream: false,
     })
@@ -46,7 +30,7 @@ async function callAI(prompt: string): Promise<string> {
     if (!content) throw new Error('Empty response from OpenRouter')
     return typeof content === 'string' ? content : JSON.stringify(content)
   }
-  throw new Error('No AI client available. Check GEMINI_API_KEY or OPENROUTER_API_KEY.')
+  throw new Error('No AI client available. Check OPENROUTER_API_KEY.')
 }
 
 /**

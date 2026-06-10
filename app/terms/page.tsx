@@ -33,7 +33,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold mb-2">3. Paid Plans & Billing</h2>
-            <p>Subscriptions are billed monthly and can be canceled at any time. Cancellation takes effect at the end of the current billing period. See our <Link href="/pricing" className="text-teal-600 hover:underline">Pricing</Link> page for current plan details.</p>
+            <p>Subscriptions are billed monthly and can be canceled at any time. Cancellation takes effect at the end of the current billing period. For plan details, please contact our team.</p>
           </section>
 
           <section>

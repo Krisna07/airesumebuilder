@@ -18,9 +18,10 @@ model User {
   isAdmin   Boolean  @default(false)
   verifications Verification[]
   subscription Subscription?
-    usageHistory UsageHistory?
+  usageHistory UsageHistory?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft delete timestamp (grace period starts here)
   resumes   Resume[]
   jobDescriptions JobDescription[]
 }

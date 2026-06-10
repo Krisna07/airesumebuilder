@@ -12,7 +12,7 @@ import Image from "next/image"
  * Dashboard Navigation Component
  * 
  * A specialized navigation bar for dashboard pages with:
- * - Dashboard-specific links (Dashboard, My Resumes, Account, Pricing)
+ * - Dashboard-specific links (Dashboard, My Resumes, Account)
  * - User profile menu with subscription status
  * - Theme toggle (light/dark mode)
  * - Mobile responsive hamburger menu

@@ -121,11 +121,6 @@ export default async function BlogsPage() {
             <Link href="/features" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
               AI resume features
             </Link>
-            , or compare plans on
-            {' '}
-            <Link href="/pricing" className="font-medium text-teal-700 dark:text-teal-300 hover:underline">
-              pricing
-            </Link>
             .
           </p>
         </div>

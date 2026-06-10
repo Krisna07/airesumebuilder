@@ -30,7 +30,7 @@ interface SanityBlogDoc {
   publishedAt?: string
 }
 
-function normalizeSlug(value: string) {
+export function normalizeSlug(value: string) {
   return slugify(value, { lower: true, strict: true, trim: true })
 }
 

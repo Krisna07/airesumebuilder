@@ -22,34 +22,15 @@ import {
     isValidCoverLetter
 } from "@/lib/aiSchemas";
 import { captureServerError } from "@/lib/monitoring/server";
-import { callGeminiModel } from "@/services/geminiService";
 import { callOpenRouterModel } from "@/services/openRouterService";
-import { geminiModels, MODEL_ROUTING, openRouterModels } from "@/services/aiModelConfig";
+import { callCloudFlareModel } from "@/services/cloudFlareService";
+import { openRouterModels, cloudflareModels, MODEL_ROUTING } from "@/services/aiModelConfig";
 
 const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY);
-const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY);
+const hasCloudFlareKey = Boolean(process.env.CLOUDFLARE_AI_GATEWAY_TOKEN);
 
-if (!hasOpenRouterKey && !hasGeminiKey) {
-    console.warn('AIService: No API keys found for Gemini or OpenRouter. AI functionalities will be disabled.');
-}
-
-/**
- * Call a specific Gemini model with schema
- */
-async function callSpecificGeminiModel(
-    model: string,
-    prompt: string,
-    outputSchema?: any
-): Promise<any> {
-    if (!hasGeminiKey) {
-        throw new Error('Gemini client not available');
-    }
-
-    return callGeminiModel({
-        model,
-        prompt,
-        outputSchema,
-    });
+if (!hasOpenRouterKey && !hasCloudFlareKey) {
+    console.warn('AIService: No API keys found for OpenRouter or CloudFlare. AI functionalities will be disabled.');
 }
 
 /**
@@ -70,35 +51,54 @@ async function callSpecificOpenRouterModel(
         outputSchema,
     });
 }
+
 /**
- * Call Gemini AI with structured output schema
+ * Call a specific CloudFlare model with schema
+ */
+async function callSpecificCloudFlareModel(
+    model: string,
+    prompt: string,
+    outputSchema?: any
+): Promise<any> {
+    if (!hasCloudFlareKey) {
+        throw new Error('CloudFlare client is not initialized');
+    }
+
+    return callCloudFlareModel({
+        model,
+        prompt,
+        outputSchema,
+    });
+}
+/**
+ * Call CloudFlare AI with structured output schema
  * @param prompt - The prompt to send
  * @param outputSchema - Optional JSON schema for structured output
- * @param retries - Number of retries (3 = try all 3 Gemini models)
+ * @param retries - Number of retries (3 = try all 3 CloudFlare models)
  * @returns Parsed response or raw string
  */
-async function callGeminiWithSchema(
+async function callCloudFlareWithSchema(
     prompt: string,
     outputSchema?: any,
     retries = 3
 ): Promise<any> {
-    if (retries <= 0 || !hasGeminiKey) {
-        throw new Error('Gemini client not available or retries exhausted');
+    if (retries <= 0 || !hasCloudFlareKey) {
+        throw new Error('CloudFlare client not available or retries exhausted');
     }
 
     const modelIndex = 3 - retries;
-    const model = geminiModels[modelIndex] || geminiModels[0];
+    const model = cloudflareModels[modelIndex] || cloudflareModels[0];
 
     try {
-        return await callSpecificGeminiModel(model, prompt, outputSchema);
+        return await callSpecificCloudFlareModel(model, prompt, outputSchema);
     } catch (error: any) {
         console.warn(
-            `Gemini call failed with ${model} (attempt ${4 - retries}/3):`,
+            `CloudFlare call failed with ${model} (attempt ${4 - retries}/3):`,
             error?.message || error
         );
 
         if (retries > 1) {
-            return callGeminiWithSchema(prompt, outputSchema, retries - 1);
+            return callCloudFlareWithSchema(prompt, outputSchema, retries - 1);
         }
 
         throw error;
@@ -142,7 +142,7 @@ async function callOpenRouterWithSchema(
 }
 
 /**
- * Unified AI call with automatic fallback from Gemini to OpenRouter
+ * Unified AI call with OpenRouter-first fallback strategy
  * Supports model routing for specific tasks
  * @param prompt - The prompt to send
  * @param outputSchema - Optional JSON schema for structured output
@@ -165,8 +165,8 @@ async function callAIWithSchema(
             try {
                 console.log(`Attempting preferred ${provider} model: ${model}`);
 
-                if (provider === 'gemini' && hasGeminiKey) {
-                    return await callSpecificGeminiModel(model, prompt, outputSchema);
+                if (provider === 'cloudflare' && hasCloudFlareKey) {
+                    return await callSpecificCloudFlareModel(model, prompt, outputSchema);
                 } else if (provider === 'openrouter' && hasOpenRouterKey) {
                     return await callSpecificOpenRouterModel(model, prompt, outputSchema);
                 }
@@ -182,35 +182,41 @@ async function callAIWithSchema(
         console.log('All preferred models failed, falling back to standard waterfall...');
     }
 
-    // Standard waterfall: Try Gemini first (3 models)
-    if (hasGeminiKey) {
-        try {
-            console.log('Attempting Gemini models...');
-            return await callGeminiWithSchema(prompt, outputSchema, 3);
-        } catch (geminiError: any) {
-            console.warn('All Gemini models failed, falling back to OpenRouter:', geminiError?.message);
-        }
-    }
-
-    // Fallback to OpenRouter (3 models)
+    // Standard waterfall: Try OpenRouter first (3 models), then CloudFlare.
     if (hasOpenRouterKey) {
         try {
             console.log('Attempting OpenRouter models...');
             return await callOpenRouterWithSchema(prompt, outputSchema, 3);
         } catch (openRouterError: any) {
-            console.error('All OpenRouter models failed:', openRouterError?.message);
-            await captureServerError(openRouterError, {
+            console.warn('All OpenRouter models failed, falling back to CloudFlare:', openRouterError?.message);
+        }
+    }
+
+    // Fallback to CloudFlare (3 models)
+    if (hasCloudFlareKey) {
+        try {
+            console.log('Attempting CloudFlare models...');
+            return await callCloudFlareWithSchema(prompt, outputSchema, 3);
+        } catch (cloudflareError: any) {
+            console.error('All CloudFlare models failed:', cloudflareError?.message);
+            await captureServerError(cloudflareError, {
                 source: 'AIService.callAIWithSchema',
                 severity: 'critical',
                 tags: ['ai', 'provider-fallback-failure'],
                 extra: { taskType },
             });
-            throw new Error(`AI service exhausted all providers: ${openRouterError?.message || 'Unknown error'}`);
+            throw new Error(`AI service exhausted all providers: ${cloudflareError?.message || 'Unknown error'}`);
         }
     }
 
-    throw new Error('No AI providers available. Check GEMINI_API_KEY or OPENROUTER_API_KEY.');
+    throw new Error('No AI providers available. Check OPENROUTER_API_KEY or CLOUDFLARE_AI_GATEWAY_TOKEN.');
 }
+
+/**
+ * Public export of callAIWithSchema for use outside this module
+ */
+export { callAIWithSchema }
+
 export class AIService {
 
     /**
@@ -240,7 +246,7 @@ export class AIService {
 
     /**
      * Generate a complete optimized resume
-     * Uses fast model: gemini-3.1-flash-lite-preview
+    * Uses fast OpenRouter tier for extraction and strong tier for full generation
      */
     static async generateResume(
         userdata?: ResumeData,
@@ -371,7 +377,7 @@ OUTPUT:`;
 
     /**
      * Generate a cover letter
-     * Uses fast model: gemini-3.1-flash-lite-preview
+    * Uses strong OpenRouter long-context tier
      */
     static async generateCoverLetter(
         resumeData: ResumeData,

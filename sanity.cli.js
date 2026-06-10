@@ -3,8 +3,8 @@ import {defineCliConfig} from 'sanity/cli'
 const isProd = process.env.ENVIRONMENT !== 'development'
 export default defineCliConfig({
   api: {
-    projectId: 'nu3oga1w',
-    dataset: isProd ? 'production' : 'development'
+    projectId: process.env.SANITY_PROJECT_ID,
+    dataset: isProd ? 'production' : 'preview'
   },
   deployment: {
     /**

@@ -1,8 +1,13 @@
 import LoginForm from '@/components/Forms/authForms/LoginForm'
 import { redirectIfAuthenticated } from '@/utils/redirectUtil'
 import React from 'react'
-export default async function Page() {
-  await redirectIfAuthenticated('/builder')
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: { next?: string }
+}) {
+  const next = searchParams?.next && searchParams.next.startsWith('/') ? searchParams.next : '/builder'
+  await redirectIfAuthenticated(next)
   return <div className='w-full h-[80vh] grid place-items-center md:py-8 px-4'>
     <LoginForm />
   </div>

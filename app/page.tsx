@@ -151,6 +151,23 @@ const page = () => {
         <BlogResourcesSection />
         <FAQSection />
 
+        <section className='w-full max-w-6xl mx-auto px-4'>
+          <div className='rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-teal-50 dark:from-slate-900 dark:to-slate-800 p-6 sm:p-8 text-left'>
+            <h2 className='text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white'>Analyze Your Resume Against ATS Standards</h2>
+            <p className='mt-3 text-slate-600 dark:text-slate-300 max-w-3xl'>
+              Upload your existing PDF and get an AI ATS breakdown instantly, even without login. Review keyword gaps, strengths, and optimization guidance before you apply.
+            </p>
+            <div className='mt-5'>
+              <Link
+                href='/analysis'
+                className='inline-flex items-center rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm font-medium transition-colors'
+              >
+                Start ATS Analysis
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section className='w-full max-w-6xl mx-auto px-4 pb-20 text-left'>
           <div className='rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 p-6 sm:p-8'>
             <h2 className='text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white'>

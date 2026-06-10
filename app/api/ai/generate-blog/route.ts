@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
+import { OpenRouter } from '@openrouter/sdk'
 import { requireAdminOrForbidden } from '@/lib/blogAuth'
 import { streamBlogHtmlPrompt, blogMetaPrompt } from '@/lib/prompts'
 import {
+  OPENROUTER_FAST_MODEL,
+  OPENROUTER_STRONG_LONG_CONTEXT_MODEL,
+} from '@/services/aiModelConfig'
+import {
   generateBlogDraftFromTitle,
-  generateCoverImageFromPrompt,
 } from '@/services/blogAutomationService'
+import { generateBlogCoverImage } from '@/services/imageGenerationService'
 import { saveImage } from '@/services/blogCmsService'
+import { parseStructuredJson } from '@/services/aiProviderUtils'
 
 // Image style presets with brand color integration (teal/slate palette)
 const IMAGE_STYLE_PRESETS = [
@@ -39,6 +44,27 @@ function selectRandomImageStyle(): string {
 
 export const runtime = 'nodejs'
 
+const openRouter = process.env.OPENROUTER_API_KEY
+  ? new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
+  : null
+
+function getMessageContent(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === 'string') return part
+        if (part && typeof part === 'object' && 'text' in part) {
+          const text = (part as { text?: unknown }).text
+          return typeof text === 'string' ? text : ''
+        }
+        return ''
+      })
+      .join('')
+  }
+  return ''
+}
+
 /**
  * GET /api/ai/generate-blog?title=...
  * SSE stream with three event types:
@@ -63,15 +89,13 @@ export async function GET(req: Request) {
     )
   }
 
-  const geminiKey = process.env.GEMINI_API_KEY
-  if (!geminiKey) {
+  if (!openRouter) {
     return NextResponse.json(
-      { success: false, error: 'GEMINI_API_KEY not configured.' },
+      { success: false, error: 'OPENROUTER_API_KEY not configured.' },
       { status: 500 }
     )
   }
 
-  const genAI = new GoogleGenAI({ apiKey: geminiKey })
   const encoder = new TextEncoder()
 
 
@@ -85,16 +109,17 @@ export async function GET(req: Request) {
         let derivedTitle = topic
         let excerpt = ''
         try {
-          const metaRes = await genAI.models.generateContent({
-            model: 'gemini-3.1-flash-lite-preview',
-            contents: [{ role: 'user', parts: [{ text: blogMetaPrompt(topic) }] }],
-            config: { temperature: 0.95 },
+          const metaRes = await openRouter.chat.send({
+            model: OPENROUTER_FAST_MODEL,
+            messages: [{ role: 'user', content: blogMetaPrompt(topic) }],
+            temperature: 0.95,
+            stream: false,
           })
-          const metaText = metaRes.candidates?.[0]?.content?.parts
-            ?.map((p: { text?: string }) => p.text ?? '')
-            .join('') ?? ''
-          const cleaned = metaText.replace(/```json\s*|\s*```/g, '').trim()
-          const meta = JSON.parse(cleaned) as { title?: string; excerpt?: string }
+          const metaText = getMessageContent(metaRes?.choices?.[0]?.message?.content)
+          const meta = parseStructuredJson(metaText, 'OpenRouter') as {
+            title?: string
+            excerpt?: string
+          }
           if (meta.title && topic.length <= 25) {
             derivedTitle = meta.title
           }
@@ -105,17 +130,16 @@ export async function GET(req: Request) {
         send({ meta: { title: derivedTitle, excerpt } })
 
         // ── Step 2: Stream HTML body ────────────────────────────────────────────
-        const responseStream = await genAI.models.generateContentStream({
-          model: 'gemini-3.1-flash-lite-preview',
-          contents: [{ role: 'user', parts: [{ text: streamBlogHtmlPrompt(derivedTitle) }] }],
-          config: { temperature: 0.85 },
+        const bodyRes = await openRouter.chat.send({
+          model: OPENROUTER_STRONG_LONG_CONTEXT_MODEL,
+          messages: [{ role: 'user', content: streamBlogHtmlPrompt(derivedTitle) }],
+          temperature: 0.85,
+          stream: false,
         })
 
-        for await (const chunk of responseStream) {
-          const text =
-            chunk.candidates?.[0]?.content?.parts
-              ?.map((p: { text?: string }) => p.text ?? '')
-              .join('') ?? ''
+        const html = getMessageContent(bodyRes?.choices?.[0]?.message?.content)
+        for (let i = 0; i < html.length; i += 1200) {
+          const text = html.slice(i, i + 1200)
           if (text) send({ text })
         }
 
@@ -123,7 +147,7 @@ export async function GET(req: Request) {
         try {
           const selectedStyle = selectRandomImageStyle()
           const imagePrompt = `${selectedStyle} for "${derivedTitle}". Professional career development concept. ABSOLUTELY NO TEXT, NO TYPOGRAPHY, NO LETTERS, NO WORDS, NO ILLUSTRATIONS, NO CARTOONS in the image whatsoever. Photorealistic only.`
-          const imagePayload = await generateCoverImageFromPrompt(imagePrompt)
+          const imagePayload = await generateBlogCoverImage(imagePrompt)
           const imageMeta = await saveImage({
             bytes: imagePayload.bytes,
             mimeType: imagePayload.mimeType,
@@ -176,7 +200,7 @@ export async function POST(req: Request) {
     const draft = await generateBlogDraftFromTitle(title, targetKeywords)
 
     // The image generation function now handles random style selection internally
-    const imagePayload = await generateCoverImageFromPrompt(draft.imagePrompt)
+    const imagePayload = await generateBlogCoverImage(draft.imagePrompt)
 
     const imageMeta = await saveImage({
       bytes: imagePayload.bytes,

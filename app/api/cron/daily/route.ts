@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { runSubscriptionResetJob } from '@/app/api/cron/subscription-reset/route'
 import { runBlogCronJob } from '@/app/api/cron/blog/route'
+import { cleanupExpiredDeletedAccounts } from '@/app/api/cron/cleanup-deleted-accounts/route'
 import { EmailService } from '@/utils/sendEmail'
 
 export const runtime = 'nodejs'
@@ -9,6 +10,7 @@ export const maxDuration = 300
 async function sendSuccessNotification(params: {
   durationMs: number
   subscriptionResetCount: number
+  deletedAccountsCount: number
   blogState?: string
   blogTitle?: string
   blogSlug?: string
@@ -24,6 +26,7 @@ async function sendSuccessNotification(params: {
     'Daily cron completed successfully.',
     `Duration: ${params.durationMs}ms`,
     `Subscriptions reset: ${params.subscriptionResetCount}`,
+    `Deleted accounts (expired): ${params.deletedAccountsCount}`,
     `Blog state: ${params.blogState ?? 'n/a'}`,
     `Blog title: ${params.blogTitle ?? 'n/a'}`,
     `Blog slug: ${params.blogSlug ?? 'n/a'}`,
@@ -34,6 +37,7 @@ async function sendSuccessNotification(params: {
     <h2>Daily cron completed successfully</h2>
     <p><strong>Duration:</strong> ${params.durationMs}ms</p>
     <p><strong>Subscriptions reset:</strong> ${params.subscriptionResetCount}</p>
+    <p><strong>Deleted accounts (expired):</strong> ${params.deletedAccountsCount}</p>
     <p><strong>Blog state:</strong> ${params.blogState ?? 'n/a'}</p>
     <p><strong>Blog title:</strong> ${params.blogTitle ?? 'n/a'}</p>
     <p><strong>Blog slug:</strong> ${params.blogSlug ?? 'n/a'}</p>
@@ -78,12 +82,13 @@ async function handleCron(req: Request) {
   }
 
   const startedAt = Date.now()
-  console.log('[cron/daily] Starting daily orchestrator (subscription-reset + blog)')
+  console.log('[cron/daily] Starting daily orchestrator (subscription-reset + blog + account-cleanup)')
 
   const subscription = await runSubscriptionResetJob()
   const blog = await runBlogCronJob()
+  const accountCleanup = await cleanupExpiredDeletedAccounts()
 
-  const allSucceeded = subscription.success && blog.success
+  const allSucceeded = subscription.success && blog.success && accountCleanup.success
   const durationMs = Date.now() - startedAt
   let notification: { sent: boolean; reason?: string } = { sent: false }
 
@@ -93,6 +98,7 @@ async function handleCron(req: Request) {
       notification = await sendSuccessNotification({
         durationMs,
         subscriptionResetCount: subscription.resetCount,
+        deletedAccountsCount: accountCleanup.deletedCount,
         blogState: blog.state,
         blogTitle: blog.title,
         blogSlug: blog.slug,
@@ -113,6 +119,7 @@ async function handleCron(req: Request) {
       jobs: {
         subscription,
         blog,
+        accountCleanup,
       },
       notification,
     },

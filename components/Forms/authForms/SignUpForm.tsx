@@ -5,7 +5,7 @@ import { useAuth } from '@/context/authContext';
 import { useToast } from '@/context/PopupContext';
 import Link from 'next/link';
 import React, { useState } from 'react';
-import { FaCircleExclamation, FaGithub, FaGoogle } from 'react-icons/fa6';
+import { FaGoogle } from 'react-icons/fa6';
 
 const SignUpForm: React.FC = () => {
     const [form, setForm] = useState<{
@@ -104,13 +104,9 @@ const SignUpForm: React.FC = () => {
                 <Button variant='primary' size='large' className='w-full flex items-center justify-center rounded-full mt-4 pt-2 pb-2' disabled={loading ? true : false}>
                     {loader ? 'Creating account....' : '  Create Account'}
                 </Button>
-                <div className='w-full  sm:flex-col items-center justify-between space-y-1 gap-4 hidden '>
-                    <Button variant='secondary' size='medium' onClick={() => signIn('google')} className='w-full'>
+                <div className='w-full flex sm:flex-col items-center justify-between space-y-1 gap-4'>
+                    <Button type='button' variant='secondary' size='medium' onClick={() => signIn('google')} className='w-full'>
                         <FaGoogle /> Sign in with Google
-                    </Button>
-
-                    <Button variant='primary' size='medium' onClick={() => signIn('github')} className='w-full'>
-                        <FaGithub /> Sign in with GitHub
                     </Button>
                 </div>
             </form>

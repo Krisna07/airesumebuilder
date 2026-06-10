@@ -304,18 +304,16 @@ const SettingsPage = () => {
               This will permanently delete your account and all associated data. This action cannot be undone.
             </p>
             <div className="space-y-3 mb-6">
-              {user.password && (
-                <div>
-                  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Password</label>
-                  <input
-                    type="password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                />
+              </div>
               <div>
                 <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
                   Type <span className="font-mono font-bold text-red-600">DELETE</span> to confirm
@@ -325,16 +323,6 @@ const SettingsPage = () => {
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
                   placeholder="DELETE"
-                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                />
-                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1 mt-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="password"
                   className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
                 />
               </div>
@@ -356,7 +344,7 @@ const SettingsPage = () => {
                 disabled={
                   deleting ||
                   confirmText !== 'DELETE' ||
-                  (!!user && !!user.password && !deletePassword)
+                  !deletePassword
                 }
                 className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >

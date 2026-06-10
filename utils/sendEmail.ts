@@ -253,5 +253,131 @@ export class EmailService {
         return info;
     }
 
+    static async sendWelcomeEmail(email: string, name: string) {
+        const { buildWelcomeEmail } = await import('@/app/api/auth/newuser/welcomeEmail');
+        const { subject, text, html } = buildWelcomeEmail({ name });
 
+        const senderEmail = "noreply@airesumecraft.xyz";
+
+        if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+            throw new Error("Email service not configured properly.");
+        }
+
+        const emailTransporter = createTransporter({
+            user: process.env.ADMIN_EMAIL,
+            pass: process.env.ADMIN_PASSWORD,
+        })
+
+        const info = await emailTransporter.sendMail({
+            from: `"${APP_NAME}" <${senderEmail}>`,
+            to: email,
+            subject,
+            text,
+            html,
+        });
+
+        console.log("Welcome email sent:", info.messageId);
+        if (info.rejected.length > 0) {
+            console.error("Failed to send welcome email to:", info.rejected);
+            return {
+                error: "Failed to send welcome email",
+            }
+        }
+        return info;
+    }
+
+    static async sendAccountRestoredEmail(email: string, name: string) {
+        const senderEmail = "noreply@airesumecraft.xyz";
+
+        if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+            throw new Error("Email service not configured properly.");
+        }
+
+        const subject = "Your Account Has Been Restored";
+        const plainText = [
+            `Hi ${name},`,
+            "",
+            "Great news! Your account has been successfully restored.",
+            "You can now access all your resumes, cover letters, and tools.",
+            "",
+            "If you didn't request this restoration, please contact us immediately.",
+            "",
+            "Best regards,",
+            "The AI Resume Craft Team",
+        ].join("\n");
+
+        const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+    <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #0f172a;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5; padding: 24px 0;">
+            <tr>
+                <td align="center" style="padding: 24px 12px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 620px; border-collapse: separate; border-spacing: 0; background-color: #ffffff; border: 1px solid #d7e5e3; border-radius: 24px; overflow: hidden;">
+                        <tr>
+                            <td style="padding: 28px 32px; background: linear-gradient(135deg, #083344 0%, #0f766e 58%, #14b8a6 100%);">
+                                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding-right: 14px; vertical-align: middle;">
+                                            <img src="${APP_URL}/icon.svg" alt="${APP_NAME} logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; border-radius: 16px; background-color: #ffffff; padding: 8px; box-sizing: border-box;" />
+                                        </td>
+                                        <td style="vertical-align: middle; color: #ffffff;">
+                                            <div style="margin: 0 0 6px; font-size: 12px; line-height: 1.2; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; color: #ccfbf1;">Account Restored</div>
+                                            <div style="margin: 0; font-size: 28px; line-height: 1.1; font-weight: 800; color: #ffffff;">${APP_NAME}</div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 32px;">
+                                <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6; color: #0f172a;">Hi ${name},</p>
+                                <h1 style="margin: 0 0 16px; font-size: 30px; line-height: 1.15; font-weight: 800; color: #0f172a;">Your Account Has Been Restored</h1>
+                                <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.7; color: #475569;">
+                                    Great news! Your account has been successfully restored. You can now access all your resumes, cover letters, and tools.
+                                </p>
+                                <p style="margin: 0 24px; padding: 16px; background-color: #f0fdf4; border-left: 4px solid #22c55e; font-size: 14px; line-height: 1.6; color: #15803d;">
+                                    ✓ All your data has been recovered<br/>
+                                    ✓ Your account is fully functional<br/>
+                                    ✓ You can continue where you left off
+                                </p>
+                                <p style="margin: 24px 0 0; font-size: 15px; line-height: 1.7; color: #475569;">
+                                    If you didn't request this restoration, please contact us immediately.
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 20px 32px 28px; border-top: 1px solid #e2e8f0; background-color: #f8fafc;">
+                                <p style="margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: #64748b;">Welcome back to ${APP_NAME}!</p>
+                                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #64748b;">Visit <a href="${APP_URL}" style="color: #0f766e; text-decoration: none; font-weight: 700;">airesumecraft.xyz</a> to continue.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>`;
+
+        const emailTransporter = createTransporter({
+            user: process.env.ADMIN_EMAIL,
+            pass: process.env.ADMIN_PASSWORD,
+        })
+
+        const info = await emailTransporter.sendMail({
+            from: `"${APP_NAME}" <${senderEmail}>`,
+            to: email,
+            subject,
+            text: plainText,
+            html: htmlContent,
+        });
+
+        console.log("Account restored email sent:", info.messageId);
+        if (info.rejected.length > 0) {
+            console.error("Failed to send account restored email to:", info.rejected);
+            return {
+                error: "Failed to send account restored email",
+            }
+        }
+        return info;
+    }
 }
