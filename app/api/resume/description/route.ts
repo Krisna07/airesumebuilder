@@ -60,24 +60,25 @@ export async function GET(request: NextRequest) {
         const resumeId = searchParams.get('resumeId');
         console.log(resumeId)
         if (resumeId) {
-            const jobDescriptionWithAnalysis = await prisma.jobDescription.findMany({
-                include: {
-                    analysisResults: {
-                        where: { resumeId: resumeId },
-                        select: {
-                            id: true,
-                            matchScore: true,
-                            suggestions: true,
-                            createdAt: true
-                        }
-                    }
+            const [jobDescriptions, allAnalysis] = await Promise.all([
+                prisma.jobDescription.findMany({}),
+                prisma.analysisResult.findMany({
+                    where: { resumeId: resumeId }
+                })
+            ]);
+
+            const analysisMap = new Map();
+            allAnalysis.forEach(analysis => {
+                if (!analysisMap.has(analysis.jobDescriptionId)) {
+                    analysisMap.set(analysis.jobDescriptionId, []);
                 }
+                analysisMap.get(analysis.jobDescriptionId).push(analysis);
             });
-            const result = jobDescriptionWithAnalysis.map(desc => ({
+
+            const result = jobDescriptions.map(desc => ({
                 ...desc,
-                hasAnalysed: desc.analysisResults && desc.analysisResults.length > 0,
-                analysis: desc.analysisResults[0] || null,
-                analysisResults: undefined
+                hasAnalysed: analysisMap.has(desc.id) && analysisMap.get(desc.id).length > 0,
+                analysis: analysisMap.has(desc.id) ? analysisMap.get(desc.id)[0] : null
             }));
             return NextResponse.json({ data: result }, { status: 200 });
         }

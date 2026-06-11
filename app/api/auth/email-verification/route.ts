@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Code expired' }, { status: 400 })
       }
 
-      const emailContent = buildWelcomeEmail(user.name || email.split('@')[0])
+      const emailContent = buildWelcomeEmail({ name: user.name || email.split('@')[0] })
       await prisma.user.update({ where: { email }, data: { isVerified: true } })
       const emailResponse = await EmailService.sendEmail(email, emailContent.subject, emailContent.text, emailContent.html)
       if (emailResponse && 'error' in emailResponse) {
