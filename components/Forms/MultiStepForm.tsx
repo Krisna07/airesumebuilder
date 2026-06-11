@@ -439,12 +439,19 @@ const MultiStepForm: React.FC<MultiStepFormProps> = ({ resumeContent, resumeId, 
 
       {/* Navigation footer */}
       {currentStep !== FINAL_STEP_INDEX && (
+<<<<<<< Updated upstream
         <div className="w-full fixed inset-x-0 bottom-0 z-50 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
           <div className="w-full max-w-[1200px] mx-auto lg:px-8">
             <div className="shrink-0 w-full  ">
               <div className="max-w-4xl w-full mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-20 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 {/* Sync Status */}
                 <SyncIndicator status={syncStatus} lastSyncTime={lastSyncTime} className="hidden sm:block" />
+=======
+        <div className="shrink-0 w-full fixed bottom-0 z-[70] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {/* Sync Status */}
+            <SyncIndicator status={syncStatus} lastSyncTime={lastSyncTime} className="hidden sm:block" />
+>>>>>>> Stashed changes
 
                 <div className="flex-1">
                   {currentStep > 1 && (
