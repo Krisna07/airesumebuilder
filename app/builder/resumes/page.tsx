@@ -1,7 +1,7 @@
 "use client"
 import Button from "@/components/Ui/Button"
 import Link from "next/link"
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { File, Plus, Rocket, Loader2 } from "lucide-react"
 import { useAuth } from "@/context/authContext"
 import { ResumeService } from "@/services/resumeServices"
@@ -25,7 +25,19 @@ import { ANALYTICS_EVENTS, trackAnalyticsEvent } from "@/lib/analytics/events"
 const AllResumesPage = () => {
   const { user, loading: authLoading } = useAuth()
   const [creating, setCreating] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
   const router = useRouter()
+
+  // Safety timeout: if page is loading for more than 10 seconds, show content anyway
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authLoading) {
+        console.warn('Auth loading timeout - showing content anyway')
+        setLoadingTimeout(true)
+      }
+    }, 10000)
+    return () => clearTimeout(timer)
+  }, [authLoading])
 
   const {
     data: resumes,
@@ -36,12 +48,13 @@ const AllResumesPage = () => {
   } = useQuery({
     queryKey: ["resumeData", user?.id],
     queryFn: () => ResumeService.getAll(user!.id),
-    enabled: !!user,
+    enabled: !!user?.id,
     staleTime: 30000,
   })
 
   useMemo(() => {
     if (isError && error) {
+      console.error("Resume query error:", error)
       toast.error(error.message || "Failed to load resumes")
     }
   }, [isError, error])
@@ -77,10 +90,13 @@ const AllResumesPage = () => {
     await refetch()
   }, [refetch])
 
-  // Loading state
-  if (authLoading || (user && isPending)) {
+  // Loading state - but show content if user is loaded, even if resumes still loading
+  if (authLoading && !loadingTimeout) {
     return <LoadingResumeState />
   }
+
+  // If user is loaded but resumes still loading, show content with loading state
+  // This prevents infinite loading when query is stuck
 
   // Guest user state
   if (!user) {

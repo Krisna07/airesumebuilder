@@ -158,9 +158,8 @@ export async function uploadResume(file: File, userId?: string) {
         if (!text || text.trim().length === 0) {
             throw new Error('No text extracted from PDF.');
         }
-        const endpoint = userId ? '/api/ai/extract-resume' : '/api/ai/extract-resume-guest';
 
-        const extractResponse = await fetch(endpoint, {
+        const extractResponse = await fetch('/api/ai/extract-resume', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

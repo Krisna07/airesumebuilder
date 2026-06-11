@@ -336,7 +336,7 @@ const PreviewPage = () => {
     setDownloading(true);
     setRegenerating(true);
     try {
-      const response = await fetch('/api/download/v2', {
+      const response = await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

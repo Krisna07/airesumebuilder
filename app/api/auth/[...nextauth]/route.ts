@@ -231,15 +231,35 @@ export const authOptions = {
         token.isVerified = Boolean(user.isVerified)
       }
 
+      // Always fetch and refresh isVerified from database to ensure it's up-to-date
+      if (token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { isVerified: true }
+          })
+          if (dbUser) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            token.isVerified = Boolean(dbUser.isVerified)
+          }
+        } catch (_err) {
+          // Silent fail - keep existing token.isVerified
+        }
+      }
+
       // Recover token.id for older sessions that were minted before user.id was stored in JWT.
       if (!token.id && token.email) {
         try {
           const dbUserByEmail = await prisma.user.findUnique({
             where: { email: token.email as string },
-            select: { id: true },
+            select: { id: true, isVerified: true },
           })
           if (dbUserByEmail?.id) {
             token.id = dbUserByEmail.id
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            token.isVerified = Boolean(dbUserByEmail.isVerified)
           }
         } catch (_err) {
           // No-op: token falls back to existing behavior.

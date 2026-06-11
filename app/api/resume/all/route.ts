@@ -23,12 +23,13 @@ export async function GET(req: NextRequest) {
         if (!id) {
             return NextResponse.json({ error: "Missing 'id' parameter" }, { status: 400 });
         }
-        const allResumes = await prisma.resume.findMany({ where: { userId: id } });
-        if (!allResumes) {
+        const activeResumes = await prisma.resume.findMany({
+            where: { userId: id, deleted: false },
+            orderBy: { updatedAt: 'desc' }
+        });
+        if (!activeResumes || activeResumes.length === 0) {
             return NextResponse.json({ error: "No resumes found" }, { status: 404 });
         }
-        const activeResumes = allResumes && allResumes.filter(resume => !resume.deleted);
-        activeResumes.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
         return NextResponse.json({
             data: activeResumes.map(resume => ({

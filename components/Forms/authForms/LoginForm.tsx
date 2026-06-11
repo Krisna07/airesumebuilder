@@ -44,11 +44,7 @@ const LoginForm: React.FC = () => {
     const triggerSignIn = async (provider: string) => {
         setLoader(true)
         try {
-            if (provider === 'google') {
-                await signIn(provider, { callbackUrl: nextTarget })
-                return
-            }
-
+            // Use redirect: false for all providers to catch errors
             const response = await signIn(provider, { redirect: false, callbackUrl: nextTarget })
 
             // Check if it's an existing account with password

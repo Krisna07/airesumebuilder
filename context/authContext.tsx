@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, useCallback, u
 import { useSession, signIn, getSession, signOut } from 'next-auth/react'
 import { RegisterData, UserService } from '@/services/userService'
 import { useToast } from './PopupContext'
+import { invalidateAuthQueries, clearAllQueries } from '@/lib/queryClient'
 import type { IncrementKey, Subscription } from '@/types/subscription'
 
 interface User {
@@ -98,6 +99,14 @@ const clearVerificationCache = () => {
   sessionStorage.removeItem(VERIFICATION_CACHE_KEY)
 }
 
+const invalidateVerificationCache = (email: string | null | undefined) => {
+  if (typeof window === 'undefined' || !email) return
+  const cached = readVerificationCache(email)
+  if (cached) {
+    clearVerificationCache()
+  }
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
@@ -156,16 +165,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           plan: refreshed.user.plan ?? 'FREE',
           isAdmin: refreshed.user.isAdmin ?? false
         })
+        // Invalidate caches after successful login
+        await invalidateAuthQueries()
       }
       window.location.href = '/builder'
 
     }
 
   }
-
-  useEffect(() => {
-    subscriptionRef.current = subscription
-  }, [subscription])
 
   const getSubscription = useCallback(async (forceRefresh = false) => {
     // Deduplicate in-flight requests and throttle refreshes
@@ -200,7 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const resp = await fetch('/api/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan })
+        body: JSON.stringify({ action: 'set-plan', plan })
       })
       if (!resp.ok) return null
       const updated = await resp.json()
@@ -219,10 +226,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const incrementUsage = useCallback(async (key: IncrementKey, amount = 1) => {
     try {
-      const resp = await fetch('/api/subscription/increment', {
+      const resp = await fetch('/api/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, amount })
+        body: JSON.stringify({ action: 'increment', key, amount })
       })
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}))
@@ -249,6 +256,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isVerified: refreshed.user.isVerified || false,
         plan: refreshed.user.plan ?? 'FREE'
       })
+      // Invalidate verification cache when user data is refreshed
+      invalidateVerificationCache(refreshed.user.email)
       // refresh subscription from server so Account page reflects plan changes immediately
       await getSubscription(true)
     }
@@ -280,8 +289,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     verificationInflightRef.current = (async () => {
       try {
-        const url = `/api/auth/verification?email=${encodeURIComponent(email)}`
-        const resp = await fetch(url)
+        const resp = await fetch('/api/auth/email-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 'status', email }),
+        })
         if (!resp.ok) {
           return { isVerified: false, expiresAt: null }
         }
@@ -289,6 +301,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const data = await resp.json()
         const nextExpiresAt = data?.verification?.expiresAt ?? null
         setVerificationExpiresAt(nextExpiresAt)
+        // If user is verified, update local state
+        if (data?.verification === null && data?.ok) {
+          setUser(prev => prev ? { ...prev, isVerified: true } : prev)
+        }
         writeVerificationCache({ email, isVerified: false, expiresAt: nextExpiresAt })
         return { isVerified: false, expiresAt: nextExpiresAt }
       } catch (err) {
@@ -397,6 +413,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     clearVerificationCache()
     sessionStorage.removeItem('user');
     sessionStorage.clear()
+    // Clear all React Query caches on logout
+    clearAllQueries()
     // Prevent NEXTAUTH_URL from forcing prod domain; we handle redirect manually
     await signOut({ redirect: false })
     if (typeof window !== 'undefined') {
@@ -414,10 +432,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return false
       }
 
-      const resp = await fetch('/api/auth/verify', {
+      const resp = await fetch('/api/auth/email-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: effectiveUser.email, code }),
+        body: JSON.stringify({ step: 'verify', email: effectiveUser.email, code }),
       })
 
       const result = await resp.json()
@@ -432,6 +450,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         writeVerificationCache({ email: effectiveUser.email, isVerified: true, expiresAt: null })
       }
       setVerificationExpiresAt(null)
+      // Invalidate old cache to ensure fresh state
+      invalidateVerificationCache(effectiveUser.email)
       toast.showToast('Email verified successfully!', 'success', 3000)
       return true
     } catch (err) {
@@ -448,10 +468,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null
       }
 
-      const resp = await fetch('/api/auth/resend', {
+      const resp = await fetch('/api/auth/email-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: effectiveUser.email }),
+        body: JSON.stringify({ step: 'resend', email: effectiveUser.email }),
       })
 
       if (!resp.ok) {

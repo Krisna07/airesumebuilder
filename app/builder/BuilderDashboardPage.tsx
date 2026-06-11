@@ -34,7 +34,19 @@ const DashboardPage = () => {
   const { user, loading: authLoading, subscription } = useAuth()
   const [creating, setCreating] = useState(false)
   const [previewLimit, setPreviewLimit] = useState(4)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
   const router = useRouter()
+
+  // Safety timeout: if page is loading for more than 10 seconds, show content anyway
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authLoading) {
+        console.warn('Auth loading timeout - showing content anyway')
+        setLoadingTimeout(true)
+      }
+    }, 10000)
+    return () => clearTimeout(timer)
+  }, [authLoading])
 
   useEffect(() => {
     const syncPreviewLimit = () => {
@@ -55,7 +67,7 @@ const DashboardPage = () => {
   } = useQuery({
     queryKey: ["resumeData", user?.id],
     queryFn: () => ResumeService.getAll(user!.id),
-    enabled: !!user,
+    enabled: !!user?.id,
     staleTime: 30000,
   })
 
@@ -148,10 +160,13 @@ const DashboardPage = () => {
     }
   }, [creating, user, router])
 
-  // Loading state
-  if (authLoading || (user && isPending)) {
+  // Loading state - but show content if user is loaded, even if resumes still loading
+  if (authLoading && !loadingTimeout) {
     return <LoadingResumeState />
   }
+
+  // If user is loaded but resumes still loading, show content with loading state
+  // This prevents infinite loading when query is stuck
 
   // Guest user state
   if (!user) {

@@ -7,33 +7,44 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
     try {
-        let userId: string
-        try {
-            ({ userId } = await requireUserSession())
-        } catch (err) {
-            const mapped = mapSubscriptionError(err)
-            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
-        }
-        try {
-            await assertQuota(userId, 'upload')
-        } catch (err) {
-            const mapped = mapSubscriptionError(err)
-            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
-        }
         const body = await req.json();
         const { text } = body;
         if (!text) {
             return NextResponse.json({ error: 'No text provided' }, { status: 400 });
         }
+
+        let userId: string | undefined;
+        let isAuthenticated = false;
+
+        try {
+            ({ userId } = await requireUserSession());
+            isAuthenticated = true;
+        } catch (err) {
+            userId = undefined;
+        }
+
+        if (isAuthenticated && userId) {
+            try {
+                await assertQuota(userId, 'upload')
+            } catch (err) {
+                const mapped = mapSubscriptionError(err)
+                return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+            }
+        }
+
         const structuredData = await AIService.generateResume(undefined, text);
 
         if (!structuredData) {
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
         }
-        await consumeUsage(userId, 'upload')
+
+        if (isAuthenticated && userId) {
+            await consumeUsage(userId, 'upload')
+        }
+
         return NextResponse.json({
             status: 200,
-            message: 'Resume data extracted successfully',
+            message: isAuthenticated ? 'Resume data extracted successfully' : 'Guest resume data extracted successfully',
             data: structuredData,
         });
 
@@ -50,7 +61,7 @@ export async function GET() {
     try {
         return NextResponse.json({
             status: 200,
-            message: 'ednpoint hit succfully'
+            message: 'Endpoint hit successfully'
         })
 
     } catch (error) {

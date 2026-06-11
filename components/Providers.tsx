@@ -3,16 +3,9 @@ import { ToastProvider } from '@/context/PopupContext'
 import { AuthProvider } from '@/context/authContext';
 import { ThemeProvider } from '@/context/themeContext';
 import { SessionProvider } from "next-auth/react";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '@/lib/queryClient'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-
-    },
-  },
-});
 export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
