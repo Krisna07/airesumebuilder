@@ -6,6 +6,7 @@ import Providers from '@/components/Providers';
 import { ToastContainer } from 'react-toastify';
 import ConditionalLayout from '@/components/ConditionalLayout';
 import TelemetryBootstrap from '@/components/TelemetryBootstrap';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ['latin'] });
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
