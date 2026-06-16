@@ -15,6 +15,7 @@ model User {
   provider  String?  // 'credentials', 'google', 'github'
   providerId String? // Provider's user ID
   isVerified Boolean?
+  ttl       DateTime? // Time-to-live for unverified accounts (15 days from creation)
   isAdmin   Boolean  @default(false)
   verifications Verification[]
   subscription Subscription?
@@ -88,12 +89,16 @@ model DynamicRole {
 }
 
 model Verification {
-  id        String   @id @default(uuid())
-  userId    String
-  code      String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String    @id @default(uuid())
+  userId         String
+  code           String
+  expiresAt      DateTime
+  failedAttempts Int       @default(0)  // Track failed verification attempts
+  lockedUntil    DateTime?             // 15-minute lockout after 5 failures
+  resendAttempts Int       @default(0)  // Track resend requests
+  resendLockedUntil DateTime?          // Lockout for resend after 3 requests per hour
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId])
 }
 

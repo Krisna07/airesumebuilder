@@ -22,6 +22,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
+    // Check if user is unverified and their account has expired (ttl passed)
+    if (!user.isVerified && user.ttl) {
+      const now = new Date()
+      if (user.ttl < now) {
+        return NextResponse.json({ error: 'Account expired' }, { status: 401 })
+      }
+    }
+
+    // Check if user account is soft-deleted and within grace period
+    if (user.deletedAt) {
+      const GRACE_PERIOD_DAYS = 15
+      const deletionDate = new Date(user.deletedAt)
+      const expirationDate = new Date(deletionDate.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000)
+
+      if (expirationDate > new Date()) {
+        // Grace period still active - restore the account and user's content
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: user.id },
+            data: { deletedAt: null }
+          }),
+          prisma.resume.updateMany({
+            where: { userId: user.id, deleted: true },
+            data: { deleted: false }
+          })
+        ])
+        // Account restored - continue with login
+      } else {
+        // Grace period expired - account was permanently deleted
+        return NextResponse.json({ error: 'Account has been permanently deleted' }, { status: 401 })
+      }
+    }
+
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
@@ -56,7 +89,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ token: jwt, user: safeUser }, { status: 200 })
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Login error', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }

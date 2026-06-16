@@ -193,7 +193,8 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Theme Toggle */}
+          {/* Theme Toggle - Disabled for now (light mode only) */}
+          {/*
           <button
             type="button"
             aria-pressed={isDark}
@@ -210,6 +211,7 @@ const Navbar = () => {
               className={`w-5 h-5 rounded-full z-10 bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-7" : "translate-x-0"}`}
             />
           </button>
+          */}
 
           {/* Mobile compact tab bar with sliding glass
           <div className="sm:hidden flex items-center ml-2">

@@ -28,6 +28,14 @@ const handleLogin = async (email: string, password: string) => {
     throw new Error('User not found, please register.');
   }
 
+  // Check if user is unverified and their account has expired (ttl passed)
+  if (!user.isVerified && user.ttl) {
+    const now = new Date();
+    if (user.ttl < now) {
+      throw new Error('ACCOUNT_EXPIRED');
+    }
+  }
+
   // Check if user account is deleted
   if (user.deletedAt) {
     throw new Error('ACCOUNT_DELETED');

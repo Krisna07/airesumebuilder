@@ -11,31 +11,6 @@ interface BuilderLayoutProps {
   children: ReactNode
 }
 
-/**
- * Dashboard Layout Component for Builder Pages
- * 
- * Provides a consistent layout structure for dashboard-style interfaces with:
- * - Dashboard-specific navigation (DashboardNav)
- * - Responsive container with max-width constraints
- * - Centered content layout
- * - Support for dark mode
- * - Flexible content area
- * - Authentication check - redirects to login if not authenticated
- * 
- * Design System Specifications:
- * - Max-width: 1200px (wider than content-focused pages for dashboard feel)
- * - Responsive padding: px-4 (mobile), px-6 (tablet), px-8 (desktop)
- * - Centered layout with proper spacing
- * 
- * Usage:
- * This layout wraps all pages in the /builder route, providing consistent
- * spacing and container constraints. Individual pages can override or extend
- * these patterns as needed.
- * 
- * Note: This layout uses DashboardNav instead of the global Navbar to provide
- * dashboard-specific navigation links (Dashboard, My Resumes, Account)
- * without homepage-specific links (Home, Blogs).
- */
 export default function BuilderLayout({ children }: BuilderLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()

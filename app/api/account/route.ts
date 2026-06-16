@@ -43,7 +43,32 @@ export async function PATCH(req: Request) {
       }
     }
 
-    updateData.password = await bcrypt.hash(newPassword, 10)
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    // Check if user is an OAuth user (google or github)
+    const isOAuthUser = user.provider === 'google' || user.provider === 'github'
+
+    if (isOAuthUser) {
+      // For OAuth users, atomically update password, provider, and isVerified
+      // Retain the original providerId value (don't change it)
+      // If isVerified is false/null, set to true as part of the transaction
+      const shouldVerify = user.isVerified !== true
+
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          provider: 'credentials',
+          isVerified: shouldVerify ? true : user.isVerified,
+        },
+        select: { id: true, email: true, name: true, image: true, provider: true, isVerified: true },
+      })
+
+      return NextResponse.json({ user: updated })
+    } else {
+      // For credentials users, just update the password
+      updateData.password = hashedPassword
+    }
   }
 
   if (!updateData.name && !updateData.password) {
@@ -95,9 +120,19 @@ export async function DELETE(req: Request) {
   }
 
   // Soft delete: mark user as deleted instead of hard delete
+  // Also mark all user-generated content as hidden during grace period
   const deleted = await prisma.user.update({
     where: { id: user.id },
-    data: { deletedAt: new Date() }
+    data: {
+      deletedAt: new Date(),
+      // Mark all user's resumes as hidden
+      resumes: {
+        updateMany: {
+          where: { deleted: false },
+          data: { deleted: true }
+        }
+      }
+    }
   })
 
   // Return success response

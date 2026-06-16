@@ -161,7 +161,8 @@ const DashboardNav = () => {
           </div>
           )}
 
-          {/* Theme Toggle */}
+          {/* Theme Toggle - Disabled for now (light mode only) */}
+          {/*
           <button
             type="button"
             aria-pressed={isDark}
@@ -178,6 +179,7 @@ const DashboardNav = () => {
               className={`w-5 h-5 rounded-full z-10 bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-7" : "translate-x-0"}`}
             />
           </button>
+          */}
 
           {/* User Menu */}
           <div ref={menuRef} className="relative">
