@@ -30,7 +30,11 @@ export async function POST(req: NextRequest) {
         if (!structuredData) {
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });
         }
-        await consumeUsage(userId, 'upload')
+        try {
+            await consumeUsage(userId, 'upload')
+        } catch (usageError) {
+            console.warn('Failed to record upload usage after successful resume extraction:', usageError)
+        }
         return NextResponse.json({
             status: 200,
             message: 'Resume data extracted successfully',
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
         const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
         const retryMatch = typeof message === 'string' && message.match(/Retry after\s*(\d+s|\d+\.\d+s)/i);
         const retryHint = retryMatch ? `Retry after ${retryMatch[1]}.` : undefined;
-        return NextResponse.json({ error: 'Failed to parse request body', details: message, retryHint }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to extract resume', details: message, retryHint }, { status: 500 });
     }
 }
 

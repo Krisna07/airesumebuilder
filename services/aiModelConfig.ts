@@ -41,7 +41,7 @@ export const MODEL_ROUTING: Record<string, PreferredModel[]> = {
         { provider: "cloudflare", model: "mistral-7b-instruct-v0.2" },
     ],
     "resume-extraction": [
-        { provider: "openrouter", model: OPENROUTER_FAST_MODEL },
+        { provider: "openrouter", model: OPENROUTER_STRONG_LONG_CONTEXT_MODEL },
         { provider: "cloudflare", model: "mistral-7b-instruct-v0.2" },
     ],
     "job-extraction": [

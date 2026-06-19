@@ -45,6 +45,35 @@ const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: strin
       OUTPUT:`;
 }
 
+const resumeExtractionPrompt = (rawText: string) => {
+  return `SYSTEM: You are an expert resume parser.
+TASK: Convert the RAW_RESUME_TEXT into the exact JSON schema below.
+STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO EXPLANATION.
+
+---
+GOAL:
+- Extract the candidate's name, contact info, work history, education, skills, and custom sections from the raw text.
+- Do not optimize, rewrite, or invent details.
+- If a field is not present, use an empty string for text fields and an empty array for list fields.
+- Preserve the original facts and dates as accurately as possible.
+
+---
+SCHEMA:
+{
+  "profile": { "fullname": "string", "email": "string", "phone": "string", "location": "string", "links": [{ "type": "string", "url": "string" }], "summary": "string" },
+  "experiences": [{ "title": "string", "company": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean, "responsibilities": ["string"] }],
+  "educations": [{ "degree": "string", "university": "string", "location": "string", "startDate": "Mon-YYYY", "endDate": "Mon-YYYY", "current": boolean }],
+  "skills": [{ "type": "string", "skills": ["string"] }],
+  "customSections": [{ "title": "string", "subsections": [{ "title": "string", "content": "string", "date": "string" }] }]
+}
+
+---
+RAW_RESUME_TEXT:
+${rawText}
+
+OUTPUT:`;
+}
+
 const analyzeResumeToJobFitPrompt = (sourceResume: ResumeData, jobDescription: string) => {
   return `SYSTEM: You are an expert ATS (Applicant Tracking System) Analyst and Technical Recruiter. 
 TASK: Perform a logic-based gap analysis between the RESUME_DATA and JOB_DESCRIPTION.

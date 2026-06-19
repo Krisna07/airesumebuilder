@@ -2,6 +2,7 @@
 import { AnalysisResult, CoverLetterResponse, JobDescription, ResumeData } from "@/types/types";
 import {
     resumeGenerationPrompt,
+    resumeExtractionPrompt,
     analyzeResumeToJobFitPrompt,
     coverLetterPrompt,
     smartRecommendationPrompt,
@@ -253,14 +254,9 @@ export class AIService {
         data?: string,
         jobDescription?: string
     ): Promise<ResumeData> {
-        const sourceResume = userdata
-            ? JSON.stringify(userdata)
-            : JSON.stringify({ raw: data });
-
-        const prompt = resumeGenerationPrompt(
-            JSON.parse(sourceResume) as ResumeData,
-            jobDescription || ''
-        );
+        const prompt = userdata
+            ? resumeGenerationPrompt(userdata, jobDescription || '')
+            : resumeExtractionPrompt(data || '');
 
         try {
             // If data is provided (resume extraction), use extraction model
