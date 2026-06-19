@@ -59,7 +59,7 @@ lib/                    # Server-side utilities
   subscription-server.ts# Server-side plan/limit checks
   prisma.ts             # Prisma client singleton
 services/               # Business logic
-  aiServices.ts         # AI orchestration (Gemini + OpenRouter)
+  aiServices.ts         # AI orchestration (OpenRouter)
   resumeServices.ts     # Resume CRUD + caching
   userService.ts        # User management
 prisma/schema.prisma    # Database schema

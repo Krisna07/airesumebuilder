@@ -7,7 +7,7 @@ import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
 import { LocalResumeService } from '@/services/localResumeService';
-import { Bot, Download, Edit, Trash, Loader2, BotIcon, X, FileUser, FileSliders, Copy, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Edit, Trash, Loader2, X, FileUser, FileSliders, Copy, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/Ui/Button';
 import ConfirmDialog from '@/components/Ui/ConfirmDialog';
@@ -62,10 +62,12 @@ const PreviewPage = () => {
   const [showCoverLetter, setShowCoverLetter] = useState(false)
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
   const [guestUsage, setGuestUsage] = useState<GuestUsageSnapshot | null>(null)
+  const [customRegenerationPrompt, setCustomRegenerationPrompt] = useState<string>('')
   const menuRef = useRef<HTMLDivElement | null>(null);
   const reportsRef = useRef<HTMLDivElement | null>(null);
   const stylesRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement | null>(null);
+  const customPromptInputRef = useRef<HTMLTextAreaElement | null>(null);
   const styleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isGuestResume = slug === 'guest-resume';
@@ -401,12 +403,12 @@ const PreviewPage = () => {
     }, 320);
   };
 
-  const handleRegerate = async (resumeData: ResumeData, analysis?: AnalysisResult, jobDescription?: any) => {
+  const handleRegerate = async (resumeData: ResumeData, analysis?: AnalysisResult, jobDescription?: any, customPrompt?: string) => {
     setRegenerating(true);
     setPendingUpdate(true);
     showToast('Generating resume')
     try {
-      const response = await ResumeService.regenerate(resumeData, jobDescription, analysis);
+      const response = await ResumeService.regenerate(resumeData, jobDescription, analysis, customPrompt);
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -448,6 +450,10 @@ const PreviewPage = () => {
 
       ResumeCache.set(slug, nextResume, false);
       setResumeData(nextResume);
+      setCustomRegenerationPrompt('');
+      if (customPromptInputRef.current) {
+        customPromptInputRef.current.style.height = 'auto';
+      }
       trackAnalyticsEvent(ANALYTICS_EVENTS.RESUME_SAVE, {
         source: 'ai_regeneration',
         resume_id: slug,
@@ -732,7 +738,7 @@ const PreviewPage = () => {
         </div>
         <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 grid gap-4 pt-3">
           {/* Actions */}
-          <div className="hidden md:flex w-full sticky top-3 z-30 rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/85 dark:bg-slate-900/80 backdrop-blur-md shadow-[0_10px_30px_-18px_rgba(15,23,42,0.65)] p-2.5 max-sm:justify-between justify-center gap-2 gap-y-2 min-[500px]:flex-wrap">
+          <div className="hidden md:flex w-full sticky top-3 z-30 rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/85 dark:bg-slate-900/80 backdrop-blur-md p-2.5 max-sm:justify-between justify-center gap-2 gap-y-2 min-[500px]:flex-wrap">
             <div className={actionGroupBase}>
               <button
                 onClick={handleDownloadPDF}
@@ -740,13 +746,6 @@ const PreviewPage = () => {
                 className={`max-[500px]:w-full ${actionButtonBase} border-transparent bg-sky-600 text-white ${deleting || downlaoding ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-700 hover:-translate-y-0.5'}`}
               >
                 <Download size={16} /> Download
-              </button>
-              <button
-                onClick={() => handleRegerate(resumeData, selectedAnalysis)}
-                className={`max-[500px]:w-full ${actionButtonBase} border-emerald-200 dark:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 ${generating ? 'animate-pulse' : 'hover:bg-emerald-100 dark:hover:bg-emerald-900/50'} ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={generating || downlaoding || deleting}
-              >
-                <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
               </button>
             </div>
 
@@ -771,21 +770,13 @@ const PreviewPage = () => {
             </div>
           </div>
 
-          <div className="md:hidden w-full grid grid-cols-2 gap-2 sticky top-3 z-30 rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/85 backdrop-blur-md shadow-[0_10px_30px_-18px_rgba(15,23,42,0.65)] p-2">
+          <div className="md:hidden w-full grid grid-cols-1 gap-2 sticky top-3 z-30 rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/85 backdrop-blur-md p-2">
             <button
               onClick={handleDownloadPDF}
               disabled={deleting || downlaoding || generating}
               className={`h-11 w-full rounded-xl border border-transparent bg-sky-600 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 ${deleting || downlaoding ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.99] hover:bg-sky-700'}`}
             >
               <Download size={16} /> Download
-            </button>
-
-            <button
-              onClick={() => handleRegerate(resumeData, selectedAnalysis)}
-              disabled={generating || downlaoding || deleting}
-              className={`h-11 w-full rounded-xl border border-emerald-200 dark:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-sm font-semibold inline-flex items-center justify-center gap-2 ${generating ? 'animate-pulse' : 'active:scale-[0.99]'} ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Bot size={16} /> {generating ? 'Generating...' : 'Re-Generate'}
             </button>
           </div>
 
@@ -796,6 +787,38 @@ const PreviewPage = () => {
                 : 'Guest daily limits: 5 downloads and 5 regenerations.'}
             </div>
           )}
+
+          {/* Modern custom prompt composer */}
+          <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700 bg-gradient-to-b from-white to-slate-50/80 dark:from-slate-900/85 dark:to-slate-900/70 backdrop-blur-md p-2.5 sm:p-3 shadow-[0_14px_30px_-24px_rgba(2,6,23,0.9)]">
+            <div className="flex items-end gap-2">
+              <div className="flex-1 flex items-end rounded-[22px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-emerald-500/70 focus-within:border-emerald-500/30">
+                <textarea
+                  ref={customPromptInputRef}
+                  value={customRegenerationPrompt}
+                  onChange={(e) => setCustomRegenerationPrompt(e.target.value)}
+                  onInput={(e) => {
+                    const target = e.currentTarget;
+                    target.style.height = 'auto';
+                    target.style.height = `${Math.min(target.scrollHeight, 192)}px`;
+                  }}
+                  rows={1}
+                  placeholder="Describe how you want this resume improved..."
+                  className="w-full min-h-[26px] max-h-48 bg-transparent text-sm sm:text-[15px] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none leading-6"
+                />
+              </div>
+
+              <button
+                onClick={() => handleRegerate(resumeData, selectedAnalysis, undefined, customRegenerationPrompt.trim() || undefined)}
+                disabled={generating || downlaoding || deleting}
+                className={`h-11 px-5 rounded-2xl text-sm font-semibold inline-flex items-center justify-center transition-all whitespace-nowrap ${generating || downlaoding || deleting
+                    ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:-translate-y-0.5 active:translate-y-0'
+                  }`}
+              >
+                {generating ? 'Generating...' : 'Regenerate'}
+              </button>
+            </div>
+          </div>
 
           {coverLetter &&
             <Button disabled={generating || generatingCoverLetter} variant='secondary' className={`md:w-fit  ${generatingCoverLetter ? 'animate-pulse' : ''}`} size='small' onClick={() => setShowCoverLetter(true)} ><FileSliders size={14} />Show Cover letter</Button>

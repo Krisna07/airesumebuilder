@@ -24,14 +24,12 @@ import {
 } from "@/lib/aiSchemas";
 import { captureServerError } from "@/lib/monitoring/server";
 import { callOpenRouterModel } from "@/services/openRouterService";
-import { callCloudFlareModel } from "@/services/cloudFlareService";
-import { openRouterModels, cloudflareModels, MODEL_ROUTING } from "@/services/aiModelConfig";
+import { openRouterModels, MODEL_ROUTING } from "@/services/aiModelConfig";
 
 const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY);
-const hasCloudFlareKey = Boolean(process.env.CLOUDFLARE_AI_GATEWAY_TOKEN);
 
-if (!hasOpenRouterKey && !hasCloudFlareKey) {
-    console.warn('AIService: No API keys found for OpenRouter or CloudFlare. AI functionalities will be disabled.');
+if (!hasOpenRouterKey) {
+    console.warn('AIService: OpenRouter API key not found. AI functionalities will be disabled.');
 }
 
 /**
@@ -52,60 +50,6 @@ async function callSpecificOpenRouterModel(
         outputSchema,
     });
 }
-
-/**
- * Call a specific CloudFlare model with schema
- */
-async function callSpecificCloudFlareModel(
-    model: string,
-    prompt: string,
-    outputSchema?: any
-): Promise<any> {
-    if (!hasCloudFlareKey) {
-        throw new Error('CloudFlare client is not initialized');
-    }
-
-    return callCloudFlareModel({
-        model,
-        prompt,
-        outputSchema,
-    });
-}
-/**
- * Call CloudFlare AI with structured output schema
- * @param prompt - The prompt to send
- * @param outputSchema - Optional JSON schema for structured output
- * @param retries - Number of retries (3 = try all 3 CloudFlare models)
- * @returns Parsed response or raw string
- */
-async function callCloudFlareWithSchema(
-    prompt: string,
-    outputSchema?: any,
-    retries = 3
-): Promise<any> {
-    if (retries <= 0 || !hasCloudFlareKey) {
-        throw new Error('CloudFlare client not available or retries exhausted');
-    }
-
-    const modelIndex = 3 - retries;
-    const model = cloudflareModels[modelIndex] || cloudflareModels[0];
-
-    try {
-        return await callSpecificCloudFlareModel(model, prompt, outputSchema);
-    } catch (error: any) {
-        console.warn(
-            `CloudFlare call failed with ${model} (attempt ${4 - retries}/3):`,
-            error?.message || error
-        );
-
-        if (retries > 1) {
-            return callCloudFlareWithSchema(prompt, outputSchema, retries - 1);
-        }
-
-        throw error;
-    }
-}
-
 /**
  * Call OpenRouter AI with structured output schema
  * @param prompt - The prompt to send
@@ -143,7 +87,7 @@ async function callOpenRouterWithSchema(
 }
 
 /**
- * Unified AI call with OpenRouter-first fallback strategy
+ * Unified AI call with OpenRouter - primary provider only
  * Supports model routing for specific tasks
  * @param prompt - The prompt to send
  * @param outputSchema - Optional JSON schema for structured output
@@ -155,62 +99,48 @@ async function callAIWithSchema(
     outputSchema?: any,
     taskType?: string
 ): Promise<any> {
+    if (!hasOpenRouterKey) {
+        throw new Error('OpenRouter API key is not configured. Check OPENROUTER_API_KEY environment variable.');
+    }
+
     console.log(`Starting AI call${taskType ? ` for task: ${taskType}` : ''}...`);
 
     // Try preferred models first if task type is specified
     if (taskType && MODEL_ROUTING[taskType]) {
         const preferredModels = MODEL_ROUTING[taskType];
-        console.log(`Trying ${preferredModels.length} preferred model(s) for ${taskType}...`);
-
-        for (const { provider, model } of preferredModels) {
-            try {
-                console.log(`Attempting preferred ${provider} model: ${model}`);
-
-                if (provider === 'cloudflare' && hasCloudFlareKey) {
-                    return await callSpecificCloudFlareModel(model, prompt, outputSchema);
-                } else if (provider === 'openrouter' && hasOpenRouterKey) {
+        const openRouterModels = preferredModels.filter(m => m.provider === 'openrouter');
+        
+        if (openRouterModels.length > 0) {
+            console.log(`Trying ${openRouterModels.length} preferred OpenRouter model(s) for ${taskType}...`);
+            for (const { model } of openRouterModels) {
+                try {
+                    console.log(`Attempting preferred model: ${model}`);
                     return await callSpecificOpenRouterModel(model, prompt, outputSchema);
+                } catch (error: any) {
+                    console.warn(
+                        `Preferred model ${model} failed:`,
+                        error?.message || error
+                    );
                 }
-            } catch (error: any) {
-                console.warn(
-                    `Preferred ${provider} model ${model} failed:`,
-                    error?.message || error
-                );
-                // Continue to next preferred model or fall back to waterfall
             }
-        }
-
-        console.log('All preferred models failed, falling back to standard waterfall...');
-    }
-
-    // Standard waterfall: Try OpenRouter first (3 models), then CloudFlare.
-    if (hasOpenRouterKey) {
-        try {
-            console.log('Attempting OpenRouter models...');
-            return await callOpenRouterWithSchema(prompt, outputSchema, 3);
-        } catch (openRouterError: any) {
-            console.warn('All OpenRouter models failed, falling back to CloudFlare:', openRouterError?.message);
+            console.log('Preferred models failed, falling back to standard model rotation...');
         }
     }
 
-    // Fallback to CloudFlare (3 models)
-    if (hasCloudFlareKey) {
-        try {
-            console.log('Attempting CloudFlare models...');
-            return await callCloudFlareWithSchema(prompt, outputSchema, 3);
-        } catch (cloudflareError: any) {
-            console.error('All CloudFlare models failed:', cloudflareError?.message);
-            await captureServerError(cloudflareError, {
-                source: 'AIService.callAIWithSchema',
-                severity: 'critical',
-                tags: ['ai', 'provider-fallback-failure'],
-                extra: { taskType },
-            });
-            throw new Error(`AI service exhausted all providers: ${cloudflareError?.message || 'Unknown error'}`);
-        }
+    // Standard waterfall: Try OpenRouter models in sequence
+    try {
+        console.log('Attempting OpenRouter models...');
+        return await callOpenRouterWithSchema(prompt, outputSchema, 3);
+    } catch (openRouterError: any) {
+        console.error('All OpenRouter models failed:', openRouterError?.message);
+        await captureServerError(openRouterError, {
+            source: 'AIService.callAIWithSchema',
+            severity: 'critical',
+            tags: ['ai', 'openrouter-failure'],
+            extra: { taskType },
+        });
+        throw new Error(`AI service failed: ${openRouterError?.message || 'Unknown error'}`);
     }
-
-    throw new Error('No AI providers available. Check OPENROUTER_API_KEY or CLOUDFLARE_AI_GATEWAY_TOKEN.');
 }
 
 /**
@@ -252,10 +182,11 @@ export class AIService {
     static async generateResume(
         userdata?: ResumeData,
         data?: string,
-        jobDescription?: string
+        jobDescription?: string,
+        customPrompt?: string
     ): Promise<ResumeData> {
         const prompt = userdata
-            ? resumeGenerationPrompt(userdata, jobDescription || '')
+            ? resumeGenerationPrompt(userdata, jobDescription || '', undefined, customPrompt)
             : resumeExtractionPrompt(data || '');
 
         try {

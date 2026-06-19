@@ -1,11 +1,18 @@
 import { AnalysisResult, JobDescription, ResumeData } from "@/types/types"
 
-const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string, analysis?: AnalysisResult) => {
+const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: string, analysis?: AnalysisResult, customPrompt?: string) => {
   return `
       SYSTEM: You are an expert ATS-optimization specialist. 
       TASK: Optimize the SOURCE_RESUME for the JOB_DESCRIPTION (if provided) while maintaining strict factual accuracy.
       GOAL: A concise, impactful resume that passes ATS scans without bloating, hallucinating, or inventing details.
       STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO PRE-AMBLE.
+
+      INSTRUCTION PRIORITY (highest to lowest):
+      1. USER INSTRUCTIONS (if provided)
+      2. JOB_DESCRIPTION alignment
+      3. ANALYSIS_FEEDBACK suggestions
+      4. Default optimization guidelines
+      The only constraints that always override everything else are JSON schema validity and factual integrity.
 
       ---
       SCHEMA:
@@ -30,11 +37,16 @@ const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: strin
          - Do not exceed the original number of bullets per role unless necessary for ATS keywords.
          - Avoid generic fluff like "Responsible for...". Use strong verbs.
       4. SKILLS: Only list skills present in SOURCE_RESUME or strongly implied by the experience. Do not stuff keywords that the candidate doesn't have.
-      5. CUSTOM SECTIONS: Only include if SOURCE_RESUME has Projects, Awards, or relevant Certifications. Otherwise, return an empty array.
+      5. CUSTOM SECTIONS: Always preserve existing custom sections from SOURCE_RESUME (Certifications, Projects, Awards, Publications, Languages, Volunteer Work, etc.).
+         - Refine descriptions if needed but keep facts intact.
+         - Do not remove any custom sections unless explicitly instructed.
+         - Return empty array only if SOURCE_RESUME has no custom sections.
       6. FORMATTING: Dates must be "Jan-2024".
 
       ANALYSIS_FEEDBACK (Integrate ONLY if factually supported):
       ${analysis ? `Keywords to target: ${analysis.missingKeywords?.join(", ")}. Strengths to emphasize: ${analysis.strengths?.join(", ")}.` : ""}
+
+      ${customPrompt ? `USER INSTRUCTIONS (HIGH PRIORITY):\n${customPrompt}\nFollow these instructions first whenever possible, while maintaining INTEGRITY and factual accuracy.` : ""}
 
       SOURCE_RESUME:
       ${JSON.stringify(sourceResume)}
@@ -56,6 +68,27 @@ GOAL:
 - Do not optimize, rewrite, or invent details.
 - If a field is not present, use an empty string for text fields and an empty array for list fields.
 - Preserve the original facts and dates as accurately as possible.
+
+---
+CUSTOM SECTIONS IDENTIFICATION:
+Look for sections with these common titles (or variations):
+- Certifications, Licenses, Credentials, Professional Credentials
+- Projects, Notable Projects, Portfolio Projects
+- Awards, Honors, Recognition, Achievements
+- Publications, Research, Articles, Papers
+- Languages, Language Skills, Proficiencies
+- Volunteer Work, Volunteering, Community Service, Volunteer Experience
+- Speaking, Presentations, Conferences, Speaking Engagements
+- Professional Memberships, Association Memberships, Member Organizations
+- Courses, Training, Professional Development, Workshops
+
+RULES FOR CUSTOM SECTIONS:
+- If a section is found with one of the above titles (or similar), extract it as a custom section.
+- For each subsection item, extract:
+  * title: The name/title of the certification, project, award, etc.
+  * content: A description or context for the item (empty string if none).
+  * date: If a date is mentioned, include it (e.g., "2023", "Jan-2023"). Otherwise, empty string.
+- Always look for and extract ANY significant section that is NOT experience, education, or core skills.
 
 ---
 SCHEMA:
@@ -460,7 +493,7 @@ OUTPUT:
 `;
 };
 
-export { resumeGenerationPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt, generateSeoBlogPrompt, generateBlogTitlePlanPrompt, regenerateBlogPrompt, polishBlogPrompt, streamBlogHtmlPrompt, blogMetaPrompt };
+export { resumeGenerationPrompt, resumeExtractionPrompt, analyzeResumeToJobFitPrompt, coverLetterPrompt, extractJobDetailsPrompt, smartRecommendationPrompt, generateSectionPrompt, generateSeoBlogPrompt, generateBlogTitlePlanPrompt, regenerateBlogPrompt, polishBlogPrompt, streamBlogHtmlPrompt, blogMetaPrompt, inspectIntentPrompt };
 
 const blogMetaPrompt = (topic: string) => `You are a creative career content strategist at ResumeCraft.xyz.
 Generate a highly distinct, unique, and engaging blog post title and excerpt for this topic: "${topic}"
@@ -525,6 +558,4 @@ Existing bullets: ${JSON.stringify(existingBullets)}
 
 OUTPUT:`;
 }
-
-export { inspectIntentPrompt };
 

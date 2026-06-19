@@ -118,7 +118,7 @@ export class ResumeService {
         return response
     }
 
-    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult, analysis?: AnalysisResult): Promise<Response> {
+    static async regenerate(resumeData: ResumeData, jobDescription?: ScrapeResult, analysis?: AnalysisResult, customPrompt?: string): Promise<Response> {
         try {
             const response = await fetch('/api/ai/generate-resume', {
                 method: 'POST',
@@ -127,7 +127,8 @@ export class ResumeService {
                 body: JSON.stringify({
                     resume: resumeData,
                     jobDescription: jobDescription,
-                    analysis: analysis
+                    analysis: analysis,
+                    customPrompt: customPrompt
                 })
             });
             return response
