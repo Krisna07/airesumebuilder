@@ -1,7 +1,7 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
-import { buildResumeFallback } from '@/lib/resumeTextFallback'
+import { extractResumeFromText, cleanResumeText } from '@/services/textResumeExtractor'
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -34,10 +34,23 @@ export async function POST(req: NextRequest) {
 
         let structuredData
         try {
+            console.log('[Resume Extract] Attempting AI extraction...');
             structuredData = await AIService.generateResume(undefined, boundedText);
         } catch (aiError) {
-            console.warn('AI resume extraction failed, falling back to heuristic parser:', aiError)
-            structuredData = buildResumeFallback(boundedText)
+            console.warn('[Resume Extract] AI extraction failed, using advanced pattern-based extractor:', aiError)
+            // Use the advanced pattern-based extractor (textResumeExtractor) instead of basic fallback
+            try {
+                const cleanedText = cleanResumeText(boundedText);
+                structuredData = extractResumeFromText(cleanedText, userId, 'Imported Resume');
+                console.log('[Resume Extract] Successfully extracted using advanced extractor');
+            } catch (extractError) {
+                console.error('[Resume Extract] Advanced extractor also failed:', extractError);
+                return NextResponse.json({ 
+                    error: 'Failed to extract resume', 
+                    details: 'Could not parse resume format. Please ensure your resume has clear sections.',
+                    retryHint: 'Try uploading a resume with clear section headers (Experience, Education, Skills, etc.)'
+                }, { status: 400 });
+            }
         }
 
         if (!structuredData) {
