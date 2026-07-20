@@ -331,7 +331,7 @@ const PreviewPage = () => {
     }, 450);
   }, [buildTemplateDraftPayload, currentCustomTemplateName, user]);
 
-  const handleCreateOwnTemplate = useCallback(async (templateNameInput: string) => {
+  const handleCreateOwnTemplate = useCallback(async (templateNameInput: string, baseTemplateIdInput?: string) => {
     if (!resumeData) return;
 
     if (!user) {
@@ -340,6 +340,7 @@ const PreviewPage = () => {
     }
 
     const normalizedName = normalizeTemplateIdentifier(templateNameInput || '');
+    const baseTemplateId = baseTemplateIdInput || selectedTemplate || 'modern';
 
     if (!normalizedName) {
       const resetData = {
@@ -362,7 +363,7 @@ const PreviewPage = () => {
       } as ResumeStyle;
       const payload = {
         name: normalizedName,
-        ...buildTemplateDraftPayload(styleToSave, selectedTemplate, normalizedName),
+        ...buildTemplateDraftPayload(styleToSave, baseTemplateId, normalizedName),
       };
 
       const response = await fetch('/api/templates/draft', {
@@ -379,15 +380,17 @@ const PreviewPage = () => {
       }
 
       setCurrentCustomTemplateName(normalizedName);
+      setSelectedTemplate(baseTemplateId);
       const updatedResume = {
         ...resumeData,
+        template: baseTemplateId,
         customTemplateName: normalizedName,
         customTemplateVersion: 1,
       };
       setResumeData(updatedResume);
-      upsertCustomTemplateOption(normalizedName, selectedTemplate);
+      upsertCustomTemplateOption(normalizedName, baseTemplateId);
       ResumeCache.set(slug, updatedResume, true);
-      await ResumeService.save(user.id, slug, selectedTemplate, updatedResume);
+      await ResumeService.save(user.id, slug, baseTemplateId, updatedResume);
       ResumeCache.markSynced(slug);
 
       showToast('Custom template created. Built-in templates remain unchanged.', 'success', 2500);
@@ -914,6 +917,8 @@ const PreviewPage = () => {
               handleStyleChange={handleStyleChange}
               stylesRef={stylesRef}
               templateOptions={displayTemplate}
+              baseTemplateOptions={builtInTemplates}
+              defaultCreateBaseTemplateId={selectedTemplate}
               onTemplateChange={handleTemplateChange}
               onCreateTemplate={handleCreateOwnTemplate}
               createTemplatePlaceholder={createTemplatePlaceholder}
@@ -930,6 +935,8 @@ const PreviewPage = () => {
               handleStyleChange={handleStyleChange}
               stylesRef={stylesRef}
               templateOptions={displayTemplate}
+              baseTemplateOptions={builtInTemplates}
+              defaultCreateBaseTemplateId={selectedTemplate}
               onTemplateChange={handleTemplateChange}
               onCreateTemplate={handleCreateOwnTemplate}
               createTemplatePlaceholder={createTemplatePlaceholder}
@@ -1057,6 +1064,8 @@ const PreviewPage = () => {
                     templateId={activeTemplateOptionId}
                     handleStyleChange={handleStyleChange}
                     templateOptions={displayTemplate}
+                    baseTemplateOptions={builtInTemplates}
+                    defaultCreateBaseTemplateId={selectedTemplate}
                     onTemplateChange={handleTemplateChange}
                     onCreateTemplate={handleCreateOwnTemplate}
                     createTemplatePlaceholder={createTemplatePlaceholder}

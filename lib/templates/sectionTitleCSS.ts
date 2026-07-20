@@ -7,6 +7,7 @@ import { ResumeStyle } from '@/types/types';
 export function buildSectionTitleCSS(style: ResumeStyle): string {
     const { sectionTitleStyle: s, accentColor, lineColor } = style;
     const titleColor = s.color || accentColor;
+    const ribbonTailColor = s.ribbonRightColor || titleColor;
 
     const base = `
       font-weight: ${s.fontWeight};
@@ -35,11 +36,15 @@ export function buildSectionTitleCSS(style: ResumeStyle): string {
             padding-top: 3px;
         `,
         ribbon: `
-            background: ${accentColor};
+            background: ${titleColor};
             color: #ffffff;
             padding: 3px 10px;
             border-radius: 3px;
-            display: inline-block;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+            overflow: visible;
         `,
         'left-bar': `
             color: ${titleColor};
@@ -49,8 +54,23 @@ export function buildSectionTitleCSS(style: ResumeStyle): string {
     };
 
     const typeCSS = typeStyles[s.type] ?? typeStyles['underline'];
+    const ribbonTailCSS = s.type === 'ribbon' && s.ribbonRightEnabled
+        ? `
+        .section-title::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 100%;
+            background: ${ribbonTailColor};
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 78%);
+        }
+        `
+        : '';
 
-    return `.section-title { ${base} ${typeCSS} }`;
+    return `.section-title { ${base} ${typeCSS} }
+    ${ribbonTailCSS}`;
 }
 
 /**

@@ -17,6 +17,8 @@ export const DEFAULT_RESUME_STYLE: ResumeStyle = {
     icon: '',
     iconEnabled: false,
     color: '#0ea5e9',
+    ribbonRightEnabled: false,
+    ribbonRightColor: '#0ea5e9',
     fontSize: 11.5,
     fontWeight: 700,
     fontStyle: 'normal',

@@ -41,6 +41,8 @@ export interface SectionTitleStyle {
   icon: string;           // emoji / unicode char — PDF-safe, no SVG
   iconEnabled: boolean;
   color: string;
+  ribbonRightEnabled: boolean;
+  ribbonRightColor: string;
   fontSize: number;
   fontWeight: FontWeight;
   fontStyle: 'normal' | 'italic';

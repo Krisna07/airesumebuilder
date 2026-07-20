@@ -173,6 +173,39 @@ export default function SectionTitlePanel({ resumeData, handleStyleChange }: Pro
         </div>
       </div>
 
+      {settings.type === 'ribbon' && (
+        <div className="pt-2 border-t border-gray-100 dark:border-slate-700 mt-2 space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300 font-medium">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.ribbonRightEnabled)}
+              onChange={(e) => update({ ribbonRightEnabled: e.target.checked })}
+              className="rounded text-teal-600 focus:ring-teal-500"
+            />
+            Show right ribbon tail
+          </label>
+
+          {settings.ribbonRightEnabled && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1 flex items-center gap-1">
+                <Palette size={12} /> Ribbon Tail Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={settings.ribbonRightColor || settings.color || DEFAULT_RESUME_STYLE.sectionTitleStyle.ribbonRightColor}
+                  onChange={(e) => update({ ribbonRightColor: e.target.value })}
+                  className="w-8 h-8 rounded cursor-pointer border-0 p-0 overflow-hidden bg-transparent outline-none"
+                />
+                <span className="text-xs text-gray-600 font-mono uppercase">
+                  {settings.ribbonRightColor || settings.color || DEFAULT_RESUME_STYLE.sectionTitleStyle.ribbonRightColor}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

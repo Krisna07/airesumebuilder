@@ -1,5 +1,5 @@
 "use client"
-import { memo, useState, type RefObject } from "react"
+import { memo, useEffect, useState, type RefObject } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import SectionTitlePanel from "@/components/BuilderComponents/StyleEditor/SectionTitlePanel"
 import FontPanel from "@/components/BuilderComponents/StyleEditor/FontPanel"
@@ -21,7 +21,9 @@ interface StylePanelProps {
   stylesRef?: RefObject<HTMLDivElement | null>
   templateOptions?: TemplateOption[]
   onTemplateChange?: (templateId: string) => void
-  onCreateTemplate?: (templateName: string) => void
+  onCreateTemplate?: (templateName: string, baseTemplateId?: string) => void
+  baseTemplateOptions?: TemplateOption[]
+  defaultCreateBaseTemplateId?: string
   createTemplatePlaceholder?: string
   creatingTemplate?: boolean
   customTemplateName?: string | null
@@ -37,6 +39,8 @@ const StylePanel = memo(({
   templateOptions,
   onTemplateChange,
   onCreateTemplate,
+  baseTemplateOptions,
+  defaultCreateBaseTemplateId,
   createTemplatePlaceholder = 'username-resume',
   creatingTemplate = false,
   customTemplateName,
@@ -46,8 +50,15 @@ const StylePanel = memo(({
   const [openPanel, setOpenPanel] = useState<string>(templateOptions?.length && onTemplateChange ? 'templates' : 'titles')
   const [createName, setCreateName] = useState('')
   const [showCreateOwn, setShowCreateOwn] = useState(false)
+  const [createBaseTemplateId, setCreateBaseTemplateId] = useState(defaultCreateBaseTemplateId || 'modern')
   const compact = densityMode === 'compact'
   const panelWrapClass = compact ? 'px-2.5 pb-2.5' : 'px-3 pb-3'
+
+  useEffect(() => {
+    if (defaultCreateBaseTemplateId) {
+      setCreateBaseTemplateId(defaultCreateBaseTemplateId);
+    }
+  }, [defaultCreateBaseTemplateId]);
 
   const togglePanel = (key: string) => {
     setOpenPanel((prev) => (prev === key ? '' : key))
@@ -87,6 +98,18 @@ const StylePanel = memo(({
                 </button>
                 {showCreateOwn && onCreateTemplate && (
                   <div className="mt-2 space-y-2">
+                    <div>
+                      <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Base template</label>
+                      <select
+                        value={createBaseTemplateId}
+                        onChange={(e) => setCreateBaseTemplateId(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs"
+                      >
+                        {(baseTemplateOptions && baseTemplateOptions.length > 0 ? baseTemplateOptions : templateOptions)?.map((template) => (
+                          <option key={template.id} value={template.id}>{template.name}</option>
+                        ))}
+                      </select>
+                    </div>
                     <input
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
@@ -97,7 +120,7 @@ const StylePanel = memo(({
                       type="button"
                       disabled={creatingTemplate}
                       onClick={() => {
-                        onCreateTemplate(createName)
+                        onCreateTemplate(createName, createBaseTemplateId || defaultCreateBaseTemplateId || templateId)
                         setCreateName('')
                       }}
                       className="w-full rounded-md bg-teal-600 text-white text-xs font-semibold px-2.5 py-1.5 hover:bg-teal-500 disabled:opacity-60"
