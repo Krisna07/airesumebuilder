@@ -19,7 +19,7 @@
 - Soft deletes use `Resume.isDeleted` (filter `isDeleted: false` on queries) and subscription limits live in `lib/subscription-server.ts`/`app/api/subscription/increment` as detailed
 
 ## Integration Points
-- AI hooks go through `services/aiServices.ts` (OpenRouter fallback → Gemini models) and export wrapper methods so API routes stay thin [CLAUDE.md].
+- AI hooks go through `services/aiServices.ts` (OpenRouter only) and export wrapper methods so API routes stay thin [CLAUDE.md].
 - Email verification uses `app/api/auth/*` routes, `utils/sendEmail.ts`, and the `Verification` Prisma model; keep the 6-digit code flow in sync with the modal in `components/VerificationModal.tsx` per [README.md](README.md#L140-L200).
 - Subscription/Stripe handling is fronted by `components/Checkout.tsx`, `app/api/webhooks/stripe`, and the Prisma `Subscription`/`Stripe*` models identified
 

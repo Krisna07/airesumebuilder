@@ -1,0 +1,169 @@
+/**
+ * Multi-Provider AI Orchestrator
+ * Intelligent routing: Groq → HF Providers → OpenRouter → Fallback
+ * 
+ * Ensures your app is resilient and fast regardless of provider status
+ */
+
+import {
+    callGroqModel,
+    GROQ_MODELS,
+    parseGroqJsonResponse as groqParseJson,
+    isGroqAvailable,
+} from "@/services/groqService";
+import {
+    callHFInferenceProvidersRouter,
+    HF_MODELS,
+    isHFAvailable,
+} from "@/services/hfInferenceService";
+import { callOpenRouterModel } from "@/services/openRouterService";
+
+export type AIProviderType = "groq" | "huggingface" | "openrouter" | "none";
+
+export interface AICallOptions {
+    prompt: string;
+    schema?: any;
+    temperature?: number;
+    maxTokens?: number;
+    taskType?: string; // For logging
+    preferredProvider?: AIProviderType; // Force specific provider
+}
+
+/**
+ * Determine which provider to use based on availability and preference
+ */
+function getProviderPriority(preferredProvider?: AIProviderType): AIProviderType[] {
+    // User preference first
+    if (preferredProvider) {
+        const priority: AIProviderType[] = [preferredProvider];
+
+        // Add alternatives in order
+        if (preferredProvider !== "groq" && isGroqAvailable()) priority.push("groq");
+        if (preferredProvider !== "huggingface" && isHFAvailable()) priority.push("huggingface");
+        if (preferredProvider !== "openrouter") priority.push("openrouter");
+
+        return priority;
+    }
+
+    // Default priority: fastest to slowest
+    const priority: AIProviderType[] = [];
+
+    if (isGroqAvailable()) priority.push("groq"); // Fastest
+    if (isHFAvailable()) priority.push("huggingface"); // Flexible, fast
+    priority.push("openrouter"); // Fallback
+
+    return priority;
+}
+
+/**
+ * Make AI call with automatic provider fallback
+ */
+export async function callAI(options: AICallOptions): Promise<string> {
+    const { prompt, schema, temperature = 0.7, maxTokens = 4096, taskType, preferredProvider } = options;
+
+    const providers = getProviderPriority(preferredProvider);
+    let lastError: any = null;
+
+    for (const provider of providers) {
+        try {
+            console.log(
+                `[AI] Attempting ${taskType || "AI call"} with ${provider}...`
+            );
+
+            let response: string;
+
+            switch (provider) {
+                case "groq":
+                    response = await callGroqModel({
+                        model: GROQ_MODELS.FAST_REASONING, // Use reasoning model for better quality
+                        prompt: buildJsonPrompt(prompt, schema),
+                        temperature,
+                        max_tokens: maxTokens,
+                    });
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with Groq (FAST - <100ms)`);
+                    break;
+
+                case "huggingface":
+                    response = await callHFInferenceProvidersRouter({
+                        model: HF_MODELS.QUALITY_CHAT,
+                        prompt: buildJsonPrompt(prompt, schema),
+                        temperature,
+                        max_tokens: maxTokens,
+                    });
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with HF Providers`);
+                    break;
+
+                case "openrouter":
+                    response = await callOpenRouterModel({
+                        model: "openai/gpt-4-mini", // Fallback to something reliable
+                        prompt: buildJsonPrompt(prompt, schema),
+                        outputSchema: schema,
+                    });
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with OpenRouter`);
+                    break;
+
+                default:
+                    throw new Error(`Unknown provider: ${provider}`);
+            }
+
+            // Try to parse JSON if schema expected
+            if (schema) {
+                try {
+                    if (provider === "groq") {
+                        return JSON.stringify(groqParseJson(response));
+                    }
+                    return JSON.stringify(JSON.parse(response));
+                } catch (parseError) {
+                    console.warn(`[AI] JSON parsing failed for ${provider}, retrying with next provider...`);
+                    lastError = parseError;
+                    continue; // Try next provider
+                }
+            }
+
+            return response;
+        } catch (error: any) {
+            console.warn(`[AI] ${provider} failed: ${error?.message}`);
+            lastError = error;
+            // Continue to next provider
+        }
+    }
+
+    // All providers failed
+    throw new Error(`All AI providers failed. Last error: ${lastError?.message}`);
+}
+
+/**
+ * Build JSON-formatted prompt if schema provided
+ */
+function buildJsonPrompt(prompt: string, schema?: any): string {
+    if (!schema) return prompt;
+
+    return `${prompt}
+
+Response must be valid JSON matching this schema:
+${JSON.stringify(schema, null, 2)}
+
+Respond with ONLY valid JSON, no markdown code blocks or explanations.`;
+}
+
+/**
+ * Get status of all providers
+ */
+export function getProviderStatus() {
+    return {
+        groq: isGroqAvailable(),
+        huggingface: isHFAvailable(),
+        openrouter: true, // Always available as final fallback
+    };
+}
+
+/**
+ * Get estimated speed for each provider
+ */
+export function getProviderSpeedEstimates() {
+    return {
+        groq: "70-300+ tokens/sec (FASTEST)",
+        huggingface: "100-500+ tokens/sec (varies by backend)",
+        openrouter: "10-50 tokens/sec (slowest)",
+    };
+}
