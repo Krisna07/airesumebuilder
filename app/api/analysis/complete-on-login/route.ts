@@ -7,6 +7,11 @@ import type { AnalysisResult, ResumeData } from '@/types/types'
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
+const ATS_BASELINE_JOB_DESCRIPTION = `You are evaluating a resume against modern ATS standards.
+Assess for: clear role targeting, measurable achievements, keyword relevance, section clarity,
+skills coverage, formatting readability, and action-oriented bullet quality.
+Return practical optimization suggestions for ATS and recruiter readability.`
+
 type CompleteOnLoginPayload = {
   resumeData: ResumeData
   analysis: AnalysisResult
@@ -69,10 +74,6 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const jdDescription =
-      body.resumeText?.slice(0, 8000) ||
-      'ATS baseline analysis for uploaded resume with optimization-focused recommendations.'
-
     await prisma.jobDescription.create({
       data: {
         id: jobDescriptionId,
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
         company: 'AI Resume Craft',
         location: 'Remote',
         domain: 'resume-optimization',
-        description: jdDescription,
+        description: ATS_BASELINE_JOB_DESCRIPTION,
         url: `analysis://ats-standard/${resumeId}`,
       },
     })

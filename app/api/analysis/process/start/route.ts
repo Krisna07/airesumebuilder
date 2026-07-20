@@ -43,7 +43,7 @@ async function persistForUser(userId: string, resumeData: ResumeData, analysis: 
       company: 'AI Resume Craft',
       location: 'Remote',
       domain: 'resume-optimization',
-      description: resumeText.slice(0, 8000) || 'ATS baseline analysis for uploaded resume.',
+      description: ATS_BASELINE_JOB_DESCRIPTION,
       url: `analysis://ats-standard/${resumeId}`,
     },
   })
