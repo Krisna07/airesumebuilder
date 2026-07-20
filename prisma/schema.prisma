@@ -23,6 +23,7 @@ model User {
   updatedAt DateTime @updatedAt
   deletedAt DateTime? // Soft delete timestamp (grace period starts here)
   resumes   Resume[]
+  createdTemplates ResumeTemplate[] @relation("UserCreatedTemplates")
   jobDescriptions JobDescription[]
 }
 
@@ -31,6 +32,9 @@ model Resume {
   userId         String
   title          String
   template       String
+  customTemplateName String?
+  customTemplateVersion Int?
+  templateSnapshot Json?
   profile        Json
   experiences    Json
   educations     Json
@@ -42,6 +46,50 @@ model Resume {
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deleted        Boolean         @default(false)
   analysisResults AnalysisResult[]
+
+  @@index([customTemplateName])
+}
+
+model ResumeTemplate {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  normalizedName String  @unique
+  displayName   String
+  description   String   @default("")
+  createdByUserId String
+  isPublic      Boolean  @default(false)
+  isBuiltIn     Boolean  @default(false)
+  baseTemplateId String?
+  latestVersion Int      @default(1)
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy      User                 @relation("UserCreatedTemplates", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  versions       ResumeTemplateVersion[]
+  baseTemplate   ResumeTemplate?      @relation("TemplateFork", fields: [baseTemplateId], references: [id], onDelete: SetNull)
+  derivedTemplates ResumeTemplate[]   @relation("TemplateFork")
+
+  @@index([createdByUserId])
+  @@index([isPublic, updatedAt])
+}
+
+model ResumeTemplateVersion {
+  id           String   @id @default(uuid())
+  templateId   String
+  version      Int
+  schemaVersion Int     @default(1)
+  layoutConfig Json
+  styleTokens  Json
+  sectionRules Json
+  previewMeta  Json?
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  template ResumeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([templateId, createdAt])
 }
 
 model JobDescription {

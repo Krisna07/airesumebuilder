@@ -4,7 +4,8 @@ import { UserAuthLoading } from '@/components/Ui/LoadingScreen';
 import { useAuth } from '@/context/authContext';
 import { useToast } from '@/context/PopupContext';
 import Link from 'next/link';
-import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { FaGoogle } from 'react-icons/fa6';
 
 const SignUpForm: React.FC = () => {
@@ -15,6 +16,7 @@ const SignUpForm: React.FC = () => {
     const { register, loading, user, signIn } = useAuth();
     const [loader, setLoader] = useState(false)
     const [isError, setIsError] = useState(false)
+    const router = useRouter()
 
 
     const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,6 +25,12 @@ const SignUpForm: React.FC = () => {
     };
 
     const { showToast } = useToast()
+
+    useEffect(() => {
+        if (!user) return
+        setLoader(false)
+        router.replace('/builder')
+    }, [router, user])
 
     const handleSubmit = async (e: React.FormEvent) => {
         setLoader(true)
@@ -52,10 +60,6 @@ const SignUpForm: React.FC = () => {
 
     };
 
-    if (user) {
-        setLoader(false)
-        return (window.location.href = '/builder');
-    }
     return (
         <div className='overflow-hidden w-full max-w-[600px] p-6 flex flex-col items-center justify-center shadow-[0_0_2px_0px_gray] rounded-2xl '>
             {loader && <div className='w-screen h-screen fixed top-0 z-1000 backdrop-blur-3xl  flex items-center justify-center'>

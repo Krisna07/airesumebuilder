@@ -1,7 +1,7 @@
 "use client"
 import Button from "@/components/Ui/Button"
 import Link from "next/link"
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { File, Plus, Rocket, Loader2 } from "lucide-react"
 import { useAuth } from "@/context/authContext"
 import { ResumeService } from "@/services/resumeServices"
@@ -40,7 +40,7 @@ const AllResumesPage = () => {
     staleTime: 30000,
   })
 
-  useMemo(() => {
+  useEffect(() => {
     if (isError && error) {
       toast.error(error.message || "Failed to load resumes")
     }

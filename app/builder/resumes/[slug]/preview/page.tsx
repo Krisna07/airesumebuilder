@@ -24,6 +24,7 @@ import StylePanel from './StylePanel';
 import { ResumeStyle } from '@/types/types';
 import { DEFAULT_RESUME_STYLE } from '@/lib/defaultStyle';
 import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '@/lib/analytics/events';
+import { normalizeTemplateIdentifier } from '@/lib/templateCreator';
 
 
 const sanitizeFile = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\w.\-]+/g, '');
@@ -32,6 +33,11 @@ type GuestUsageSnapshot = {
   download: { used: number; remaining: number; limit: number };
   regen: { used: number; remaining: number; limit: number };
   lastResetDate: string;
+};
+
+type CustomTemplateListItem = {
+  name: string;
+  baseTemplateId: string;
 };
 
 const PreviewPage = () => {
@@ -61,6 +67,9 @@ const PreviewPage = () => {
   const [coverLetter, setCoverLetter] = useState<any>()
   const [showCoverLetter, setShowCoverLetter] = useState(false)
   const [jobDetails, setJobDetails] = useState<JobDetailsWithAnalysis[]>()
+  const [currentCustomTemplateName, setCurrentCustomTemplateName] = useState<string | null>(null)
+  const [customTemplateOptions, setCustomTemplateOptions] = useState<CustomTemplateListItem[]>([])
+  const [creatingCustomTemplate, setCreatingCustomTemplate] = useState(false)
   const [guestUsage, setGuestUsage] = useState<GuestUsageSnapshot | null>(null)
   const [customRegenerationPrompt, setCustomRegenerationPrompt] = useState<string>('')
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -69,9 +78,11 @@ const PreviewPage = () => {
   const topBarRef = useRef<HTMLDivElement | null>(null);
   const customPromptInputRef = useRef<HTMLTextAreaElement | null>(null);
   const styleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customTemplateSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isGuestResume = slug === 'guest-resume';
   const usesRemoteResume = Boolean(user && !isGuestResume);
+  const createTemplatePlaceholder = `${(user?.name || 'username').toLowerCase().trim().replace(/\s+/g, '-') || 'username'}-resume`;
   const response = useJobDescriptions(user ? user.id : '', slug)
   const resumeResponse = useGetResume(isGuestResume ? "" : slug)
 
@@ -163,6 +174,9 @@ const PreviewPage = () => {
       if (styleSaveTimerRef.current) {
         clearTimeout(styleSaveTimerRef.current);
       }
+      if (customTemplateSaveTimerRef.current) {
+        clearTimeout(customTemplateSaveTimerRef.current);
+      }
     };
   }, []);
 
@@ -251,23 +265,182 @@ const PreviewPage = () => {
     }
   }, [response.isSuccess, response.data]);
 
+  const buildTemplateDraftPayload = useCallback((style: ResumeStyle, baseTemplateId: string, name: string) => {
+    const { sectionOrder, ...styleTokens } = style;
+    return {
+      displayName: name,
+      description: `Custom template created from ${baseTemplateId}`,
+      layoutConfig: {
+        columns: 'single',
+        sectionOrder: sectionOrder || [],
+        baseTemplateId,
+      },
+      styleTokens,
+      sectionRules: {},
+      previewMeta: {
+        source: 'preview-customization',
+      },
+    };
+  }, []);
+
+  const buildCustomTemplateOptionId = useCallback((baseTemplateId: string, name: string) => {
+    return `custom:${baseTemplateId}:${name}`;
+  }, []);
+
+  const parseCustomTemplateOptionId = useCallback((optionId: string) => {
+    if (!optionId.startsWith('custom:')) return null;
+    const parts = optionId.split(':');
+    if (parts.length < 3) return null;
+    const baseTemplateId = parts[1];
+    const name = parts.slice(2).join(':');
+    if (!baseTemplateId || !name) return null;
+    return { baseTemplateId, name };
+  }, []);
+
+  const upsertCustomTemplateOption = useCallback((name: string, baseTemplateId: string) => {
+    setCustomTemplateOptions((prev) => {
+      const existingIndex = prev.findIndex((item) => item.name === name);
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = { name, baseTemplateId };
+        return next;
+      }
+      return [...prev, { name, baseTemplateId }];
+    });
+  }, []);
+
+  const scheduleCustomTemplateSave = useCallback((nextStyle: ResumeStyle, baseTemplateId: string) => {
+    if (!user || !currentCustomTemplateName) return;
+
+    if (customTemplateSaveTimerRef.current) {
+      clearTimeout(customTemplateSaveTimerRef.current);
+    }
+
+    customTemplateSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const payload = buildTemplateDraftPayload(nextStyle, baseTemplateId, currentCustomTemplateName);
+        await fetch(`/api/templates/draft/${encodeURIComponent(currentCustomTemplateName)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        console.warn('Failed to auto-save custom template draft', error);
+      }
+    }, 450);
+  }, [buildTemplateDraftPayload, currentCustomTemplateName, user]);
+
+  const handleCreateOwnTemplate = useCallback(async (templateNameInput: string) => {
+    if (!resumeData) return;
+
+    if (!user) {
+      showToast('Sign in to create your own template', 'warning', 2500);
+      return;
+    }
+
+    const normalizedName = normalizeTemplateIdentifier(templateNameInput || '');
+
+    if (!normalizedName) {
+      const resetData = {
+        ...resumeData,
+        styleConfig: DEFAULT_RESUME_STYLE,
+      };
+      setResumeData(resetData);
+      ResumeCache.set(slug, resetData, true);
+      scheduleStyleSave(resetData);
+      setCurrentCustomTemplateName(null);
+      showToast('No name entered. Applied default template style.', 'info', 2200);
+      return;
+    }
+
+    setCreatingCustomTemplate(true);
+    try {
+      const styleToSave = {
+        ...DEFAULT_RESUME_STYLE,
+        ...(resumeData.styleConfig || {}),
+      } as ResumeStyle;
+      const payload = {
+        name: normalizedName,
+        ...buildTemplateDraftPayload(styleToSave, selectedTemplate, normalizedName),
+      };
+
+      const response = await fetch('/api/templates/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.success) {
+        showToast(body?.error || 'Failed to create custom template', 'error', 3000);
+        return;
+      }
+
+      setCurrentCustomTemplateName(normalizedName);
+      const updatedResume = {
+        ...resumeData,
+        customTemplateName: normalizedName,
+        customTemplateVersion: 1,
+      };
+      setResumeData(updatedResume);
+      upsertCustomTemplateOption(normalizedName, selectedTemplate);
+      ResumeCache.set(slug, updatedResume, true);
+      await ResumeService.save(user.id, slug, selectedTemplate, updatedResume);
+      ResumeCache.markSynced(slug);
+
+      showToast('Custom template created. Built-in templates remain unchanged.', 'success', 2500);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to create custom template', 'error', 3000);
+    } finally {
+      setCreatingCustomTemplate(false);
+    }
+  }, [buildTemplateDraftPayload, resumeData, scheduleCustomTemplateSave, selectedTemplate, showToast, slug, upsertCustomTemplateOption, user]);
+
+  useEffect(() => {
+    if (!resumeData?.customTemplateName) return;
+    const baseTemplateId = resumeData.template || selectedTemplate || 'modern';
+    upsertCustomTemplateOption(resumeData.customTemplateName, baseTemplateId);
+    setCurrentCustomTemplateName((prev) => prev ?? resumeData.customTemplateName ?? null);
+  }, [resumeData?.customTemplateName, resumeData?.template, selectedTemplate, upsertCustomTemplateOption]);
+
   const handleTemplateChange = async (templateId: string) => {
     if (!resumeData) return;
+    const parsedCustomTemplate = parseCustomTemplateOptionId(templateId);
+    const nextTemplateId = parsedCustomTemplate?.baseTemplateId ?? templateId;
+
+    if (parsedCustomTemplate) {
+      setCurrentCustomTemplateName(parsedCustomTemplate.name);
+      upsertCustomTemplateOption(parsedCustomTemplate.name, parsedCustomTemplate.baseTemplateId);
+    } else {
+      setCurrentCustomTemplateName(null);
+    }
+
     setPendingUpdate(true);
-    setSelectedTemplate(templateId);
+    setSelectedTemplate(nextTemplateId);
 
     // Update cache immediately (optimistic update)
-    const updatedData = { ...resumeData, template: templateId };
+    const updatedData = {
+      ...resumeData,
+      template: nextTemplateId,
+      customTemplateName: parsedCustomTemplate?.name || undefined,
+    };
     ResumeCache.set(slug, updatedData, true);
 
     if (typeof window !== 'undefined' && user) {
       try {
-        await ResumeService.save(user.id, slug, templateId, updatedData);
+        await ResumeService.save(user.id, slug, nextTemplateId, updatedData);
         ResumeCache.markSynced(slug);
         trackAnalyticsEvent(ANALYTICS_EVENTS.RESUME_SAVE, {
           source: 'template_change',
           resume_id: slug,
         });
+        const styleToSave = {
+          ...DEFAULT_RESUME_STYLE,
+          ...(updatedData.styleConfig || {}),
+        } as ResumeStyle;
+        scheduleCustomTemplateSave(styleToSave, nextTemplateId);
         showToast('Template updated', 'success', 1500);
       } catch {
         showToast('Failed to save template', 'error', 2000);
@@ -321,6 +494,7 @@ const PreviewPage = () => {
 
       ResumeCache.set(slug, updatedData, true);
       scheduleStyleSave(updatedData);
+      scheduleCustomTemplateSave(updatedData.styleConfig as ResumeStyle, selectedTemplate);
       return updatedData;
     });
   };
@@ -336,7 +510,6 @@ const PreviewPage = () => {
     const dataToUse = (cached?.data ?? resumeData)!;
 
     setDownloading(true);
-    setRegenerating(true);
     try {
       const response = await fetch('/api/download/v2', {
         method: 'POST',
@@ -349,9 +522,33 @@ const PreviewPage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('PDF generation error:', errorData);
-        showToast(errorData?.details || errorData?.error || 'PDF generation failed', 'error', 3000);
+        const rawBody = await response.text().catch(() => '');
+        let errorData: Record<string, unknown> = {};
+
+        if (rawBody) {
+          try {
+            const parsed = JSON.parse(rawBody);
+            if (parsed && typeof parsed === 'object') {
+              errorData = parsed as Record<string, unknown>;
+            }
+          } catch {
+            errorData = { rawBody };
+          }
+        }
+
+        const details = typeof errorData.details === 'string' ? errorData.details : '';
+        const errorText = typeof errorData.error === 'string' ? errorData.error : '';
+        const fallbackMessage = `PDF generation failed (${response.status} ${response.statusText || 'Error'})`;
+        const toastMessage = details || errorText || fallbackMessage;
+
+        console.error('PDF generation error:', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type'),
+          ...errorData,
+        });
+
+        showToast(toastMessage, 'error', 3500);
         return;
       }
 
@@ -377,7 +574,6 @@ const PreviewPage = () => {
       showToast('Error generating PDF. Please try again.', 'error', 3000);
     } finally {
       setDownloading(false);
-      setRegenerating(false);
     }
   };
 
@@ -637,7 +833,15 @@ const PreviewPage = () => {
   }
 
   if (status === 'ready' && resumeData) {
-    const displayTemplate = user ? Templates : Templates.slice(0, 3);
+    const builtInTemplates = user ? Templates : Templates.slice(0, 3);
+    const customTemplateDisplay = customTemplateOptions.map((item) => ({
+      id: buildCustomTemplateOptionId(item.baseTemplateId, item.name),
+      name: `${item.name} (Custom)`,
+    }));
+    const displayTemplate = [...builtInTemplates, ...customTemplateDisplay];
+    const activeTemplateOptionId = currentCustomTemplateName
+      ? buildCustomTemplateOptionId(selectedTemplate, currentCustomTemplateName)
+      : selectedTemplate;
     const actionButtonBase = 'h-10 px-4 rounded-xl border text-[13px] font-semibold shadow-sm transition-all duration-200 inline-flex items-center gap-2';
     const actionGroupBase = 'flex items-center gap-2 flex-wrap';
     const actionDivider = 'hidden md:block h-8 w-px bg-slate-200 dark:bg-slate-700';
@@ -706,11 +910,15 @@ const PreviewPage = () => {
           {showTemplates && resumeData && <div onClick={(e) => e.stopPropagation()} className='w-full absolute bottom-12 p-4 panel-from-center'>
             <StylePanel
               resumeData={resumeData}
-              templateId={selectedTemplate}
+              templateId={activeTemplateOptionId}
               handleStyleChange={handleStyleChange}
               stylesRef={stylesRef}
               templateOptions={displayTemplate}
               onTemplateChange={handleTemplateChange}
+              onCreateTemplate={handleCreateOwnTemplate}
+              createTemplatePlaceholder={createTemplatePlaceholder}
+              creatingTemplate={creatingCustomTemplate}
+              customTemplateName={currentCustomTemplateName}
               userSignedIn={Boolean(user)}
             />
           </div>}
@@ -718,11 +926,15 @@ const PreviewPage = () => {
           {showStyles && resumeData && <div onClick={(e) => e.stopPropagation()} className='w-full absolute bottom-12 p-4 panel-from-center'>
             <StylePanel
               resumeData={resumeData}
-              templateId={selectedTemplate}
+              templateId={activeTemplateOptionId}
               handleStyleChange={handleStyleChange}
               stylesRef={stylesRef}
               templateOptions={displayTemplate}
               onTemplateChange={handleTemplateChange}
+              onCreateTemplate={handleCreateOwnTemplate}
+              createTemplatePlaceholder={createTemplatePlaceholder}
+              creatingTemplate={creatingCustomTemplate}
+              customTemplateName={currentCustomTemplateName}
               userSignedIn={Boolean(user)}
             />
           </div>}
@@ -745,7 +957,7 @@ const PreviewPage = () => {
                 disabled={deleting || downloading || generating}
                 className={`max-[500px]:w-full ${actionButtonBase} border-transparent bg-sky-600 text-white ${deleting || downloading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-700 hover:-translate-y-0.5'}`}
               >
-                <Download size={16} /> Download
+                <Download size={16} /> {downloading ? 'Preparing PDF...' : 'Download'}
               </button>
             </div>
 
@@ -776,7 +988,7 @@ const PreviewPage = () => {
               disabled={deleting || downloading || generating}
               className={`h-11 w-full rounded-xl border border-transparent bg-sky-600 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 ${deleting || downloading ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.99] hover:bg-sky-700'}`}
             >
-              <Download size={16} /> Download
+              <Download size={16} /> {downloading ? 'Preparing PDF...' : 'Download'}
             </button>
           </div>
 
@@ -842,10 +1054,14 @@ const PreviewPage = () => {
                 <div className="w-full">
                   <StylePanel
                     resumeData={resumeData}
-                    templateId={selectedTemplate}
+                    templateId={activeTemplateOptionId}
                     handleStyleChange={handleStyleChange}
                     templateOptions={displayTemplate}
                     onTemplateChange={handleTemplateChange}
+                    onCreateTemplate={handleCreateOwnTemplate}
+                    createTemplatePlaceholder={createTemplatePlaceholder}
+                    creatingTemplate={creatingCustomTemplate}
+                    customTemplateName={currentCustomTemplateName}
                     userSignedIn={Boolean(user)}
                   />
                 </div>

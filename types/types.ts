@@ -10,6 +10,9 @@ export interface ResumeData {
   userId: string,
   title: string,
   template: string,
+  customTemplateName?: string;
+  customTemplateVersion?: number;
+  templateSnapshot?: Record<string, unknown> | null;
   profile: Profile;
   skills: skills[];
   experiences: Experience[];

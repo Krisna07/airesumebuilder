@@ -1,5 +1,6 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildResumeFallback } from '@/lib/resumeTextFallback'
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -7,13 +8,23 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { text } = body;
+        const rawText = typeof body?.text === 'string' ? body.text : '';
+        const text = rawText.trim();
 
         if (!text) {
             return NextResponse.json({ error: 'No text provided' }, { status: 400 });
         }
 
-        const structuredData = await AIService.generateResume(undefined, text);
+        const MAX_TEXT_CHARS = 50000;
+        const boundedText = text.length > MAX_TEXT_CHARS ? text.slice(0, MAX_TEXT_CHARS) : text;
+
+        let structuredData
+        try {
+            structuredData = await AIService.generateResume(undefined, boundedText);
+        } catch (aiError) {
+            console.warn('Guest AI resume extraction failed, falling back to heuristic parser:', aiError)
+            structuredData = buildResumeFallback(boundedText)
+        }
 
         if (!structuredData) {
             return NextResponse.json({ error: 'Failed to process resume data' }, { status: 500 });

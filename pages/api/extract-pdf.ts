@@ -3,7 +3,7 @@ import { extractText, getDocumentProxy } from 'unpdf';
 const allowedOrigins = [
     'https://airesumebuilder-delta.vercel.app',
     'https://airesumebuilder.vercel.app',
-    'https://airesumecraft.xyz/'
+    'https://airesumecraft.xyz'
 ];
 
 
@@ -33,6 +33,41 @@ export const config = {
     },
 };
 
+function collectTextParts(value: unknown, out: string[]): void {
+    if (value == null) return;
+
+    if (typeof value === 'string') {
+        out.push(value);
+        return;
+    }
+
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            collectTextParts(item, out);
+        }
+        return;
+    }
+
+    if (typeof value === 'object') {
+        const candidate = value as Record<string, unknown>;
+        // Common text field names returned by different PDF extractors/shapes.
+        collectTextParts(candidate.text, out);
+        collectTextParts(candidate.str, out);
+        collectTextParts(candidate.content, out);
+        collectTextParts(candidate.value, out);
+    }
+}
+
+function normalizeExtractedText(raw: unknown): string {
+    const parts: string[] = [];
+    collectTextParts(raw, parts);
+    return parts
+        .join('\n')
+        .replace(/\u0000/g, ' ')
+        .replace(/\s+\n/g, '\n')
+        .trim();
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // 1. Setup CORS & Method Check
     applyCorsHeaders(req, res);
@@ -50,17 +85,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 3. Load and Extract
         const pdf = await getDocumentProxy(uint8Array);
-        const { text, totalPages } = await extractText(pdf, { mergePages: true });
-        console.log(`Extracted text from ${text} pages.`);
+        const primary = await extractText(pdf, { mergePages: true });
+        let extractedText = normalizeExtractedText(primary.text);
+
+        // Fallback: some PDFs return richer page-level structures only when mergePages=false.
+        if (!extractedText) {
+            const secondary = await extractText(pdf, { mergePages: false });
+            extractedText = normalizeExtractedText(secondary.text);
+        }
+
+        if (!extractedText) {
+            return res.status(422).json({ error: 'No extractable text found in PDF' });
+        }
+
+        console.log(`Extracted text from ${primary.totalPages} pages.`);
         // 4. Return the data
         return res.status(200).json({
-            text: text,
-            pages: totalPages,
+            text: extractedText,
+            pages: primary.totalPages,
             info: { message: "Extracted successfully" }
         });
 
     } catch (error) {
         console.error('Extraction Error:', error);
-        return res.status(500).json({ error: 'Failed to parse PDF' });
+        const message = error instanceof Error ? error.message : 'Failed to parse PDF';
+        return res.status(500).json({ error: message });
     }
 }

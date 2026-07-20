@@ -42,6 +42,23 @@ function buildSectionPatch(sectionKey: SectionKey, resumeData: ResumeData, gener
   }
 }
 
+function buildNoopSectionPatch(sectionKey: SectionKey, resumeData: ResumeData): Partial<ResumeData> {
+  switch (sectionKey) {
+    case 'summary':
+      return { profile: { ...resumeData.profile } };
+    case 'experience':
+      return { experiences: Array.isArray(resumeData.experiences) ? resumeData.experiences : [] };
+    case 'education':
+      return { educations: Array.isArray(resumeData.educations) ? resumeData.educations : [] };
+    case 'skills':
+      return { skills: Array.isArray(resumeData.skills) ? resumeData.skills : [] };
+    case 'customSections':
+      return { customSections: Array.isArray(resumeData.customSections) ? resumeData.customSections : [] };
+    default:
+      return {};
+  }
+}
+
 export async function POST(req: NextRequest) {
   let requestKey: string | null = null
   try {
@@ -87,18 +104,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const generated = await AIService.generateSection(sectionKey, resumeData, jobDescription);
-    const patch = buildSectionPatch(sectionKey, resumeData, generated);
+    let patch: Partial<ResumeData> = {};
+    let aiFailureMessage: string | null = null;
+    try {
+      const generated = await AIService.generateSection(sectionKey, resumeData, jobDescription);
+      patch = buildSectionPatch(sectionKey, resumeData, generated);
+    } catch (aiError) {
+      aiFailureMessage = aiError instanceof Error ? aiError.message : 'AI generation failed';
+      patch = buildNoopSectionPatch(sectionKey, resumeData);
+    }
 
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: 'AI response was invalid for the requested section' }, { status: 422 });
     }
 
-    if (userId) {
-      const { consumeUsage } = await import('@/lib/subscription-server');
-      await consumeUsage(userId, 'regen');
-    } else {
-      await consumeGuestUsage('regen');
+    if (!aiFailureMessage) {
+      if (userId) {
+        const { consumeUsage } = await import('@/lib/subscription-server');
+        await consumeUsage(userId, 'regen');
+      } else {
+        await consumeGuestUsage('regen');
+      }
     }
 
     if (requestKey) {
@@ -106,10 +132,19 @@ export async function POST(req: NextRequest) {
       requestKey = null
     }
 
-    return NextResponse.json({
-      success: true,
-      data: patch,
-    });
+    return NextResponse.json(
+      aiFailureMessage
+        ? {
+          success: false,
+          state: 'skipped',
+          error: aiFailureMessage,
+          data: patch,
+        }
+        : {
+          success: true,
+          data: patch,
+        },
+    );
   } catch (error) {
     if (requestKey) {
       generateSectionGuard.release(requestKey)

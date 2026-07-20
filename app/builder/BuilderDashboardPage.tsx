@@ -59,7 +59,7 @@ const DashboardPage = () => {
     staleTime: 30000,
   })
 
-  useMemo(() => {
+  useEffect(() => {
     if (isError && error) {
       toast.error(error.message || "Failed to load resumes")
     }

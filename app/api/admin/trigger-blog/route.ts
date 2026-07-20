@@ -30,6 +30,17 @@ export async function POST(req: Request) {
 
     console.log(`[trigger-blog] Done — state=${result.state}, title="${result.title}", duration=${result.durationMs}ms`)
 
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.reason || 'Blog automation failed',
+          data: result,
+        },
+        { status: 500 },
+      )
+    }
+
     return NextResponse.json({ success: true, data: result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unexpected error'

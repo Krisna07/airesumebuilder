@@ -17,6 +17,9 @@ function formatResumeResponse(resume: {
     id: string;
     title: string;
     template: string;
+    customTemplateName?: string | null;
+    customTemplateVersion?: number | null;
+    templateSnapshot?: unknown;
     profile: unknown;
     experiences: unknown;
     educations: unknown;
@@ -29,6 +32,9 @@ function formatResumeResponse(resume: {
         id: resume.id,
         title: resume.title,
         template: resume.template,
+        customTemplateName: resume.customTemplateName ?? null,
+        customTemplateVersion: resume.customTemplateVersion ?? null,
+        templateSnapshot: safeParseJson(resume.templateSnapshot, null),
         profile: safeParseJson(resume.profile, {}),
         experiences: safeParseJson(resume.experiences, []),
         educations: safeParseJson(resume.educations, []),
@@ -52,6 +58,9 @@ export async function GET(req: NextRequest) {
                 id: true,
                 title: true,
                 template: true,
+                customTemplateName: true,
+                customTemplateVersion: true,
+                templateSnapshot: true,
                 profile: true,
                 experiences: true,
                 educations: true,
@@ -94,6 +103,9 @@ export async function PUT(req: NextRequest) {
         const sharedFields = {
             title: resumeData.title || '',
             template: resumeData.template ?? 'default',
+            customTemplateName: resumeData.customTemplateName ?? null,
+            customTemplateVersion: resumeData.customTemplateVersion ?? null,
+            templateSnapshot: resumeData.templateSnapshot ?? null,
             profile: JSON.stringify(resumeData.profile || {}),
             experiences: JSON.stringify(resumeData.experiences || []),
             educations: JSON.stringify(resumeData.educations || []),
