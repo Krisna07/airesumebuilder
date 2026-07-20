@@ -1,7 +1,10 @@
 "use client"
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import Button from './Ui/Button';
+
+const VERIFICATION_TTL_SECONDS = 15 * 60
+const RESEND_COOLDOWN_SECONDS = 60
 
 const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const { verifyCode, resendVerification, user, verificationExpiresAt, getVerificationStatus } = useAuth()
@@ -9,8 +12,8 @@ const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ o
   const [loading, setLoading] = useState(false)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
+  const [resendSecondsLeft, setResendSecondsLeft] = useState<number>(0)
   const [resendLoading, setResendLoading] = useState(false)
-  const resendCooldownRef = useRef(false)
   
   useEffect(() => {
     if (!open || !user?.email) return
@@ -35,12 +38,20 @@ const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ o
   useEffect(() => {
     if (!expiresAt) {
       setSecondsLeft(null)
+      setResendSecondsLeft(0)
       return
     }
+
     const update = () => {
-      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
+      const expiresAtMs = new Date(expiresAt).getTime()
+      const now = Date.now()
+      const diff = Math.max(0, Math.floor((expiresAtMs - now) / 1000))
+      const resendAvailableAtMs = expiresAtMs - (VERIFICATION_TTL_SECONDS - RESEND_COOLDOWN_SECONDS) * 1000
+
       setSecondsLeft(diff)
+      setResendSecondsLeft(Math.max(0, Math.ceil((resendAvailableAtMs - now) / 1000)))
     }
+
     update()
     const id = setInterval(update, 1000)
     return () => clearInterval(id)
@@ -57,16 +68,13 @@ const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ o
   }
 
   const handleResend = async () => {
-    if (resendCooldownRef.current) return
+    if (resendLoading || resendSecondsLeft > 0) return
     setResendLoading(true)
-    resendCooldownRef.current = true
     try {
       const res = await resendVerification()
       if (res?.expiresAt) {
         setExpiresAt(res.expiresAt)
       }
-      // set a short cooldown before user can click resend again
-      setTimeout(() => { resendCooldownRef.current = false }, 10 * 1000)
     } finally {
       setResendLoading(false)
     }
@@ -98,8 +106,8 @@ const VerificationModal: React.FC<{ open: boolean; onClose: () => void }> = ({ o
         <div className="w-full mt-4 flex items-center justify-center gap-2">
          
             <Button size="small" variant="danger" onClick={onClose} className="px-3 py-2 rounded-md bg-slate-100 dark:bg-slate-800">Cancel</Button>
-            <Button size="small" variant="ghost"  onClick={handleResend} disabled={resendLoading} className="px-3 py-2 rounded-md 733208 border shadow text-primary-dark whitespace-nowrap">
-              {resendLoading ? 'Sending...' : 'Resend code'}
+            <Button size="small" variant="ghost"  onClick={handleResend} disabled={resendLoading || resendSecondsLeft > 0} className="px-3 py-2 rounded-md 733208 border shadow text-primary-dark whitespace-nowrap">
+              {resendLoading ? 'Sending...' : resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : 'Resend code'}
             </Button>
             <Button size="small" variant="primary"  onClick={submit} disabled={loading} className="px-4 py-2 rounded-md bg-teal-600 text-white">{loading ? 'Verifying...' : 'Verify'}</Button>
        

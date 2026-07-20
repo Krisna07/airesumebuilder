@@ -263,14 +263,23 @@ async function tryCloudflareWorkersAi(prompt: string): Promise<GeneratedImagePay
     form.append('guidance', '7.5')
     form.append('num_steps', '30')
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'cf-aig-authorization': `Bearer ${token}`,
-      },
-      body: form,
-    })
+    const workersController = new AbortController()
+    const workersTimeout = setTimeout(() => workersController.abort(), 60000)
+    let workersResponse: Response
+    try {
+      workersResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'cf-aig-authorization': `Bearer ${token}`,
+        },
+        body: form,
+        signal: workersController.signal,
+      })
+    } finally {
+      clearTimeout(workersTimeout)
+    }
+    const response = workersResponse
 
     const bodyText = await response.text()
     if (!response.ok) {
@@ -303,7 +312,14 @@ async function tryCloudflareWorkersAi(prompt: string): Promise<GeneratedImagePay
 async function tryPollinationsFallback(prompt: string): Promise<GeneratedImagePayload | null> {
   try {
     const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=680&nologo=true&model=flux`
-    const response = await fetch(fallbackUrl, { method: 'GET' })
+    const pollinationsController = new AbortController()
+    const pollinationsTimeout = setTimeout(() => pollinationsController.abort(), Number(process.env.BLOG_IMAGE_FETCH_TIMEOUT_MS || 45000))
+    let response: Response
+    try {
+      response = await fetch(fallbackUrl, { method: 'GET', signal: pollinationsController.signal })
+    } finally {
+      clearTimeout(pollinationsTimeout)
+    }
 
     if (response.ok) {
       return {

@@ -62,16 +62,6 @@ async function handleCron(req: Request) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Check kill-switch — default to ENABLED so a missing var doesn't silently skip
-  const enabled = process.env.BLOG_CRON_ENABLED !== undefined
-    ? toBoolean(process.env.BLOG_CRON_ENABLED)
-    : true // default ON when not set
-
-  if (!enabled) {
-    console.log('[cron/blog] Skipped — BLOG_CRON_ENABLED=false')
-    return NextResponse.json({ success: true, state: 'skipped', reason: 'BLOG_CRON_ENABLED=false' })
-  }
-
   const url = new URL(req.url)
   const result = await runBlogCronJob({
     dryRun: url.searchParams.has('dryRun') ? toBoolean(url.searchParams.get('dryRun')) : undefined,
@@ -86,6 +76,16 @@ async function handleCron(req: Request) {
 }
 
 export async function runBlogCronJob(options?: BlogCronJobOptions): Promise<BlogCronJobResult> {
+  // Check kill-switch here so it is respected whether called via HTTP or from the daily cron
+  const enabled = process.env.BLOG_CRON_ENABLED !== undefined
+    ? toBoolean(process.env.BLOG_CRON_ENABLED)
+    : true
+
+  if (!enabled) {
+    console.log('[cron/blog] Skipped — BLOG_CRON_ENABLED=false')
+    return { success: true, state: 'skipped', reason: 'BLOG_CRON_ENABLED=false' }
+  }
+
   const dryRun = options?.dryRun !== undefined
     ? options.dryRun
     : toBoolean(process.env.BLOG_CRON_DRYRUN || process.env.DRY_RUN || 'false')
@@ -97,6 +97,19 @@ export async function runBlogCronJob(options?: BlogCronJobOptions): Promise<Blog
     const result = await runHourlyBlogAutomation({ dryRun, title })
 
     console.log(`[cron/blog] Done — state=${result.state}, title="${result.title}", duration=${result.durationMs}ms`)
+
+    if (!result.success) {
+      console.error(`[cron/blog] Automation returned failure — reason=${result.reason}`)
+      return {
+        success: false,
+        state: result.state,
+        title: result.title,
+        traceId: result.traceId,
+        durationMs: result.durationMs,
+        error: result.reason,
+      }
+    }
+
     return {
       success: true,
       state: result.state,

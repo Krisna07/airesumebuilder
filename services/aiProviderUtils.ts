@@ -1,13 +1,17 @@
 export function extractJsonCandidate(content: string): string | null {
-    const fenced = content.match(/```json\s*([\s\S]*?)\s*```/i);
+    // Strip reasoning model think-blocks (e.g. <think>...</think>) before parsing
+    const stripped = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+    const cleaned = stripped || content
+
+    const fenced = cleaned.match(/```json\s*([\s\S]*?)\s*```/i)
     if (fenced?.[1]) {
         return fenced[1].trim();
     }
 
-    const firstBrace = content.indexOf("{");
-    const lastBrace = content.lastIndexOf("}");
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
     if (firstBrace >= 0 && lastBrace > firstBrace) {
-        return content.slice(firstBrace, lastBrace + 1).trim();
+        return cleaned.slice(firstBrace, lastBrace + 1).trim();
     }
 
     return null;
@@ -21,10 +25,12 @@ export function buildStructuredPrompt(prompt: string): string {
 }
 
 export function parseStructuredJson(content: string, providerLabel: string): any {
+    // Strip reasoning model think-blocks before parsing
+    const cleaned = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
     try {
-        return JSON.parse(content);
+        return JSON.parse(cleaned);
     } catch {
-        const extracted = extractJsonCandidate(content);
+        const extracted = extractJsonCandidate(cleaned);
         if (!extracted) {
             throw new Error(`Failed to parse JSON response from ${providerLabel}`);
         }

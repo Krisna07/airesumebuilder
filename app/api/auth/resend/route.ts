@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { EmailService } from '@/utils/sendEmail'
 
+const VERIFICATION_TTL_MS = 15 * 60 * 1000
+const RESEND_COOLDOWN_MS = 60 * 1000
+
 function genCode() {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
@@ -14,11 +17,27 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
+    const existing = await prisma.verification.findFirst({ where: { userId: user.id } })
+    if (existing) {
+      const lastIssuedAtMs = existing.expiresAt.getTime() - VERIFICATION_TTL_MS
+      const retryAfterMs = lastIssuedAtMs + RESEND_COOLDOWN_MS - Date.now()
+
+      if (retryAfterMs > 0) {
+        return NextResponse.json(
+          {
+            error: `Please wait ${Math.ceil(retryAfterMs / 1000)} seconds before requesting another code`,
+            retryAfterSeconds: Math.ceil(retryAfterMs / 1000),
+            expiresAt: existing.expiresAt,
+          },
+          { status: 429 },
+        )
+      }
+    }
+
     const code = genCode()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+    const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS)
 
     // Upsert verification record
-    const existing = await prisma.verification.findFirst({ where: { userId: user.id } })
     if (existing) {
       await prisma.verification.update({ where: { id: existing.id }, data: { code, expiresAt } })
     } else {

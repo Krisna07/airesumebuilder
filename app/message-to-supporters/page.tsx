@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import bg from './scrollBackground.png'
 import { Megaphone } from 'lucide-react';
 

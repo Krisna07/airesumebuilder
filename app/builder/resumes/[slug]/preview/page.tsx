@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { AnalysisResult, JobDetailsWithAnalysis, ResumeData } from '@/types/types';
 import ResumePreview from '@/components/Templates/ResumePreview';
 import { useAuth } from '@/context/authContext';
 import { analyzeResume, ResumeService } from '@/services/resumeServices';
 import { LocalResumeService } from '@/services/localResumeService';
-import { Download, Edit, Trash, Loader2, X, FileUser, FileSliders, Copy, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Edit, Trash, Loader2, X, FileUser, FileSliders, Copy, Search, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useToast } from '@/context/PopupContext';
 import Button from '@/components/Ui/Button';
 import ConfirmDialog from '@/components/Ui/ConfirmDialog';
@@ -45,7 +45,7 @@ const PreviewPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
-  const [downlaoding, setDownloading] = useState<boolean>(false)
+  const [downloading, setDownloading] = useState<boolean>(false)
   const [generating, setRegenerating] = useState<boolean>(false)
   const [pendingUpdate, setPendingUpdate] = useState(false); // keep stale resume during async ops
   const [analysisData, setAnalysisData] = useState<any>()
@@ -75,7 +75,7 @@ const PreviewPage = () => {
   const response = useJobDescriptions(user ? user.id : '', slug)
   const resumeResponse = useGetResume(isGuestResume ? "" : slug)
 
-  const loadGuestUsage = React.useCallback(async () => {
+  const loadGuestUsage = useCallback(async () => {
     if (user) return;
 
     try {
@@ -90,7 +90,7 @@ const PreviewPage = () => {
     }
   }, [user]);
 
-  const refreshUsageState = React.useCallback(async () => {
+  const refreshUsageState = useCallback(async () => {
     if (user) {
       await getSubscription(false);
       return;
@@ -99,7 +99,7 @@ const PreviewPage = () => {
     await loadGuestUsage();
   }, [getSubscription, loadGuestUsage, user]);
 
-  const hydrateFromCache = React.useCallback(() => {
+  const hydrateFromCache = useCallback(() => {
     const cached = ResumeCache.get(slug);
     if (!cached?.data) return false;
 
@@ -110,7 +110,7 @@ const PreviewPage = () => {
     return true;
   }, [slug]);
 
-  const loadLocalResume = React.useCallback(() => {
+  const loadLocalResume = useCallback(() => {
     const localResume = typeof window !== 'undefined' ? localStorage.getItem(slug) : null;
     if (localResume) {
       try {
@@ -742,8 +742,8 @@ const PreviewPage = () => {
             <div className={actionGroupBase}>
               <button
                 onClick={handleDownloadPDF}
-                disabled={deleting || downlaoding || generating}
-                className={`max-[500px]:w-full ${actionButtonBase} border-transparent bg-sky-600 text-white ${deleting || downlaoding ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-700 hover:-translate-y-0.5'}`}
+                disabled={deleting || downloading || generating}
+                className={`max-[500px]:w-full ${actionButtonBase} border-transparent bg-sky-600 text-white ${deleting || downloading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-700 hover:-translate-y-0.5'}`}
               >
                 <Download size={16} /> Download
               </button>
@@ -773,8 +773,8 @@ const PreviewPage = () => {
           <div className="md:hidden w-full grid grid-cols-1 gap-2 sticky top-3 z-30 rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/85 backdrop-blur-md p-2">
             <button
               onClick={handleDownloadPDF}
-              disabled={deleting || downlaoding || generating}
-              className={`h-11 w-full rounded-xl border border-transparent bg-sky-600 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 ${deleting || downlaoding ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.99] hover:bg-sky-700'}`}
+              disabled={deleting || downloading || generating}
+              className={`h-11 w-full rounded-xl border border-transparent bg-sky-600 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 ${deleting || downloading ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.99] hover:bg-sky-700'}`}
             >
               <Download size={16} /> Download
             </button>
@@ -809,8 +809,8 @@ const PreviewPage = () => {
 
               <button
                 onClick={() => handleRegerate(resumeData, selectedAnalysis, undefined, customRegenerationPrompt.trim() || undefined)}
-                disabled={generating || downlaoding || deleting}
-                className={`h-11 px-5 rounded-2xl text-sm font-semibold inline-flex items-center justify-center transition-all whitespace-nowrap ${generating || downlaoding || deleting
+                disabled={generating || downloading || deleting}
+                className={`h-11 px-5 rounded-2xl text-sm font-semibold inline-flex items-center justify-center transition-all whitespace-nowrap ${generating || downloading || deleting
                     ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
                     : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:-translate-y-0.5 active:translate-y-0'
                   }`}
@@ -907,7 +907,7 @@ const PreviewPage = () => {
                                     disabled={generating || generatingCoverLetter}
                                     className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-teal-600 text-white hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    <BotIcon size={12} /> {isSelected && generating ? 'Optimising' : 'Optimise'}
+                                    <Sparkles size={12} /> {isSelected && generating ? 'Optimising' : 'Optimise'}
                                   </button>
                                   <button
                                     type="button"

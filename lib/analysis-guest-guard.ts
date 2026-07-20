@@ -76,6 +76,7 @@ export function getClientIp(req: NextRequest) {
 function getAllowedOrigins() {
   const origins = new Set<string>()
 
+  // Add explicitly configured origins
   const envOrigins = [process.env.NEXTAUTH_URL, process.env.NEXT_PUBLIC_APP_URL]
   for (const raw of envOrigins) {
     if (!raw) continue
@@ -86,17 +87,23 @@ function getAllowedOrigins() {
     }
   }
 
+  // Add Vercel URL if available (production on Vercel)
   if (process.env.VERCEL_URL) {
     try {
       origins.add(new URL(`https://${process.env.VERCEL_URL}`).origin)
+      // Also add www version
+      origins.add(new URL(`https://www.${process.env.VERCEL_URL}`).origin)
     } catch {
       // Ignore malformed values.
     }
   }
 
+  // Always allow localhost in non-production
   if (process.env.NODE_ENV !== 'production') {
     origins.add('http://localhost:3000')
     origins.add('http://127.0.0.1:3000')
+    origins.add('http://localhost:3001')
+    origins.add('http://127.0.0.1:3001')
   }
 
   return origins
@@ -107,7 +114,10 @@ export function verifyOrigin(req: NextRequest) {
   const allowedOrigins = getAllowedOrigins()
 
   if (!origin) {
-    if (process.env.NODE_ENV !== 'production') return { ok: true as const }
+    // Allow missing origin header in development
+    if (process.env.NODE_ENV !== 'production') {
+      return { ok: true as const }
+    }
     return {
       ok: false as const,
       response: NextResponse.json({ error: 'Origin header missing' }, { status: 403 }),
@@ -124,14 +134,32 @@ export function verifyOrigin(req: NextRequest) {
     }
   }
 
-  if (!allowedOrigins.has(normalizedOrigin)) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Origin is not allowed for this API' }, { status: 403 }),
-    }
+  // Check if origin is allowed
+  if (allowedOrigins.has(normalizedOrigin)) {
+    return { ok: true as const }
   }
 
-  return { ok: true as const }
+  // Log for debugging in development
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      `[analysis-guest-guard] Origin '${normalizedOrigin}' not in allowed list:`,
+      Array.from(allowedOrigins)
+    )
+  }
+
+  return {
+    ok: false as const,
+    response: NextResponse.json(
+      { 
+        error: 'Origin is not allowed for this API',
+        details: process.env.NODE_ENV !== 'production' ? {
+          origin: normalizedOrigin,
+          allowedOrigins: Array.from(allowedOrigins),
+        } : undefined
+      }, 
+      { status: 403 }
+    ),
+  }
 }
 
 export function enforceGuestAnalysisLimit(req: NextRequest): GuestLimitResult {

@@ -1,6 +1,7 @@
 export function parseResponse(raw?: string): unknown {
   if (!raw) throw new Error('Empty AI response');
-  const original = raw.trim();
+  // Strip reasoning model think-blocks (e.g. <think>...</think>) before any parsing
+  const original = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
   // Prefer content inside a fenced code block (``` or ```json)
   const fenceMatch = original.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);

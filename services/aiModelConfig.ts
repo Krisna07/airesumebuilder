@@ -44,6 +44,6 @@ export const MODEL_ROUTING: Record<string, PreferredModel[]> = {
         { provider: "openrouter", model: OPENROUTER_FAST_MODEL },
     ],
     "blog-content-generation": [
-        { provider: "openrouter", model: OPENROUTER_STRONG_LONG_CONTEXT_MODEL },
+        { provider: "openrouter", model: OPENROUTER_FAST_MODEL },
     ],
 };

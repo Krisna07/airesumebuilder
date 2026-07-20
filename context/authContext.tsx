@@ -456,6 +456,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}))
+        const nextExpiresAt = body.expiresAt ?? null
+        if (nextExpiresAt && effectiveUser?.email) {
+          writeVerificationCache({ email: effectiveUser.email, isVerified: false, expiresAt: nextExpiresAt })
+          setVerificationExpiresAt(nextExpiresAt)
+        }
         toast.showToast(body.error || 'Failed to resend code', 'error', 3000)
         return null
       }
