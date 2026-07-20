@@ -20,6 +20,41 @@ import { callOpenRouterModel } from "@/services/openRouterService";
 
 export type AIProviderType = "groq" | "huggingface" | "openrouter" | "none";
 
+// Cache HF health check results for 5 minutes to avoid hammering the API
+let hfHealthCheckCache: { healthy: boolean; timestamp: number } | null = null;
+const HF_HEALTH_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Check if HuggingFace Inference API is healthy
+ * Returns cached result if available and recent
+ */
+async function isHFHealthy(): Promise<boolean> {
+    const now = Date.now();
+
+    // Return cached result if still fresh
+    if (hfHealthCheckCache && now - hfHealthCheckCache.timestamp < HF_HEALTH_CHECK_INTERVAL) {
+        return hfHealthCheckCache.healthy;
+    }
+
+    // Run health check
+    try {
+        const response = await callHFInferenceProvidersRouter({
+            model: HF_MODELS.FAST_CHAT,
+            prompt: "Respond with: OK",
+            max_tokens: 10,
+        });
+
+        const healthy: boolean = !!(response && typeof response === 'string' && response.includes("OK"));
+        hfHealthCheckCache = { healthy, timestamp: now };
+        console.log(`[HF Health] ${healthy ? "✓ Healthy" : "✗ Unhealthy"}`);
+        return healthy;
+    } catch (error) {
+        console.warn("[HF Health] Check failed:", (error as any)?.message);
+        hfHealthCheckCache = { healthy: false, timestamp: now };
+        return false;
+    }
+}
+
 export interface AICallOptions {
     prompt: string;
     schema?: any;
@@ -31,26 +66,33 @@ export interface AICallOptions {
 
 /**
  * Determine which provider to use based on availability and preference
+ * Optimized for: Fastest APIs first → HF (if healthy) → OpenRouter → Text Extractor
  */
-function getProviderPriority(preferredProvider?: AIProviderType): AIProviderType[] {
+async function getProviderPriority(preferredProvider?: AIProviderType): Promise<AIProviderType[]> {
     // User preference first
     if (preferredProvider) {
         const priority: AIProviderType[] = [preferredProvider];
 
-        // Add alternatives in order
+        // Add alternatives in order: Groq → HF (if healthy) → OpenRouter
         if (preferredProvider !== "groq" && isGroqAvailable()) priority.push("groq");
-        if (preferredProvider !== "huggingface" && isHFAvailable()) priority.push("huggingface");
+        if (preferredProvider !== "huggingface" && isHFAvailable() && await isHFHealthy())
+            priority.push("huggingface");
         if (preferredProvider !== "openrouter") priority.push("openrouter");
 
         return priority;
     }
 
-    // Default priority: fastest to slowest
+    // Default priority: FASTEST FIRST, then HF (if working), then OpenRouter
     const priority: AIProviderType[] = [];
 
-    if (isGroqAvailable()) priority.push("groq"); // Fastest
-    if (isHFAvailable()) priority.push("huggingface"); // Flexible, fast
-    priority.push("openrouter"); // Fallback
+    if (isGroqAvailable()) priority.push("groq"); // PRIMARY: Fastest (70-300+ tok/s) ⚡
+
+    // Check if HuggingFace is healthy and available
+    if (isHFAvailable() && await isHFHealthy()) {
+        priority.push("huggingface"); // FALLBACK 1: Use if working (100-500+ tok/s) 🔄
+    }
+
+    priority.push("openrouter"); // FALLBACK 2: Reliable (10-50 tok/s) ✓
 
     return priority;
 }
@@ -61,7 +103,7 @@ function getProviderPriority(preferredProvider?: AIProviderType): AIProviderType
 export async function callAI(options: AICallOptions): Promise<string> {
     const { prompt, schema, temperature = 0.7, maxTokens = 4096, taskType, preferredProvider } = options;
 
-    const providers = getProviderPriority(preferredProvider);
+    const providers = await getProviderPriority(preferredProvider);
     let lastError: any = null;
 
     for (const provider of providers) {
@@ -80,7 +122,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
                         temperature,
                         max_tokens: maxTokens,
                     });
-                    console.log(`[AI] ✓ ${taskType || "Generated"} with Groq (FAST - <100ms)`);
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with Groq (FAST - 70-300+ tok/s)`);
                     break;
 
                 case "huggingface":
@@ -90,7 +132,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
                         temperature,
                         max_tokens: maxTokens,
                     });
-                    console.log(`[AI] ✓ ${taskType || "Generated"} with HF Providers`);
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with HF Providers (100-500+ tok/s)`);
                     break;
 
                 case "openrouter":
@@ -99,7 +141,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
                         prompt: buildJsonPrompt(prompt, schema),
                         outputSchema: schema,
                     });
-                    console.log(`[AI] ✓ ${taskType || "Generated"} with OpenRouter`);
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with OpenRouter (10-50 tok/s)`);
                     break;
 
                 default:
@@ -154,6 +196,17 @@ export function getProviderStatus() {
         groq: isGroqAvailable(),
         huggingface: isHFAvailable(),
         openrouter: true, // Always available as final fallback
+    };
+}
+
+/**
+ * Get provider health status (with HF check)
+ */
+export async function getProviderHealthStatus() {
+    return {
+        groq: isGroqAvailable(),
+        huggingface: isHFAvailable() && await isHFHealthy(),
+        openrouter: true,
     };
 }
 

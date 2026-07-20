@@ -23,124 +23,50 @@ import {
     isValidCoverLetter
 } from "@/lib/aiSchemas";
 import { captureServerError } from "@/lib/monitoring/server";
-import { callOpenRouterModel } from "@/services/openRouterService";
-import { openRouterModels, MODEL_ROUTING } from "@/services/aiModelConfig";
+import { callAI } from "@/services/aiProviderOrchestrator";
 import { extractResumeFromText, cleanResumeText } from "@/services/textResumeExtractor";
 
-const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY);
-
-if (!hasOpenRouterKey) {
-    console.warn('AIService: OpenRouter API key not found. AI functionalities will be disabled.');
-}
-
 /**
- * Call a specific OpenRouter model with schema
- */
-async function callSpecificOpenRouterModel(
-    model: string,
-    prompt: string,
-    outputSchema?: any
-): Promise<any> {
-    if (!hasOpenRouterKey) {
-        throw new Error('OpenRouter client is not initialized');
-    }
-
-    return callOpenRouterModel({
-        model,
-        prompt,
-        outputSchema,
-    });
-}
-/**
- * Call OpenRouter AI with structured output schema
+ * Unified AI call - Uses multi-provider orchestrator with intelligent fallback
+ * Priority: Groq → HuggingFace (if healthy) → OpenRouter → TextExtractor
  * @param prompt - The prompt to send
  * @param outputSchema - Optional JSON schema for structured output
- * @param retries - Number of retries (3 = try all 3 OpenRouter models)
- * @returns Parsed response or raw string
- */
-async function callOpenRouterWithSchema(
-    prompt: string,
-    outputSchema?: any,
-    retries = 3
-): Promise<any> {
-    if (!hasOpenRouterKey) {
-        throw new Error('OpenRouter client is not initialized.');
-    }
-
-    const modelIndex = 3 - retries;
-    const model = openRouterModels[modelIndex] || openRouterModels[0];
-
-    try {
-        console.log(`Calling OpenRouter with ${model} (attempt ${4 - retries}/3)`);
-        return await callSpecificOpenRouterModel(model, prompt, outputSchema);
-    } catch (error: any) {
-        console.warn(
-            `OpenRouter call failed with ${model} (attempt ${4 - retries}/3):`,
-            error?.message || error
-        );
-
-        if (retries > 1) {
-            return callOpenRouterWithSchema(prompt, outputSchema, retries - 1);
-        }
-
-        throw error;
-    }
-}
-
-/**
- * Unified AI call with OpenRouter - primary provider only
- * Supports model routing for specific tasks
- * @param prompt - The prompt to send
- * @param outputSchema - Optional JSON schema for structured output
- * @param taskType - Optional task type for model routing (e.g., 'resume-generation', 'resume-analysis')
- * @returns Parsed response
+ * @param taskType - Optional task type for logging (e.g., 'resume-generation', 'resume-analysis')
+ * @returns Parsed JSON response
  */
 async function callAIWithSchema(
     prompt: string,
     outputSchema?: any,
     taskType?: string
 ): Promise<any> {
-    if (!hasOpenRouterKey) {
-        throw new Error('OpenRouter API key is not configured. Check OPENROUTER_API_KEY environment variable.');
-    }
-
     console.log(`Starting AI call${taskType ? ` for task: ${taskType}` : ''}...`);
 
-    // Try preferred models first if task type is specified
-    if (taskType && MODEL_ROUTING[taskType]) {
-        const preferredModels = MODEL_ROUTING[taskType];
-        const openRouterModels = preferredModels.filter(m => m.provider === 'openrouter');
-        
-        if (openRouterModels.length > 0) {
-            console.log(`Trying ${openRouterModels.length} preferred OpenRouter model(s) for ${taskType}...`);
-            for (const { model } of openRouterModels) {
-                try {
-                    console.log(`Attempting preferred model: ${model}`);
-                    return await callSpecificOpenRouterModel(model, prompt, outputSchema);
-                } catch (error: any) {
-                    console.warn(
-                        `Preferred model ${model} failed:`,
-                        error?.message || error
-                    );
-                }
-            }
-            console.log('Preferred models failed, falling back to standard model rotation...');
-        }
-    }
-
-    // Standard waterfall: Try OpenRouter models in sequence
     try {
-        console.log('Attempting OpenRouter models...');
-        return await callOpenRouterWithSchema(prompt, outputSchema, 3);
-    } catch (openRouterError: any) {
-        console.error('All OpenRouter models failed:', openRouterError?.message);
-        await captureServerError(openRouterError, {
+        const response = await callAI({
+            prompt,
+            schema: outputSchema,
+            taskType,
+        });
+
+        // Parse response if JSON expected
+        if (outputSchema) {
+            try {
+                return JSON.parse(response);
+            } catch {
+                return response; // Return as-is if not JSON
+            }
+        }
+
+        return response;
+    } catch (error: any) {
+        console.error(`AI call failed for ${taskType || 'unknown'}:`, error?.message);
+        await captureServerError(error, {
             source: 'AIService.callAIWithSchema',
             severity: 'critical',
-            tags: ['ai', 'openrouter-failure'],
+            tags: ['ai', 'orchestrator-failure'],
             extra: { taskType },
         });
-        throw new Error(`AI service failed: ${openRouterError?.message || 'Unknown error'}`);
+        throw error;
     }
 }
 
