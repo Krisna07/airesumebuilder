@@ -25,6 +25,7 @@ import {
 import { captureServerError } from "@/lib/monitoring/server";
 import { callOpenRouterModel } from "@/services/openRouterService";
 import { openRouterModels, MODEL_ROUTING } from "@/services/aiModelConfig";
+import { extractResumeFromText, cleanResumeText } from "@/services/textResumeExtractor";
 
 const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY);
 
@@ -178,6 +179,7 @@ export class AIService {
     /**
      * Generate a complete optimized resume
     * Uses fast OpenRouter tier for extraction and strong tier for full generation
+    * Falls back to text-based extraction if AI service fails
      */
     static async generateResume(
         userdata?: ResumeData,
@@ -198,14 +200,39 @@ export class AIService {
                 throw new Error('Invalid resume data structure returned');
             }
 
-            console.log('Resume generated successfully');
+            console.log('Resume generated successfully with AI');
             return response as ResumeData;
-        } catch (error: any) {
-            console.error("Error generating resume:", error?.message || error);
-            await captureServerError(error, {
+        } catch (aiError: any) {
+            console.error("AI Resume generation failed:", aiError?.message || aiError);
+
+            // Fallback: Use text-based extractor if we have raw text
+            if (data && typeof data === 'string' && data.trim().length > 50) {
+                try {
+                    console.warn('Falling back to text-based resume extraction...');
+                    const cleanedText = cleanResumeText(data);
+                    const extractedResume = extractResumeFromText(
+                        cleanedText,
+                        userdata?.userId || 'unknown',
+                        userdata?.title || 'Resume'
+                    );
+
+                    console.log('Resume extracted successfully using fallback');
+                    return extractedResume;
+                } catch (extractError: any) {
+                    console.error("Text extraction fallback also failed:", extractError?.message);
+                }
+            }
+
+            // If we have structured data, try to enhance it
+            if (userdata) {
+                console.warn('Using partial structured data as fallback');
+                return userdata;
+            }
+
+            await captureServerError(aiError, {
                 source: 'AIService.generateResume',
                 severity: 'critical',
-                tags: ['ai', 'resume-generation'],
+                tags: ['ai', 'resume-generation', 'fallback-failed'],
             });
             throw new Error("Failed to generate resume");
         }
@@ -242,6 +269,7 @@ export class AIService {
     /**
      * Analyze resume fit against job description
      * Uses reasoning model: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
+     * Falls back to keyword-based analysis if AI fails
      */
     static async analyzeResume(
         resumeData: ResumeData,
@@ -263,15 +291,74 @@ export class AIService {
             );
 
             return response as AnalysisResult;
-        } catch (error: any) {
-            console.error("Error analyzing resume:", error?.message || error);
-            await captureServerError(error, {
-                source: 'AIService.analyzeResume',
-                severity: 'error',
-                tags: ['ai', 'resume-analysis'],
-            });
-            throw new Error("Failed to analyze resume");
+        } catch (aiError: any) {
+            console.error("AI analysis failed:", aiError?.message || aiError);
+
+            // Fallback: Basic keyword-based analysis
+            try {
+                console.warn('Falling back to keyword-based analysis...');
+                const fallbackAnalysis = this.analyzeResumeBasic(resumeData, jobDescription);
+                console.log('Analysis completed using fallback');
+                return fallbackAnalysis;
+            } catch (fallbackError: any) {
+                console.error("Fallback analysis also failed:", fallbackError?.message);
+                await captureServerError(aiError, {
+                    source: 'AIService.analyzeResume',
+                    severity: 'error',
+                    tags: ['ai', 'resume-analysis', 'fallback-failed'],
+                });
+                throw new Error("Failed to analyze resume");
+            }
         }
+    }
+
+    /**
+     * Fallback basic analysis using keyword matching
+     */
+    private static analyzeResumeBasic(resumeData: ResumeData, jobDescription: string): AnalysisResult {
+        const resumeText = JSON.stringify(resumeData).toLowerCase();
+        const jdText = jobDescription.toLowerCase();
+
+        // Extract keywords from job description
+        const jdKeywords = jdText.match(/\b[a-z]{4,}\b/g) || [];
+        const uniqueKeywords = Array.from(new Set(jdKeywords));
+
+        // Count matching keywords
+        let matchCount = 0;
+        const missingKeywords: string[] = [];
+
+        for (const keyword of uniqueKeywords.slice(0, 30)) {
+            // Top 30 keywords
+            if (resumeText.includes(keyword)) {
+                matchCount++;
+            } else {
+                missingKeywords.push(keyword);
+            }
+        }
+
+        // Calculate matching percentage
+        const matchingPercentage = uniqueKeywords.length > 0 ? Math.round((matchCount / uniqueKeywords.length) * 100) : 50;
+
+        // Extract strengths (matched keywords)
+        const strengths = uniqueKeywords
+            .filter((k) => resumeText.includes(k))
+            .slice(0, 5);
+
+        return {
+            id: '',
+            jobDescription: jobDescription.substring(0, 500),
+            description: `Resume analyzed using keyword matching. ${matchCount} out of ${uniqueKeywords.length} key job description terms found in resume.`,
+            matchingPercentage: Math.max(20, Math.min(100, matchingPercentage)), // Between 20-100
+            suggestions: [
+                missingKeywords.length > 0
+                    ? `Consider adding these missing keywords: ${missingKeywords.slice(0, 5).join(', ')}`
+                    : 'Resume contains strong keyword alignment with job description',
+                'Review your accomplishments to highlight relevant achievements',
+                'Ensure all relevant skills are clearly listed in the skills section',
+            ],
+            strengths: strengths,
+            missingKeywords: missingKeywords.slice(0, 10),
+        };
     }
 
     /**
