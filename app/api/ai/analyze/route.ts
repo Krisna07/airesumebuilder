@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { AIService } from '@/services/aiServices';
 import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
@@ -149,7 +150,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (requestKey) {
       analyzeGuard.release(requestKey)
-      requestKey = null
     }
     console.error('Analyze API error:', error);
     return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 });

@@ -5,6 +5,15 @@ import { extractResumeFromText, cleanResumeText } from '@/services/textResumeExt
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
+/**
+ * Extract Resume (Guest) - PUBLIC API (No authentication required)
+ * POST /api/ai/extract-resume-guest
+ * 
+ * Request body:
+ * {
+ *   "text": "raw resume text"
+ * }
+ */
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();

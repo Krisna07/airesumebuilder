@@ -26,6 +26,156 @@ import { captureServerError } from "@/lib/monitoring/server";
 import { callAI } from "@/services/aiProviderOrchestrator";
 import { extractResumeFromText, cleanResumeText } from "@/services/textResumeExtractor";
 
+const EXTRACTION_NOISE_PATTERNS: RegExp[] = [
+    /let'?s\s+start\s+with\s+your\s+details/i,
+    /provide\s+essential\s+information\s+to\s+proceed/i,
+    /\b(full\s*name|email|phone|location|summary)\*?\b/i,
+    /\bsave\s+profile\b/i,
+    /\bregenerate\b/i,
+];
+
+function getSectionGenerationSchema(sectionKey: 'summary' | 'experience' | 'education' | 'skills' | 'customSections' | string) {
+    switch (sectionKey) {
+        case 'summary':
+            return {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    profile: {
+                        type: 'object',
+                        additionalProperties: false,
+                        properties: {
+                            summary: { type: 'string' },
+                        },
+                        required: ['summary'],
+                    },
+                },
+                required: ['profile'],
+            };
+        case 'experience':
+            return {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    experiences: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                title: { type: 'string' },
+                                company: { type: 'string' },
+                                location: { type: 'string' },
+                                startDate: { type: 'string' },
+                                endDate: { type: 'string' },
+                                current: { type: 'boolean' },
+                                responsibilities: {
+                                    type: 'array',
+                                    items: { type: 'string' },
+                                },
+                            },
+                            required: ['title', 'company', 'location', 'startDate', 'responsibilities'],
+                        },
+                    },
+                },
+                required: ['experiences'],
+            };
+        case 'education':
+            return {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    educations: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                degree: { type: 'string' },
+                                university: { type: 'string' },
+                                location: { type: 'string' },
+                                startDate: { type: 'string' },
+                                endDate: { type: 'string' },
+                                current: { type: 'boolean' },
+                            },
+                            required: ['degree', 'university', 'location', 'startDate'],
+                        },
+                    },
+                },
+                required: ['educations'],
+            };
+        case 'skills':
+            return {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    skills: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                type: { type: 'string' },
+                                skills: {
+                                    type: 'array',
+                                    items: { type: 'string' },
+                                },
+                            },
+                            required: ['type', 'skills'],
+                        },
+                    },
+                },
+                required: ['skills'],
+            };
+        case 'customSections':
+            return {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    customSections: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                title: { type: 'string' },
+                                subsections: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        additionalProperties: false,
+                                        properties: {
+                                            title: { type: 'string' },
+                                            content: { type: 'string' },
+                                            date: { type: 'string' },
+                                        },
+                                        required: ['title', 'content'],
+                                    },
+                                },
+                            },
+                            required: ['title', 'subsections'],
+                        },
+                    },
+                },
+                required: ['customSections'],
+            };
+        default:
+            return undefined;
+    }
+}
+
+function hasExtractionNoise(value: string | undefined): boolean {
+    if (!value) return false;
+    return EXTRACTION_NOISE_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function hasSuspiciousResumeNoise(data: ResumeData): boolean {
+    const fullname = data.profile?.fullname || '';
+    const summary = data.profile?.summary || '';
+    const combined = `${fullname}\n${summary}`;
+    return hasExtractionNoise(combined);
+}
+
 /**
  * Unified AI call - Uses multi-provider orchestrator with intelligent fallback
  * Priority: Groq → HuggingFace (if healthy) → OpenRouter → TextExtractor
@@ -87,12 +237,31 @@ export class AIService {
         jobDescription?: string
     ): Promise<Partial<ResumeData>> {
         const prompt = generateSectionPrompt(sectionKey, resumeData, jobDescription);
+        const sectionSchema = getSectionGenerationSchema(sectionKey);
 
         try {
-            const response = await callAIWithSchema(prompt, resumeGenerationSchema, 'section-generation');
+            const response = await callAIWithSchema(prompt, sectionSchema, 'section-generation');
 
-            if (!isValidResumeData(response)) {
-                throw new Error('Invalid resume data structure returned');
+            if (sectionKey === 'summary') {
+                if (typeof response?.profile?.summary !== 'string') {
+                    throw new Error('Invalid summary section returned');
+                }
+            } else if (sectionKey === 'experience') {
+                if (!Array.isArray(response?.experiences)) {
+                    throw new Error('Invalid experience section returned');
+                }
+            } else if (sectionKey === 'education') {
+                if (!Array.isArray(response?.educations)) {
+                    throw new Error('Invalid education section returned');
+                }
+            } else if (sectionKey === 'skills') {
+                if (!Array.isArray(response?.skills)) {
+                    throw new Error('Invalid skills section returned');
+                }
+            } else if (sectionKey === 'customSections') {
+                if (!Array.isArray(response?.customSections)) {
+                    throw new Error('Invalid custom sections returned');
+                }
             }
 
             return response;
@@ -104,8 +273,8 @@ export class AIService {
 
     /**
      * Generate a complete optimized resume
-    * Uses fast OpenRouter tier for extraction and strong tier for full generation
-    * Falls back to text-based extraction if AI service fails
+    * Uses orchestrator for AI extraction (Groq → HF → OpenRouter → Fallback)
+    * Falls back to advanced pattern-based extraction if AI service fails
      */
     static async generateResume(
         userdata?: ResumeData,
@@ -126,15 +295,19 @@ export class AIService {
                 throw new Error('Invalid resume data structure returned');
             }
 
+            if (data && !userdata && hasSuspiciousResumeNoise(response as ResumeData)) {
+                throw new Error('AI extraction returned form-label noise; retrying with deterministic extractor');
+            }
+
             console.log('Resume generated successfully with AI');
             return response as ResumeData;
         } catch (aiError: any) {
             console.error("AI Resume generation failed:", aiError?.message || aiError);
 
-            // Fallback: Use text-based extractor if we have raw text
+            // Fallback: Use advanced pattern-based extractor if we have raw text
             if (data && typeof data === 'string' && data.trim().length > 50) {
                 try {
-                    console.warn('Falling back to text-based resume extraction...');
+                    console.warn('Falling back to advanced pattern-based extraction...');
                     const cleanedText = cleanResumeText(data);
                     const extractedResume = extractResumeFromText(
                         cleanedText,
@@ -142,10 +315,10 @@ export class AIService {
                         userdata?.title || 'Resume'
                     );
 
-                    console.log('Resume extracted successfully using fallback');
+                    console.log('Resume extracted successfully using advanced pattern-based extractor');
                     return extractedResume;
                 } catch (extractError: any) {
-                    console.error("Text extraction fallback also failed:", extractError?.message);
+                    console.error("Advanced extractor fallback also failed:", extractError?.message);
                 }
             }
 

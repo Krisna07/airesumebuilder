@@ -148,9 +148,9 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (requestKey) {
       generateSectionGuard.release(requestKey)
-      requestKey = null
     }
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Error in generate-section route:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    return NextResponse.json({ error: 'Failed to process request', details: message }, { status: 500 });
   }
 }

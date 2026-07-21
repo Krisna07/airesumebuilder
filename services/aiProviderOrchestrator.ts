@@ -137,7 +137,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
 
                 case "openrouter":
                     response = await callOpenRouterModel({
-                        model: "openai/gpt-4-mini", // Fallback to something reliable
+                        model: "~openai/gpt-latest", // Reliable OpenRouter fallback alias
                         prompt: buildJsonPrompt(prompt, schema),
                         outputSchema: schema,
                     });
