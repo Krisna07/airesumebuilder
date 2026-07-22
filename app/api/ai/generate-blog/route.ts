@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server'
-import { OpenRouter } from '@openrouter/sdk'
 import { requireAdminOrForbidden } from '@/lib/blogAuth'
 import { streamBlogHtmlPrompt, blogMetaPrompt } from '@/lib/prompts'
-import {
-  OPENROUTER_FAST_MODEL,
-  OPENROUTER_STRONG_LONG_CONTEXT_MODEL,
-} from '@/services/aiModelConfig'
 import {
   generateBlogDraftFromTitle,
 } from '@/services/blogAutomationService'
 import { generateBlogCoverImage } from '@/services/imageGenerationService'
 import { saveImage } from '@/services/blogCmsService'
-import { parseStructuredJson } from '@/services/aiProviderUtils'
+import { callAIWithProviderPreference } from '@/services/aiServices'
 
 // Image style presets with brand color integration (teal/slate palette)
 const IMAGE_STYLE_PRESETS = [
@@ -44,27 +39,6 @@ function selectRandomImageStyle(): string {
 
 export const runtime = 'nodejs'
 
-const openRouter = process.env.OPENROUTER_API_KEY
-  ? new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
-  : null
-
-function getMessageContent(content: unknown): string {
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        if (typeof part === 'string') return part
-        if (part && typeof part === 'object' && 'text' in part) {
-          const text = (part as { text?: unknown }).text
-          return typeof text === 'string' ? text : ''
-        }
-        return ''
-      })
-      .join('')
-  }
-  return ''
-}
-
 /**
  * GET /api/ai/generate-blog?title=...
  * SSE stream with three event types:
@@ -89,13 +63,6 @@ export async function GET(req: Request) {
     )
   }
 
-  if (!openRouter) {
-    return NextResponse.json(
-      { success: false, error: 'OPENROUTER_API_KEY not configured.' },
-      { status: 500 }
-    )
-  }
-
   const encoder = new TextEncoder()
 
 
@@ -109,14 +76,15 @@ export async function GET(req: Request) {
         let derivedTitle = topic
         let excerpt = ''
         try {
-          const metaRes = await openRouter.chat.send({
-            model: OPENROUTER_FAST_MODEL,
-            messages: [{ role: 'user', content: blogMetaPrompt(topic) }],
-            temperature: 0.95,
-            stream: false,
-          })
-          const metaText = getMessageContent(metaRes?.choices?.[0]?.message?.content)
-          const meta = parseStructuredJson(metaText, 'OpenRouter') as {
+          const meta = await callAIWithProviderPreference(
+            blogMetaPrompt(topic),
+            {
+              title: 'string',
+              excerpt: 'string',
+            },
+            'blog-title-generation',
+            'groq'
+          ) as {
             title?: string
             excerpt?: string
           }
@@ -130,14 +98,13 @@ export async function GET(req: Request) {
         send({ meta: { title: derivedTitle, excerpt } })
 
         // ── Step 2: Stream HTML body ────────────────────────────────────────────
-        const bodyRes = await openRouter.chat.send({
-          model: OPENROUTER_STRONG_LONG_CONTEXT_MODEL,
-          messages: [{ role: 'user', content: streamBlogHtmlPrompt(derivedTitle) }],
-          temperature: 0.85,
-          stream: false,
-        })
-
-        const html = getMessageContent(bodyRes?.choices?.[0]?.message?.content)
+        const htmlResponse = await callAIWithProviderPreference(
+          streamBlogHtmlPrompt(derivedTitle),
+          undefined,
+          'blog-content-generation',
+          'groq'
+        )
+        const html = typeof htmlResponse === 'string' ? htmlResponse : String(htmlResponse || '')
         for (let i = 0; i < html.length; i += 1200) {
           const text = html.slice(i, i + 1200)
           if (text) send({ text })

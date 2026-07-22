@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdminOrForbidden } from '@/lib/blogAuth'
 import { polishBlogPrompt } from '@/lib/prompts'
 import { parseResponse } from '@/lib/jsonParse'
-import { OpenRouter } from '@openrouter/sdk'
-import { OPENROUTER_FAST_MODEL } from '@/services/aiModelConfig'
+import { callAIWithProviderPreference } from '@/services/aiServices'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -15,22 +14,19 @@ const requestSchema = z.object({
   sections: z.array(z.record(z.string(), z.unknown())).min(1),
 })
 
-const openRouter = process.env.OPENROUTER_API_KEY
-  ? new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
-  : null
-
 async function callAI(prompt: string): Promise<string> {
-  if (openRouter) {
-    const res = await openRouter.chat.send({
-      model: OPENROUTER_FAST_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-    })
-    const content = res?.choices?.[0]?.message?.content
-    if (!content) throw new Error('Empty response from OpenRouter')
-    return typeof content === 'string' ? content : JSON.stringify(content)
+  const response = await callAIWithProviderPreference(
+    prompt,
+    undefined,
+    'blog-content-generation',
+    'groq'
+  )
+
+  if (typeof response === 'string') {
+    return response
   }
-  throw new Error('No AI client available. Check OPENROUTER_API_KEY.')
+
+  return JSON.stringify(response)
 }
 
 /**

@@ -14,6 +14,7 @@ export const OPENROUTER_STRONG_LONG_CONTEXT_MODEL = "nvidia/nemotron-3-nano-omni
 export const GROQ_FAST_MODEL = "llama-3.1-8b-instant";
 export const GROQ_STRONG_MODEL = "llama-3.3-70b-versatile";
 export const GROQ_BALANCED_MODEL = "qwen/qwen3.6-27b";
+export const GROQ_COMPOUND_MODEL = process.env.GROQ_COMPOUND_MODEL || "compound-beta";
 
 export const openRouterModels = [
     OPENROUTER_FAST_MODEL,
@@ -67,12 +68,19 @@ function isFastTask(taskType?: string): boolean {
     return [
         "job-extraction",
         "section-generation",
+    ].includes(taskType);
+}
+
+function isBlogTask(taskType?: string): boolean {
+    if (!taskType) return false;
+    return [
         "blog-title-generation",
         "blog-content-generation",
     ].includes(taskType);
 }
 
 export function getGroqModelForTask(taskType?: string): string {
+    if (isBlogTask(taskType)) return GROQ_COMPOUND_MODEL;
     if (isHeavyTask(taskType)) return GROQ_STRONG_MODEL;
     if (isFastTask(taskType)) return GROQ_FAST_MODEL;
     return GROQ_BALANCED_MODEL;

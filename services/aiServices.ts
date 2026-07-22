@@ -25,6 +25,7 @@ import {
 import { captureServerError } from "@/lib/monitoring/server";
 import { callOpenRouterModel } from "@/services/openRouterService";
 import { openRouterModels, MODEL_ROUTING } from "@/services/aiModelConfig";
+import { callAI, AIProviderType } from '@/services/aiProviderOrchestrator'
 
 const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY);
 
@@ -148,6 +149,31 @@ async function callAIWithSchema(
  */
 export { callAIWithSchema }
 
+/**
+ * AI call that prefers a specific provider while preserving structured-response parsing.
+ */
+export async function callAIWithProviderPreference(
+    prompt: string,
+    outputSchema?: any,
+    taskType?: string,
+    preferredProvider?: AIProviderType
+): Promise<any> {
+    const response = await callAI({
+        prompt,
+        schema: outputSchema,
+        taskType,
+        preferredProvider,
+    })
+
+    if (!outputSchema) return response
+
+    if (typeof response !== 'string') {
+        throw new Error('Unexpected non-string AI response for structured output')
+    }
+
+    return JSON.parse(response)
+}
+
 export class AIService {
 
     /**
@@ -162,7 +188,12 @@ export class AIService {
         const prompt = generateSectionPrompt(sectionKey, resumeData, jobDescription);
 
         try {
-            const response = await callAIWithSchema(prompt, resumeGenerationSchema, 'section-generation');
+            const response = await callAIWithProviderPreference(
+                prompt,
+                resumeGenerationSchema,
+                'section-generation',
+                'huggingface'
+            );
 
             if (!isValidResumeData(response)) {
                 throw new Error('Invalid resume data structure returned');
@@ -183,10 +214,11 @@ export class AIService {
         userdata?: ResumeData,
         data?: string,
         jobDescription?: string,
-        customPrompt?: string
+        customPrompt?: string,
+        analysis?: AnalysisResult
     ): Promise<ResumeData> {
         const prompt = userdata
-            ? resumeGenerationPrompt(userdata, jobDescription || '', undefined, customPrompt)
+            ? resumeGenerationPrompt(userdata, jobDescription || '', analysis, customPrompt)
             : resumeExtractionPrompt(data || '');
 
         try {

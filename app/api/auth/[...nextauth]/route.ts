@@ -192,34 +192,50 @@ export const authOptions = {
           ; token.providerId = account.providerAccountId ?? account.id ?? null
       }
 
-      if (token.provider && token.provider !== 'credentials') {
-        if (token.id == token.providerId || token.providerId !== token.sub) {
-          try {
-            console.log('Handling OAuth user register/login for:', token.email)
-            user = await handleOAuthUserRegister(token.email!, token.name, token.picture, token.provider, token.providerId as string)
+      // Ensure OAuth users are always synced into the app user table on sign-in.
+      const shouldSyncOAuthUser =
+        token.provider &&
+        token.provider !== 'credentials' &&
+        (Boolean(account) || !token.id)
 
-            // Mark if account was restored
-            if (user && !user.deletedAt && (user as any).isRestoredAccount) {
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              token.accountRestored = true
-            }
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'OAuth error';
-            console.log('OAuth error:', errorMessage)
+      if (shouldSyncOAuthUser) {
+        const oauthEmail = typeof token.email === 'string' ? token.email.trim() : ''
+        if (!oauthEmail) {
+          console.warn('OAuth sign-in missing email; skipping user sync')
+          return token
+        }
 
-            // If existing account with password, mark token for redirection
-            if (errorMessage === 'EXISTING_ACCOUNT_WITH_PASSWORD') {
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              token.existingAccountError = true
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              token.userEmail = token.email
-            }
+        try {
+          console.log('Handling OAuth user register/login for:', oauthEmail)
+          user = await handleOAuthUserRegister(
+            oauthEmail,
+            token.name,
+            token.picture,
+            token.provider as string,
+            (token.providerId as string) || ''
+          )
 
-            return token
+          // Mark if account was restored
+          if (user && !user.deletedAt && (user as any).isRestoredAccount) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            token.accountRestored = true
           }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'OAuth error';
+          console.log('OAuth error:', errorMessage)
+
+          // If existing account with password, mark token for redirection
+          if (errorMessage === 'EXISTING_ACCOUNT_WITH_PASSWORD') {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            token.existingAccountError = true
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            token.userEmail = token.email
+          }
+
+          return token
         }
       }
 

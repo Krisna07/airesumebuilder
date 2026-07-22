@@ -12,7 +12,7 @@ import { prisma } from '@/lib/prisma'
 import sanityClient from '@/lib/sanity'
 import { createBlog, getBlogById, normalizeSlug, updateBlog, saveImage } from '@/services/blogCmsService'
 import { generateBlogCoverImage } from '@/services/imageGenerationService'
-import { callAIWithSchema } from '@/services/aiServices'
+import { callAIWithProviderPreference } from '@/services/aiServices'
 import { blogGenerationSchema, blogTitlePlanSchema, blogRegenerationSchema } from '@/lib/aiSchemas'
 import type { BlogActor, BlogSection, BlogStatus, CreateBlogInput } from '@/types/blog'
 
@@ -479,7 +479,12 @@ export async function planUniqueTitleFromResume(
         attempt,
       })
 
-      const aiResponse = await callAIWithSchema(prompt, blogTitlePlanSchema, 'blog-title-generation')
+      const aiResponse = await callAIWithProviderPreference(
+        prompt,
+        blogTitlePlanSchema,
+        'blog-title-generation',
+        'groq'
+      )
       const result = parseTitlePlanFromAi(aiResponse)
 
       if (!result.title) continue
@@ -606,7 +611,12 @@ export async function generateBlogDraftFromTitle(
   const author = getDefaultAuthor()
   const prompt = generateSeoBlogPrompt(title, author, targetKeywords)
 
-  const rawResponse = await callAIWithSchema(prompt, blogGenerationSchema, 'blog-content-generation')
+  const rawResponse = await callAIWithProviderPreference(
+    prompt,
+    blogGenerationSchema,
+    'blog-content-generation',
+    'groq'
+  )
 
   const parsed = typeof rawResponse === 'string' ? parseResponse(rawResponse) : rawResponse
   const draft = validateAndNormalizeBlogDraft(parsed, author)
@@ -642,7 +652,12 @@ export async function regenerateBlogContent(
     .join('\n\n')
 
   const prompt = regenerateBlogPrompt(title, currentText, modificationPrompt)
-  const response = await callAIWithSchema(prompt, blogRegenerationSchema, 'blog-content-generation')
+  const response = await callAIWithProviderPreference(
+    prompt,
+    blogRegenerationSchema,
+    'blog-content-generation',
+    'groq'
+  )
 
   if (!response || typeof response !== 'object' || !Array.isArray((response as any).sections)) {
     throw new Error('AI regeneration returned invalid format')
