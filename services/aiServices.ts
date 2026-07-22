@@ -280,10 +280,11 @@ export class AIService {
         userdata?: ResumeData,
         data?: string,
         jobDescription?: string,
-        customPrompt?: string
+        customPrompt?: string,
+        analysis?: AnalysisResult,
     ): Promise<ResumeData> {
         const prompt = userdata
-            ? resumeGenerationPrompt(userdata, jobDescription || '', undefined, customPrompt)
+            ? resumeGenerationPrompt(userdata, jobDescription || '', analysis, customPrompt)
             : resumeExtractionPrompt(data || '');
 
         try {

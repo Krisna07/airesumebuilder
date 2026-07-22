@@ -18,7 +18,7 @@ if (!hasHfToken) {
 
 export const HF_MODELS = {
     // Fast models (1000+ tok/s throughput)
-    FAST_CHAT: "openai/gpt-oss-120b:fastest", // Auto-selects fastest provider
+    FAST_CHAT: "meta-llama/Llama-3.1-8B-Instruct:fastest", // Auto-selects fastest provider
     FAST_CODE: "deepseek-ai/DeepSeek-V3:fastest", // Latest & fast
 
     // Quality models (high-quality, still 200+ tok/s)
@@ -26,7 +26,7 @@ export const HF_MODELS = {
     QUALITY_CODE: "Qwen/Qwen2.5-72B-Instruct:fastest",
 
     // Cheap models (most cost-efficient)
-    CHEAP: "openai/gpt-oss-20b:cheapest",
+    CHEAP: "meta-llama/Llama-3.1-8B-Instruct:cheapest",
 };
 
 export type HFModelType = keyof typeof HF_MODELS;

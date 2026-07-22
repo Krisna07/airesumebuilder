@@ -17,6 +17,7 @@ import {
     isHFAvailable,
 } from "@/services/hfInferenceService";
 import { callOpenRouterModel } from "@/services/openRouterService";
+import { getGroqModelForTask, getOpenRouterModelForTask } from "@/services/aiModelConfig";
 
 export type AIProviderType = "groq" | "huggingface" | "openrouter" | "none";
 
@@ -117,7 +118,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
             switch (provider) {
                 case "groq":
                     response = await callGroqModel({
-                        model: GROQ_MODELS.FAST_REASONING, // Use reasoning model for better quality
+                        model: getGroqModelForTask(taskType) || GROQ_MODELS.FAST_REASONING,
                         prompt: buildJsonPrompt(prompt, schema),
                         temperature,
                         max_tokens: maxTokens,
@@ -137,7 +138,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
 
                 case "openrouter":
                     response = await callOpenRouterModel({
-                        model: "~openai/gpt-latest", // Reliable OpenRouter fallback alias
+                        model: getOpenRouterModelForTask(taskType),
                         prompt: buildJsonPrompt(prompt, schema),
                         outputSchema: schema,
                     });

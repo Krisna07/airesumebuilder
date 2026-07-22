@@ -25,11 +25,11 @@ function getGroqClient() {
 export const GROQ_MODELS = {
     // Fastest models - best for speed-critical tasks
     FAST: "llama-3.1-8b-instant", // <100ms latency, 70+ tok/s
-    FAST_REASONING: "mixtral-8x7b-32768", // Faster reasoning, 200+ tok/s
-    FAST_LONG_CONTEXT: "llama-3.1-70b-versatile", // Better quality, still 100+ tok/s
+    FAST_REASONING: "qwen/qwen3.6-27b", // Better reasoning balance from current allow-list
+    FAST_LONG_CONTEXT: "llama-3.3-70b-versatile", // Higher quality model from current allow-list
 
     // Medium speed (still faster than OpenRouter)
-    BALANCED: "llama-3.1-70b-versatile", // Good quality + speed
+    BALANCED: "qwen/qwen3.6-27b", // Good quality + speed
 };
 
 export type GroqModelType = keyof typeof GROQ_MODELS;
