@@ -64,26 +64,26 @@ const SECTION_PATTERNS = {
 };
 
 const FORM_NOISE_PATTERNS: RegExp[] = [
-    /let'?s\s+start\s+with\s+your\s+details/i,
-    /provide\s+essential\s+information\s+to\s+proceed/i,
-    /^regenerate$/i,
-    /^save\s+profile$/i,
-    /^full\s*name\*?$/i,
-    /^email\*?$/i,
-    /^phone\*?$/i,
-    /^location\*?$/i,
-    /^add\s+link$/i,
-    /^summary\*?$/i,
+  /let'?s\s+start\s+with\s+your\s+details/i,
+  /provide\s+essential\s+information\s+to\s+proceed/i,
+  /^regenerate$/i,
+  /^save\s+profile$/i,
+  /^full\s*name\*?$/i,
+  /^email\*?$/i,
+  /^phone\*?$/i,
+  /^location\*?$/i,
+  /^add\s+link$/i,
+  /^summary\*?$/i,
 ];
 
 function isLikelyFormNoiseLine(line: string): boolean {
-    const cleaned = line.replace(/^#+\s*/, '').trim();
-    if (!cleaned) return true;
-    return FORM_NOISE_PATTERNS.some((pattern) => pattern.test(cleaned));
+  const cleaned = line.replace(/^#+\s*/, '').trim();
+  if (!cleaned) return true;
+  return FORM_NOISE_PATTERNS.some((pattern) => pattern.test(cleaned));
 }
 
 function removeNoiseLines(lines: string[]): string[] {
-    return lines.filter((line) => !isLikelyFormNoiseLine(line));
+  return lines.filter((line) => !isLikelyFormNoiseLine(line));
 }
 
 /**
@@ -148,14 +148,14 @@ function extractProfile(text: string): Partial<Profile> {
   };
 
   // Extract name (usually first substantial line)
-    const lines = removeNoiseLines(text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0));
+  const lines = removeNoiseLines(text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0));
   if (lines.length > 0) {
     const firstLine = lines[0].trim();
     // Skip if it looks like a section header
-      if (
-          !SECTION_PATTERNS.summary.keywords.some((k) => firstLine.toLowerCase().includes(k)) &&
-          !isLikelyFormNoiseLine(firstLine)
-      ) {
+    if (
+      !SECTION_PATTERNS.summary.keywords.some((k) => firstLine.toLowerCase().includes(k)) &&
+      !isLikelyFormNoiseLine(firstLine)
+    ) {
       profile.fullname = firstLine.substring(0, 100); // Cap at 100 chars
     }
   }
@@ -210,7 +210,7 @@ function extractLinkType(url: string): string {
  */
 function extractSkills(text: string): skills[] {
   const skillsArray: skills[] = [];
-    const lines = removeNoiseLines(text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0));
+  const lines = removeNoiseLines(text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0));
 
   let currentType = 'Technical';
   const skillsByType: { [key: string]: string[] } = {};
@@ -309,8 +309,8 @@ function parseDate(dateStr: string): string {
  */
 function extractExperiences(text: string): Experience[] {
   const experiences: Experience[] = [];
-    const sanitizedText = removeNoiseLines(text.split('\n')).join('\n');
-    const entries = sanitizedText.split(/(?=\n(?:[A-Z]|[0-9]))/); // Split on capitalized lines
+  const sanitizedText = removeNoiseLines(text.split('\n')).join('\n');
+  const entries = sanitizedText.split(/(?=\n(?:[A-Z]|[0-9]))/); // Split on capitalized lines
 
   for (const entry of entries) {
     if (entry.trim().length < 20) continue;
@@ -386,8 +386,8 @@ function extractExperiences(text: string): Experience[] {
  */
 function extractEducations(text: string): Education[] {
   const educations: Education[] = [];
-    const sanitizedText = removeNoiseLines(text.split('\n')).join('\n');
-    const entries = sanitizedText.split(/(?=\n(?:[A-Z]|[0-9]))/);
+  const sanitizedText = removeNoiseLines(text.split('\n')).join('\n');
+  const entries = sanitizedText.split(/(?=\n(?:[A-Z]|[0-9]))/);
 
   for (const entry of entries) {
     if (entry.trim().length < 15) continue;
@@ -460,7 +460,7 @@ function extractCustomSections(text: string, foundSections: Map<string, any>): C
   const standardSectionTypes = new Set(foundSections.keys());
 
   // Find all headers that aren't standard sections
-    const lines = removeNoiseLines(text.split('\n'));
+  const lines = removeNoiseLines(text.split('\n'));
   let currentCustomSection: CustomSectionData | null = null;
   let subsectionContent = '';
 
@@ -525,21 +525,21 @@ export function extractResumeFromText(
   title: string = 'Extracted Resume',
 ): ResumeData {
   // Find and extract sections
-    const cleanedInput = removeNoiseLines(text.split('\n')).join('\n');
-    const sections = findSections(cleanedInput);
+  const cleanedInput = removeNoiseLines(text.split('\n')).join('\n');
+  const sections = findSections(cleanedInput);
 
   // Extract profile/header info (from beginning of document)
-    const headerEndIdx = sections.size > 0
-        ? Math.min(...Array.from(sections.values()).map((s) => s.start))
-        : cleanedInput.indexOf(cleanedInput.split('\n')[5] || '');
-    const headerText = cleanedInput.substring(0, Math.max(headerEndIdx, 200));
+  const headerEndIdx = sections.size > 0
+    ? Math.min(...Array.from(sections.values()).map((s) => s.start))
+    : cleanedInput.indexOf(cleanedInput.split('\n')[5] || '');
+  const headerText = cleanedInput.substring(0, Math.max(headerEndIdx, 200));
   const profile = extractProfile(headerText);
 
   // Extract summary from section if present
   if (sections.has('summary')) {
     const { start, end } = sections.get('summary')!;
-      const summaryText = extractSectionText(cleanedInput, start, end);
-      const summaryLines = removeNoiseLines(summaryText.split('\n').slice(1)); // Skip header
+    const summaryText = extractSectionText(cleanedInput, start, end);
+    const summaryLines = removeNoiseLines(summaryText.split('\n').slice(1)); // Skip header
     profile.summary = summaryLines.join('\n').trim().substring(0, 500);
   }
 
@@ -547,7 +547,7 @@ export function extractResumeFromText(
   let skills: skills[] = [];
   if (sections.has('skills')) {
     const { start, end } = sections.get('skills')!;
-      const skillsText = extractSectionText(cleanedInput, start, end);
+    const skillsText = extractSectionText(cleanedInput, start, end);
     skills = extractSkills(skillsText);
   }
 
@@ -555,7 +555,7 @@ export function extractResumeFromText(
   let experiences: Experience[] = [];
   if (sections.has('experience')) {
     const { start, end } = sections.get('experience')!;
-      const experienceText = extractSectionText(cleanedInput, start, end);
+    const experienceText = extractSectionText(cleanedInput, start, end);
     experiences = extractExperiences(experienceText);
   }
 
@@ -563,12 +563,12 @@ export function extractResumeFromText(
   let educations: Education[] = [];
   if (sections.has('education')) {
     const { start, end } = sections.get('education')!;
-      const educationText = extractSectionText(cleanedInput, start, end);
+    const educationText = extractSectionText(cleanedInput, start, end);
     educations = extractEducations(educationText);
   }
 
   // Extract custom sections
-    const customSections = extractCustomSections(cleanedInput, sections);
+  const customSections = extractCustomSections(cleanedInput, sections);
 
   return {
     id: '',
@@ -599,7 +599,7 @@ export function cleanResumeText(rawText: string): string {
     .replace(/\f/g, '\n') // Form feed to newline
     .replace(/\r\n/g, '\n') // CRLF to LF
     .replace(/\t/g, '  ') // Tabs to spaces
-      .replace(/^#{1,6}\s+/gm, '') // Drop markdown header markers often produced by OCR/HTML-to-text
+    .replace(/^#{1,6}\s+/gm, '') // Drop markdown header markers often produced by OCR/HTML-to-text
     .replace(/\n\n\n+/g, '\n\n') // Multiple newlines to double
     .trim();
 

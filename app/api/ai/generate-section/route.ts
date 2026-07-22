@@ -21,12 +21,33 @@ function getJwtSecret(): string | undefined {
 
 async function resolveAuthenticatedUserId(req: NextRequest): Promise<string | null> {
   const token = await getToken({ req, secret: getJwtSecret() });
-  if (typeof token?.id === 'string' && token.id.trim()) {
-    return token.id;
+  const tokenId = typeof token?.id === 'string' ? token.id.trim() : '';
+  const email = typeof token?.email === 'string' ? token.email.trim().toLowerCase() : '';
+
+  // Validate token.id against the app User table because some OAuth JWTs can carry provider ids.
+  if (tokenId) {
+    try {
+      const userById = await prisma.user.findUnique({ where: { id: tokenId }, select: { id: true } });
+      if (userById?.id) {
+        return userById.id;
+      }
+
+      if (email) {
+        const userByEmail = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+        if (userByEmail?.id) {
+          console.warn('generate-section recovered user id from email fallback for token id:', tokenId);
+          return userByEmail.id;
+        }
+      }
+
+      console.warn('generate-section token id did not map to a user:', tokenId);
+      return null;
+    } catch (err) {
+      console.error('generate-section failed while validating token user id:', err);
+    }
   }
 
   // token.sub may be OAuth provider id, not local User.id. Resolve from email instead.
-  const email = typeof token?.email === 'string' ? token.email.trim().toLowerCase() : '';
   if (!email) return null;
 
   try {
