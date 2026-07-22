@@ -4,6 +4,7 @@ import { AIService } from '@/services/aiServices';
 import { ResumeData } from '@/types/types';
 import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
 import { createRequestGuard } from '@/lib/ai-request-guard'
+import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -16,6 +17,25 @@ function isBlockingQuotaStatus(status: number): boolean {
 
 function getJwtSecret(): string | undefined {
   return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+}
+
+async function resolveAuthenticatedUserId(req: NextRequest): Promise<string | null> {
+  const token = await getToken({ req, secret: getJwtSecret() });
+  if (typeof token?.id === 'string' && token.id.trim()) {
+    return token.id;
+  }
+
+  // token.sub may be OAuth provider id, not local User.id. Resolve from email instead.
+  const email = typeof token?.email === 'string' ? token.email.trim().toLowerCase() : '';
+  if (!email) return null;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    return user?.id ?? null;
+  } catch (err) {
+    console.error('generate-section failed to resolve user id by email:', err);
+    return null;
+  }
 }
 
 type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'customSections';
@@ -70,12 +90,7 @@ function buildNoopSectionPatch(sectionKey: SectionKey, resumeData: ResumeData): 
 export async function POST(req: NextRequest) {
   let requestKey: string | null = null
   try {
-    const token = await getToken({ req, secret: getJwtSecret() });
-    const userId = typeof token?.id === 'string'
-      ? token.id
-      : typeof token?.sub === 'string'
-        ? token.sub
-        : null;
+    const userId = await resolveAuthenticatedUserId(req);
 
     try {
       if (userId) {

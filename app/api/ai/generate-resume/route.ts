@@ -3,6 +3,7 @@ import { getToken } from 'next-auth/jwt';
 import { AnalysisResult, ResumeData } from '@/types/types';
 import { AIService } from '@/services/aiServices';
 import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
+import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -13,6 +14,25 @@ function isBlockingQuotaStatus(status: number): boolean {
 
 function getJwtSecret(): string | undefined {
     return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+}
+
+async function resolveAuthenticatedUserId(req: NextRequest): Promise<string | null> {
+    const token = await getToken({ req, secret: getJwtSecret() })
+    if (typeof token?.id === 'string' && token.id.trim()) {
+        return token.id
+    }
+
+    // Do not trust token.sub for app user id. On OAuth sessions it can be provider account id.
+    const email = typeof token?.email === 'string' ? token.email.trim().toLowerCase() : ''
+    if (!email) return null
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+        return user?.id ?? null
+    } catch (err) {
+        console.error('generate-resume failed to resolve user id by email:', err)
+        return null
+    }
 }
 
 function normalizeJobDescriptionInput(input: unknown): string | undefined {
@@ -60,12 +80,7 @@ function normalizeJobDescriptionInput(input: unknown): string | undefined {
 
 export async function POST(req: NextRequest) {
     try {
-        const token = await getToken({ req, secret: getJwtSecret() })
-        const userId = typeof token?.id === 'string'
-            ? token.id
-            : typeof token?.sub === 'string'
-                ? token.sub
-                : null
+        const userId = await resolveAuthenticatedUserId(req)
 
         try {
             if (userId) {

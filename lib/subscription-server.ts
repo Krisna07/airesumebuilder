@@ -28,6 +28,11 @@ export async function requireUserSession() {
 }
 
 export async function getFreshSubscription(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  if (!user) {
+    throw new AuthError('Invalid user session')
+  }
+
   let sub = await prisma.subscription.findUnique({ where: { userId } })
   if (!sub) {
     sub = await prisma.subscription.create({ data: { userId, plan: 'FREE', ...resetCountsData() } })
