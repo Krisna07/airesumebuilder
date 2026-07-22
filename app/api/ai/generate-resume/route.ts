@@ -7,6 +7,14 @@ import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/g
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
+function isBlockingQuotaStatus(status: number): boolean {
+    return status === 401 || status === 403;
+}
+
+function getJwtSecret(): string | undefined {
+    return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+}
+
 function normalizeJobDescriptionInput(input: unknown): string | undefined {
     if (typeof input === 'string') {
         const trimmed = input.trim();
@@ -52,7 +60,7 @@ function normalizeJobDescriptionInput(input: unknown): string | undefined {
 
 export async function POST(req: NextRequest) {
     try {
-        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+        const token = await getToken({ req, secret: getJwtSecret() })
         const userId = typeof token?.id === 'string'
             ? token.id
             : typeof token?.sub === 'string'
@@ -66,14 +74,24 @@ export async function POST(req: NextRequest) {
                     await assertQuota(userId, 'regen')
                 } catch (err) {
                     const mapped = mapSubscriptionError(err)
-                    return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+                    if (isBlockingQuotaStatus(mapped.status)) {
+                        return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+                    }
+                    console.error('generate-resume quota precheck failed (non-blocking):', err)
                 }
             } else {
-                await assertGuestQuota('regen')
+                try {
+                    await assertGuestQuota('regen')
+                } catch (err) {
+                    const mapped = mapGuestUsageError(err)
+                    if (isBlockingQuotaStatus(mapped.status)) {
+                        return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+                    }
+                    console.error('generate-resume guest quota precheck failed (non-blocking):', err)
+                }
             }
         } catch (err) {
-            const mapped = mapGuestUsageError(err)
-            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+            console.error('generate-resume quota module failed to initialize (non-blocking):', err)
         }
 
         const {
@@ -108,9 +126,17 @@ export async function POST(req: NextRequest) {
 
         if (userId) {
             const { consumeUsage } = await import('@/lib/subscription-server')
-            await consumeUsage(userId, 'regen')
+            try {
+                await consumeUsage(userId, 'regen')
+            } catch (err) {
+                console.error('generate-resume usage consume failed (non-blocking):', err)
+            }
         } else {
-            await consumeGuestUsage('regen')
+            try {
+                await consumeGuestUsage('regen')
+            } catch (err) {
+                console.error('generate-resume guest usage consume failed (non-blocking):', err)
+            }
         }
 
         return NextResponse.json({

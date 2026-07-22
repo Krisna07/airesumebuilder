@@ -10,6 +10,14 @@ export const maxDuration = 60;
 
 const generateSectionGuard = createRequestGuard(5000)
 
+function isBlockingQuotaStatus(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
+function getJwtSecret(): string | undefined {
+  return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+}
+
 type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'customSections';
 
 function normalizeSectionKey(key: string): SectionKey | null {
@@ -62,7 +70,7 @@ function buildNoopSectionPatch(sectionKey: SectionKey, resumeData: ResumeData): 
 export async function POST(req: NextRequest) {
   let requestKey: string | null = null
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({ req, secret: getJwtSecret() });
     const userId = typeof token?.id === 'string'
       ? token.id
       : typeof token?.sub === 'string'
@@ -76,14 +84,24 @@ export async function POST(req: NextRequest) {
           await assertQuota(userId, 'regen');
         } catch (err) {
           const mapped = mapSubscriptionError(err);
-          return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+          if (isBlockingQuotaStatus(mapped.status)) {
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+          }
+          console.error('generate-section quota precheck failed (non-blocking):', err);
         }
       } else {
-        await assertGuestQuota('regen');
+        try {
+          await assertGuestQuota('regen');
+        } catch (err) {
+          const mapped = mapGuestUsageError(err);
+          if (isBlockingQuotaStatus(mapped.status)) {
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+          }
+          console.error('generate-section guest quota precheck failed (non-blocking):', err);
+        }
       }
     } catch (err) {
-      const mapped = mapGuestUsageError(err);
-      return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+      console.error('generate-section quota module failed to initialize (non-blocking):', err);
     }
 
     const body = await req.json();
@@ -121,9 +139,17 @@ export async function POST(req: NextRequest) {
     if (!aiFailureMessage) {
       if (userId) {
         const { consumeUsage } = await import('@/lib/subscription-server');
-        await consumeUsage(userId, 'regen');
+        try {
+          await consumeUsage(userId, 'regen');
+        } catch (err) {
+          console.error('generate-section usage consume failed (non-blocking):', err);
+        }
       } else {
-        await consumeGuestUsage('regen');
+        try {
+          await consumeGuestUsage('regen');
+        } catch (err) {
+          console.error('generate-section guest usage consume failed (non-blocking):', err);
+        }
       }
     }
 
