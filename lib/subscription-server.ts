@@ -21,10 +21,27 @@ class QuotaError extends Error {
 
 export async function requireUserSession() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id || !session.user.email) {
+  const sessionUserId = typeof session?.user?.id === 'string' ? session.user.id.trim() : ''
+  const email = typeof session?.user?.email === 'string' ? session.user.email.trim().toLowerCase() : ''
+
+  if (!session || !email) {
     throw new AuthError()
   }
-  return { userId: session.user.id, email: session.user.email }
+
+  if (sessionUserId) {
+    const userById = await prisma.user.findUnique({ where: { id: sessionUserId }, select: { id: true, email: true } })
+    if (userById?.id) {
+      return { userId: userById.id, email: userById.email }
+    }
+  }
+
+  // Recover from stale OAuth session ids by resolving the canonical app user id via email.
+  const userByEmail = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true } })
+  if (!userByEmail?.id) {
+    throw new AuthError('Invalid user session')
+  }
+
+  return { userId: userByEmail.id, email: userByEmail.email }
 }
 
 export async function getFreshSubscription(userId: string) {

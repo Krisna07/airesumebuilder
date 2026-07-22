@@ -231,15 +231,26 @@ export const authOptions = {
         token.isVerified = Boolean(user.isVerified)
       }
 
-      // Recover token.id for older sessions that were minted before user.id was stored in JWT.
-      if (!token.id && token.email) {
+      // Recover token.id for sessions where id is missing or stale (e.g., legacy OAuth/provider ids).
+      if (token.email) {
         try {
-          const dbUserByEmail = await prisma.user.findUnique({
-            where: { email: token.email as string },
-            select: { id: true },
-          })
-          if (dbUserByEmail?.id) {
-            token.id = dbUserByEmail.id
+          let tokenIdIsValidUser = false
+          if (token.id) {
+            const dbUserById = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { id: true },
+            })
+            tokenIdIsValidUser = Boolean(dbUserById?.id)
+          }
+
+          if (!tokenIdIsValidUser) {
+            const dbUserByEmail = await prisma.user.findUnique({
+              where: { email: token.email as string },
+              select: { id: true },
+            })
+            if (dbUserByEmail?.id) {
+              token.id = dbUserByEmail.id
+            }
           }
         } catch (_err) {
           // No-op: token falls back to existing behavior.

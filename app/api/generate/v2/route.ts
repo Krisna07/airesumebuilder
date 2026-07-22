@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
-import { getToken } from 'next-auth/jwt';
 import { generateTemplateHTML } from "@/lib/template-utils";
 import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
+import { resolveUserIdFromRequest } from '@/lib/auth-user';
 
 // Force Node.js runtime for this route (not edge)
 export const runtime = "nodejs";
@@ -26,12 +26,7 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         let content = body.content;
-        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-        const userId = typeof token?.id === 'string'
-            ? token.id
-            : typeof token?.sub === 'string'
-                ? token.sub
-                : null;
+        const userId = await resolveUserIdFromRequest(req);
 
         // If resumeData and template are provided, generate HTML from template
         if (body.resumeData && body.template) {

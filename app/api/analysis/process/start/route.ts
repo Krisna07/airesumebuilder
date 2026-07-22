@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
 import { extractText, getDocumentProxy } from 'unpdf'
 import { AIService } from '@/services/aiServices'
 import { prisma } from '@/lib/prisma'
 import { createAnalysisJob, updateAnalysisJob } from '@/lib/analysis-process-store'
 import { enforceGuestAnalysisLimit, verifyOrigin } from '@/lib/analysis-guest-guard'
 import { consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage'
+import { resolveUserIdFromRequest } from '@/lib/auth-user'
 import type { ResumeData } from '@/types/types'
 
 export const runtime = 'nodejs'
@@ -160,12 +160,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'fileBase64 is required' }, { status: 400 })
     }
 
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-    const userId = typeof token?.id === 'string'
-      ? token.id
-      : typeof token?.sub === 'string'
-        ? token.sub
-        : null
+    const userId = await resolveUserIdFromRequest(req)
 
     if (!userId) {
       try {
