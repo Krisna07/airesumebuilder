@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Guard against unusually large payloads that can degrade model calls.
-        const MAX_TEXT_CHARS = 35000;
+        const MAX_TEXT_CHARS = 22000;
         const boundedText = text.length > MAX_TEXT_CHARS ? text.slice(0, MAX_TEXT_CHARS) : text;
-        const extractionTimeoutMs = Math.max(Number(process.env.RESUME_EXTRACTION_TIMEOUT_MS || 22000), 5000);
+        const extractionTimeoutMs = 22000;
 
         let structuredData
         try {

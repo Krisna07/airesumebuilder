@@ -88,8 +88,8 @@ async function callOpenRouterWithSchema(
 }
 
 /**
- * Unified AI call with OpenRouter - primary provider only
- * Supports model routing for specific tasks
+ * Legacy OpenRouter-only helper.
+ * Retained for explicit OpenRouter workflows outside the Gemini-first app paths.
  * @param prompt - The prompt to send
  * @param outputSchema - Optional JSON schema for structured output
  * @param taskType - Optional task type for model routing (e.g., 'resume-generation', 'resume-analysis')
@@ -156,13 +156,15 @@ export async function callAIWithProviderPreference(
     prompt: string,
     outputSchema?: any,
     taskType?: string,
-    preferredProvider?: AIProviderType
+    preferredProvider?: AIProviderType,
+    strictPreferredProvider = false
 ): Promise<any> {
     const response = await callAI({
         prompt,
         schema: outputSchema,
         taskType,
         preferredProvider,
+        strictPreferredProvider,
     })
 
     if (!outputSchema) return response
@@ -176,42 +178,86 @@ export async function callAIWithProviderPreference(
 
 export class AIService {
 
-    /**
-     * Fast-path resume extraction optimized for lower latency providers.
-     * Provider can be overridden with RESUME_EXTRACTION_AI_PROVIDER.
-     */
-    static async extractResumeFast(rawText: string): Promise<ResumeData> {
-        const prompt = resumeExtractionPrompt(rawText);
-        const configuredProvider = (process.env.RESUME_EXTRACTION_AI_PROVIDER || 'groq').toLowerCase();
-        const preferredProvider: AIProviderType =
-            configuredProvider === 'huggingface'
-                ? 'huggingface'
-                : configuredProvider === 'openrouter'
-                    ? 'openrouter'
-                    : 'groq';
+    private static useStrictGeminiRollout(): boolean {
+        return true;
+    }
 
-        try {
-            const response = await callAIWithProviderPreference(
-                prompt,
-                resumeGenerationSchema,
-                'resume-extraction',
-                preferredProvider
-            );
-
-            if (!isValidResumeData(response)) {
-                throw new Error('Invalid resume data structure returned');
-            }
-
-            return response as ResumeData;
-        } catch (error: any) {
-            console.error('Error extracting resume (fast path):', error?.message || error);
-            throw new Error('Failed to extract resume');
-        }
+    private static isPayloadTooLargeError(error: unknown): boolean {
+        const message = error instanceof Error ? error.message : String(error ?? '');
+        const normalized = message.toLowerCase();
+        return (
+            normalized.includes('request too large') ||
+            normalized.includes('rate_limit_exceeded') ||
+            normalized.includes('tokens per minute') ||
+            normalized.includes('413') ||
+            normalized.includes('context length')
+        );
     }
 
     /**
-     * Generate a specific section of a resume
-     * Uses specialized model: openrouter/owl-alpha
+      * Fast-path resume extraction optimized for Gemini-first routing.
+     */
+    static async extractResumeFast(rawText: string): Promise<ResumeData> {
+        const compactText = rawText.replace(/\s+/g, ' ').trim();
+        const configuredMaxChars = 22000;
+        const charBudgetCandidates = [
+            Math.max(configuredMaxChars, 6000),
+            16000,
+            12000,
+            9000,
+        ];
+
+        const charBudgets = Array.from(new Set(charBudgetCandidates))
+            .filter((value) => Number.isFinite(value) && value >= 6000)
+            .sort((a, b) => b - a);
+
+        const preferredProvider: AIProviderType = 'gemini';
+
+        let lastError: unknown = null;
+
+        for (let i = 0; i < charBudgets.length; i += 1) {
+            const budget = charBudgets[i];
+            const attemptText = compactText.length > budget ? compactText.slice(0, budget) : compactText;
+            const prompt = resumeExtractionPrompt(attemptText);
+
+            try {
+                const response = await callAIWithProviderPreference(
+                    prompt,
+                    resumeGenerationSchema,
+                    'resume-extraction',
+                    preferredProvider,
+                    true
+                );
+
+                if (!isValidResumeData(response)) {
+                    throw new Error('Invalid resume data structure returned');
+                }
+
+                return response as ResumeData;
+            } catch (error: any) {
+                lastError = error;
+                const shouldRetrySmaller =
+                    i < charBudgets.length - 1 &&
+                    AIService.isPayloadTooLargeError(error);
+
+                if (shouldRetrySmaller) {
+                    console.warn(
+                        `[Resume Extract] Provider payload too large at ${budget} chars. Retrying with smaller input...`
+                    );
+                    continue;
+                }
+
+                break;
+            }
+        }
+
+        console.error('Error extracting resume (fast path):', lastError instanceof Error ? lastError.message : lastError);
+        throw new Error(lastError instanceof Error ? lastError.message : 'Failed to extract resume');
+    }
+
+    /**
+    * Generate a specific section of a resume.
+    * Gemini-first and strict during rollout.
      */
     static async generateSection(
         sectionKey: 'summary' | 'experience' | 'education' | 'skills' | 'customSections' | string,
@@ -225,7 +271,8 @@ export class AIService {
                 prompt,
                 resumeGenerationSchema,
                 'section-generation',
-                'huggingface'
+                'gemini',
+                AIService.useStrictGeminiRollout()
             );
 
             if (!isValidResumeData(response)) {
@@ -240,8 +287,8 @@ export class AIService {
     }
 
     /**
-     * Generate a complete optimized resume
-    * Uses fast OpenRouter tier for extraction and strong tier for full generation
+    * Generate a complete optimized resume.
+    * Gemini-first and strict during rollout.
      */
     static async generateResume(
         userdata?: ResumeData,
@@ -250,14 +297,22 @@ export class AIService {
         customPrompt?: string,
         analysis?: AnalysisResult
     ): Promise<ResumeData> {
+        if (!userdata && data) {
+            return AIService.extractResumeFast(data);
+        }
+
         const prompt = userdata
             ? resumeGenerationPrompt(userdata, jobDescription || '', analysis, customPrompt)
             : resumeExtractionPrompt(data || '');
 
         try {
-            // If data is provided (resume extraction), use extraction model
-            const taskType = data && !userdata ? 'resume-extraction' : 'resume-generation';
-            const response = await callAIWithSchema(prompt, resumeGenerationSchema, taskType);
+            const response = await callAIWithProviderPreference(
+                prompt,
+                resumeGenerationSchema,
+                'resume-generation',
+                'gemini',
+                AIService.useStrictGeminiRollout()
+            );
 
             if (!isValidResumeData(response)) {
                 throw new Error('Invalid resume data structure returned');
@@ -277,8 +332,7 @@ export class AIService {
     }
 
     /**
-     * Extract job metadata from raw text
-     * Uses specialized model: openrouter/owl-alpha
+    * Extract job metadata from raw text.
      */
     static async extractJobMetadata(rawText: string): Promise<{
         title: string;
@@ -290,7 +344,12 @@ export class AIService {
         const prompt = extractJobDetailsPrompt(rawText);
 
         try {
-            const response = await callAIWithSchema(prompt, jobExtractionSchema, 'job-extraction');
+            const response = await callAIWithProviderPreference(
+                prompt,
+                jobExtractionSchema,
+                'job-extraction',
+                'gemini'
+            );
 
             // Validate required fields
             if (!response.title || !response.company || !response.location || !response.domain || !response.description) {
@@ -305,8 +364,8 @@ export class AIService {
     }
 
     /**
-     * Analyze resume fit against job description
-     * Uses reasoning model: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
+    * Analyze resume fit against job description.
+    * Gemini-first and strict during rollout.
      */
     static async analyzeResume(
         resumeData: ResumeData,
@@ -315,7 +374,13 @@ export class AIService {
         const prompt = analyzeResumeToJobFitPrompt(resumeData, jobDescription);
 
         try {
-            const response = await callAIWithSchema(prompt, resumeAnalysisSchema, 'resume-analysis');
+            const response = await callAIWithProviderPreference(
+                prompt,
+                resumeAnalysisSchema,
+                'resume-analysis',
+                'gemini',
+                AIService.useStrictGeminiRollout()
+            );
 
             if (!isValidAnalysisResult(response)) {
                 throw new Error('Invalid analysis result structure returned');
@@ -359,7 +424,12 @@ URL: ${url}
 OUTPUT:`;
 
         try {
-            const response = await callAIWithSchema(prompt, urlMetadataSchema);
+            const response = await callAIWithProviderPreference(
+                prompt,
+                urlMetadataSchema,
+                'url-metadata',
+                'gemini'
+            );
             return response;
         } catch (error: any) {
             console.error("Error extracting URL data:", error?.message || error);
@@ -368,8 +438,7 @@ OUTPUT:`;
     }
 
     /**
-     * Generate a cover letter
-    * Uses strong OpenRouter long-context tier
+    * Generate a cover letter.
      */
     static async generateCoverLetter(
         resumeData: ResumeData,
@@ -393,7 +462,12 @@ OUTPUT:`;
                 analysis
             );
 
-            const response = await callAIWithSchema(prompt, coverLetterSchema, 'cover-letter');
+            const response = await callAIWithProviderPreference(
+                prompt,
+                coverLetterSchema,
+                'cover-letter',
+                'gemini'
+            );
 
             if (!isValidCoverLetter(response)) {
                 throw new Error('Invalid cover letter structure returned');
@@ -424,7 +498,12 @@ OUTPUT:`;
         const prompt = smartRecommendationPrompt(title, seniority, specialization, existingBullets);
 
         try {
-            const response = await callAIWithSchema(prompt, smartRecommendationsSchema);
+            const response = await callAIWithProviderPreference(
+                prompt,
+                smartRecommendationsSchema,
+                'smart-recommendations',
+                'gemini'
+            );
 
             if (!response.recommendations || !Array.isArray(response.recommendations)) {
                 console.warn('Invalid recommendations structure, returning empty array');
@@ -455,7 +534,12 @@ OUTPUT:`;
         const prompt = inspectIntentPrompt(title, seniority, specialization, intent, existingBullets);
 
         try {
-            const response = await callAIWithSchema(prompt, intentInspectionSchema);
+            const response = await callAIWithProviderPreference(
+                prompt,
+                intentInspectionSchema,
+                'intent-inspection',
+                'gemini'
+            );
 
             const tasks = Array.isArray(response?.tasks)
                 ? response.tasks.filter((t: any) => typeof t === 'string')

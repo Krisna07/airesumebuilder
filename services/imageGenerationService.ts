@@ -2,8 +2,11 @@
  * Image Generation Service
  * 
  * Handles blog cover image generation with multiple fallback providers.
- * Supports: OpenAI-compatible Cloudflare gateway, Workers AI, Pollinations, and SVG fallback.
+ * Supports: Google Gemini image models, OpenAI-compatible Cloudflare gateway, Workers AI,
+ * Pollinations, and SVG fallback.
  */
+
+import { GoogleGenAI } from '@google/genai'
 
 type GeneratedImagePayload = {
   bytes: Buffer
@@ -37,6 +40,14 @@ function getWorkersAiImageEndpoint(modelId: string): string {
   // Image endpoint is: https://gateway.ai.cloudflare.com/v1/{accountId}/{gatewayName}/workers-ai/{modelId}
   const base = getGatewayBaseUrl().replace(/\/compat\/?$/, '')
   return `${base}/workers-ai/${modelId}`
+}
+
+function getPrimaryGoogleImageModel(): string {
+  return 'gemini-3.1-flash-image'
+}
+
+function getSecondaryGoogleImageModel(): string {
+  return 'gemini-3.1-flash-lite-image'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -429,6 +440,53 @@ async function tryCustomImageApi(prompt: string): Promise<GeneratedImagePayload 
   return null
 }
 
+/**
+ * Try generating image via Gemini native image models.
+ */
+async function tryGoogleGeminiImage(prompt: string, model: string): Promise<GeneratedImagePayload | null> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return null
+
+  try {
+    const ai = new GoogleGenAI({ apiKey })
+    const config: any = {
+      responseModalities: ['IMAGE'],
+      responseFormat: {
+        image: {
+          aspectRatio: '16:9',
+          ...(model === 'gemini-3.1-flash-image' ? { imageSize: '1K' } : {}),
+        },
+      },
+    }
+
+    const response = await ai.models.generateContent({
+      model,
+      contents: [prompt],
+      config,
+    })
+
+    const candidate = response.candidates?.[0]
+    const parts = candidate?.content?.parts || []
+    const imagePart = parts.find((part: any) => part?.inlineData?.data)
+    const data = imagePart?.inlineData?.data
+    const mimeType = imagePart?.inlineData?.mimeType || 'image/png'
+
+    if (!data) {
+      throw new Error(`Gemini image response did not include image bytes for ${model}`)
+    }
+
+    return {
+      bytes: Buffer.from(data, 'base64'),
+      mimeType,
+      filename: `blog-${Date.now()}.png`,
+    }
+  } catch (err) {
+    console.warn(`[image] Google Gemini image failed for ${model}:`, err)
+  }
+
+  return null
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Export
 // ─────────────────────────────────────────────────────────────────────────────
@@ -437,19 +495,22 @@ async function tryCustomImageApi(prompt: string): Promise<GeneratedImagePayload 
  * Generate blog cover image with automatic fallback chain
  * 
  * Tries in order:
- * 1. Cloudflare OpenAI-compatible endpoint
- * 2. Cloudflare Workers AI FormData endpoint
- * 3. Custom image API
- * 4. Pollinations free API (community fallback)
- * 5. Local SVG fallback
+ * 1. Gemini 3.1 Flash Image
+ * 2. Gemini 3.1 Flash Lite Image
+ * 3. Cloudflare OpenAI-compatible endpoint
+ * 4. Cloudflare Workers AI FormData endpoint
+ * 5. Custom image API
+ * 6. Pollinations free API (community fallback)
+ * 7. Local SVG fallback
  */
 export async function generateBlogCoverImage(imagePrompt: string): Promise<GeneratedImagePayload> {
   // Select random style and enhance prompt
   const stylePreset = selectRandomImageStyle()
   const enhancedPrompt = `${stylePreset}, ${imagePrompt}, high quality, sharp focus, professional color grading, teal and slate color palette, no text, no words, no typography, no illustrations, photorealistic, 8k resolution`
 
-  // Try each provider in order
   const providers = [
+    { name: 'Gemini 3.1 Flash Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getPrimaryGoogleImageModel()) },
+    { name: 'Gemini 3.1 Flash Lite Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getSecondaryGoogleImageModel()) },
     { name: 'Cloudflare Gateway', fn: () => tryCloudflareGateway(enhancedPrompt) },
     { name: 'Cloudflare Workers AI', fn: () => tryCloudflareWorkersAi(enhancedPrompt) },
     { name: 'Custom Image API', fn: () => tryCustomImageApi(enhancedPrompt) },

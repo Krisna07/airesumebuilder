@@ -1,6 +1,6 @@
 /**
  * Multi-Provider AI Orchestrator
- * Intelligent routing: Groq → HF Providers → OpenRouter → Fallback
+ * Intelligent routing: Gemini → Groq → HF Providers → OpenRouter
  * 
  * Ensures your app is resilient and fast regardless of provider status
  */
@@ -16,10 +16,11 @@ import {
     HF_MODELS,
     isHFAvailable,
 } from "@/services/hfInferenceService";
+import { callGeminiModel, isGeminiAvailable } from "@/services/geminiService";
 import { callOpenRouterModel } from "@/services/openRouterService";
-import { getGroqModelForTask, getOpenRouterModelForTask } from "@/services/aiModelConfig";
+import { getGeminiModelForTask, getGroqModelForTask, getOpenRouterModelForTask } from "@/services/aiModelConfig";
 
-export type AIProviderType = "groq" | "huggingface" | "openrouter" | "none";
+export type AIProviderType = "groq" | "gemini" | "huggingface" | "openrouter" | "none";
 
 // Cache HF health check results for 5 minutes to avoid hammering the API
 let hfHealthCheckCache: { healthy: boolean; timestamp: number } | null = null;
@@ -63,18 +64,27 @@ export interface AICallOptions {
     maxTokens?: number;
     taskType?: string; // For logging
     preferredProvider?: AIProviderType; // Force specific provider
+    strictPreferredProvider?: boolean; // Use only preferred provider (no fallback chain)
 }
 
 /**
- * Determine which provider to use based on availability and preference
- * Optimized for: Fastest APIs first → HF (if healthy) → OpenRouter → Text Extractor
+ * Determine which provider to use based on availability and preference.
+ * Default order for app text flows is Gemini → Groq → HF (if healthy) → OpenRouter.
  */
-async function getProviderPriority(preferredProvider?: AIProviderType): Promise<AIProviderType[]> {
+async function getProviderPriority(
+    preferredProvider?: AIProviderType,
+    strictPreferredProvider = false
+): Promise<AIProviderType[]> {
     // User preference first
     if (preferredProvider) {
+        if (strictPreferredProvider) {
+            return [preferredProvider];
+        }
+
         const priority: AIProviderType[] = [preferredProvider];
 
-        // Add alternatives in order: Groq → HF (if healthy) → OpenRouter
+        // Add alternatives in order: Gemini → Groq → HF (if healthy) → OpenRouter
+        if (preferredProvider !== "gemini" && isGeminiAvailable()) priority.push("gemini");
         if (preferredProvider !== "groq" && isGroqAvailable()) priority.push("groq");
         if (preferredProvider !== "huggingface" && isHFAvailable() && await isHFHealthy())
             priority.push("huggingface");
@@ -83,10 +93,11 @@ async function getProviderPriority(preferredProvider?: AIProviderType): Promise<
         return priority;
     }
 
-    // Default priority: FASTEST FIRST, then HF (if working), then OpenRouter
+    // Default priority for app text flows: Gemini first, then Groq, then HF, then OpenRouter.
     const priority: AIProviderType[] = [];
 
-    if (isGroqAvailable()) priority.push("groq"); // PRIMARY: Fastest (70-300+ tok/s) ⚡
+    if (isGeminiAvailable()) priority.push("gemini");
+    if (isGroqAvailable()) priority.push("groq");
 
     // Check if HuggingFace is healthy and available
     if (isHFAvailable() && await isHFHealthy()) {
@@ -102,9 +113,17 @@ async function getProviderPriority(preferredProvider?: AIProviderType): Promise<
  * Make AI call with automatic provider fallback
  */
 export async function callAI(options: AICallOptions): Promise<string> {
-    const { prompt, schema, temperature = 0.7, maxTokens = 4096, taskType, preferredProvider } = options;
+    const {
+        prompt,
+        schema,
+        temperature = 0.7,
+        maxTokens = 4096,
+        taskType,
+        preferredProvider,
+        strictPreferredProvider = false,
+    } = options;
 
-    const providers = await getProviderPriority(preferredProvider);
+    const providers = await getProviderPriority(preferredProvider, strictPreferredProvider);
     let lastError: any = null;
 
     for (const provider of providers) {
@@ -124,6 +143,17 @@ export async function callAI(options: AICallOptions): Promise<string> {
                         max_tokens: maxTokens,
                     });
                     console.log(`[AI] ✓ ${taskType || "Generated"} with Groq (FAST - 70-300+ tok/s)`);
+                    break;
+
+                case "gemini":
+                    response = await callGeminiModel({
+                        model: getGeminiModelForTask(taskType),
+                        prompt: buildJsonPrompt(prompt, schema),
+                        temperature,
+                        maxOutputTokens: maxTokens,
+                        responseMimeType: schema ? 'application/json' : 'text/plain',
+                    });
+                    console.log(`[AI] ✓ ${taskType || "Generated"} with Gemini`);
                     break;
 
                 case "huggingface":
@@ -154,6 +184,17 @@ export async function callAI(options: AICallOptions): Promise<string> {
                 try {
                     if (provider === "groq") {
                         return JSON.stringify(groqParseJson(response));
+                    }
+                    if (provider === "gemini") {
+                        try {
+                            return JSON.stringify(JSON.parse(response));
+                        } catch {
+                            const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+                            if (jsonMatch?.[1]) {
+                                return JSON.stringify(JSON.parse(jsonMatch[1]));
+                            }
+                            throw new Error('Failed to parse JSON from Gemini response');
+                        }
                     }
                     return JSON.stringify(JSON.parse(response));
                 } catch (parseError) {
@@ -195,6 +236,7 @@ Respond with ONLY valid JSON, no markdown code blocks or explanations.`;
 export function getProviderStatus() {
     return {
         groq: isGroqAvailable(),
+        gemini: isGeminiAvailable(),
         huggingface: isHFAvailable(),
         openrouter: true, // Always available as final fallback
     };
@@ -206,6 +248,7 @@ export function getProviderStatus() {
 export async function getProviderHealthStatus() {
     return {
         groq: isGroqAvailable(),
+        gemini: isGeminiAvailable(),
         huggingface: isHFAvailable() && await isHFHealthy(),
         openrouter: true,
     };
@@ -217,6 +260,7 @@ export async function getProviderHealthStatus() {
 export function getProviderSpeedEstimates() {
     return {
         groq: "70-300+ tokens/sec (FASTEST)",
+        gemini: "High throughput with strong quality (model-dependent)",
         huggingface: "100-500+ tokens/sec (varies by backend)",
         openrouter: "10-50 tokens/sec (slowest)",
     };
