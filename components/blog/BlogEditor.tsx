@@ -176,22 +176,6 @@ export default function BlogEditor() {
     activeEditor.view.dispatch(tr);
   }, []);
 
-  const flushStreamIntoEditor = useCallback((force = false) => {
-    if (!editor) return;
-    const nextHtml = streamBuffer.current;
-    if (!force && nextHtml === lastStreamApplied.current) return;
-    editor.commands.setContent(nextHtml, false);
-    lastStreamApplied.current = nextHtml;
-  }, [editor]);
-
-  const queueStreamEditorFlush = useCallback(() => {
-    if (streamFlushTimer.current !== null) return;
-    streamFlushTimer.current = window.setTimeout(() => {
-      streamFlushTimer.current = null;
-      flushStreamIntoEditor();
-    }, 45);
-  }, [flushStreamIntoEditor]);
-
   const handleInlineImageUpload = useCallback(async (file: File, activeEditor?: TiptapEditor | null) => {
     if (!activeEditor) return;
 
@@ -247,6 +231,22 @@ export default function BlogEditor() {
       },
     },
   });
+
+  const flushStreamIntoEditor = useCallback((force = false) => {
+    if (!editor) return;
+    const nextHtml = streamBuffer.current;
+    if (!force && nextHtml === lastStreamApplied.current) return;
+    editor.commands.setContent(nextHtml, false);
+    lastStreamApplied.current = nextHtml;
+  }, [editor]);
+
+  const queueStreamEditorFlush = useCallback(() => {
+    if (streamFlushTimer.current !== null) return;
+    streamFlushTimer.current = window.setTimeout(() => {
+      streamFlushTimer.current = null;
+      flushStreamIntoEditor();
+    }, 45);
+  }, [flushStreamIntoEditor]);
 
   // ─── Load existing blog for edit mode ──────────────────────────────────────
   useEffect(() => {

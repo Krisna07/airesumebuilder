@@ -54,9 +54,9 @@ export default function BlogCard({ post }: Props) {
     }
 
     return (
-        <div className="rounded-xl select-none border border-slate-200 dark:border-slate-700 group overflow-hidden hover:shadow-lg dark:hover:shadow-[0px_2px_8px_0_white] transition-all ease-in-out duration-300">
-            <Link href={`/blogs/${post.slug}`} className="block">
-                <article>
+        <div className="h-full rounded-xl select-none border border-slate-200 dark:border-slate-700 group overflow-hidden hover:shadow-lg dark:hover:shadow-[0px_2px_8px_0_white] transition-all ease-in-out duration-300">
+            <Link href={`/blogs/${post.slug}`} className="block h-full">
+                <article className="h-full flex flex-col">
                     <div className='overflow-hidden bg-green-200'>
                         {post.coverImageId ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -67,10 +67,10 @@ export default function BlogCard({ post }: Props) {
                             />
                         ) : null}
                     </div>
-                    <div className="p-4 space-y-3">
+                    <div className="p-4 space-y-3 flex flex-col flex-1">
                         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{post.title}</h2>
                         <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-3">{post.excerpt}</p>
-                        <div className="flex items-center justify-between border-t dark:border-gray-200/50/25 border-gray-200/50 pt-2">
+                        <div className="mt-auto flex items-center justify-between border-t dark:border-gray-200/50/25 border-gray-200/50 pt-2">
                             <div className="space-y-0.5 flex items-center gap-2" >
                                 <div className='rounded-full w-8 h-8 overflow-hidden'>
                                     {post.authorImageUrl || post.authorImageId ?
@@ -78,8 +78,9 @@ export default function BlogCard({ post }: Props) {
                                         <div className='w-full h-full bg-linear-to-r from-green-300 to-indigo-300'></div>
 
                                     }
-                               </div>
-                                <div><p className="text-xs text-slate-500 dark:text-slate-400">By {post.author}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">By {post.author}</p>
                                     <time suppressHydrationWarning className="block text-xs text-slate-500 dark:text-slate-400">
                                         {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}
                                     </time>
