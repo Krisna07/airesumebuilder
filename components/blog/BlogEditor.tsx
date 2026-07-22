@@ -108,6 +108,8 @@ export default function BlogEditor() {
   const [streamPreview, setStreamPreview] = useState('');   // live HTML accumulator
   const [imageStreaming, setImageStreaming] = useState(false);
   const streamBuffer = useRef('');
+  const streamFlushTimer = useRef<number | null>(null);
+  const lastStreamApplied = useRef('');
   const abortRef = useRef<AbortController | null>(null);
 
   const [preCheckOpen, setPreCheckOpen] = useState(false);
@@ -173,6 +175,22 @@ export default function BlogEditor() {
     const tr = activeEditor.state.tr.delete(foundPos, foundPos + nodeSize);
     activeEditor.view.dispatch(tr);
   }, []);
+
+  const flushStreamIntoEditor = useCallback((force = false) => {
+    if (!editor) return;
+    const nextHtml = streamBuffer.current;
+    if (!force && nextHtml === lastStreamApplied.current) return;
+    editor.commands.setContent(nextHtml, false);
+    lastStreamApplied.current = nextHtml;
+  }, [editor]);
+
+  const queueStreamEditorFlush = useCallback(() => {
+    if (streamFlushTimer.current !== null) return;
+    streamFlushTimer.current = window.setTimeout(() => {
+      streamFlushTimer.current = null;
+      flushStreamIntoEditor();
+    }, 45);
+  }, [flushStreamIntoEditor]);
 
   const handleInlineImageUpload = useCallback(async (file: File, activeEditor?: TiptapEditor | null) => {
     if (!activeEditor) return;
@@ -279,9 +297,11 @@ export default function BlogEditor() {
     abortRef.current = controller;
 
     streamBuffer.current = '';
+    lastStreamApplied.current = '';
     setStreamPreview('');
     setStreamState('streaming');
     setImageStreaming(true);
+    editor?.commands.setContent('', false);
 
     try {
       const res = await fetch(
@@ -322,6 +342,7 @@ export default function BlogEditor() {
             if (payload.text) {
               streamBuffer.current += payload.text;
               setStreamPreview(streamBuffer.current);
+              queueStreamEditorFlush();
             }
             if (payload.coverImage) {
               setCoverImageId(payload.coverImage.id);
@@ -330,8 +351,7 @@ export default function BlogEditor() {
               setImageGenFailed(false);
             }
             if (payload.done) {
-              // Load full streamed HTML into TipTap
-              editor?.commands.setContent(streamBuffer.current, false);
+              flushStreamIntoEditor(true);
               setStreamState('done');
               // If no cover image was received by now, mark as failed
               if (!coverImageId) {
@@ -347,7 +367,7 @@ export default function BlogEditor() {
       }
 
       // Fallback if stream ended without explicit done event
-      editor?.commands.setContent(streamBuffer.current, false);
+      flushStreamIntoEditor(true);
       setStreamState('done');
       if (!coverImageId) {
         setImageStreaming(false);
@@ -361,7 +381,15 @@ export default function BlogEditor() {
       setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Stream failed.' });
       setTimeout(() => setAutoToast(null), 5000);
     }
-  }, [title, streamState, editor, coverImageId]);
+  }, [title, streamState, editor, coverImageId, flushStreamIntoEditor, queueStreamEditorFlush]);
+
+  useEffect(() => {
+    return () => {
+      if (streamFlushTimer.current !== null) {
+        window.clearTimeout(streamFlushTimer.current);
+      }
+    };
+  }, []);
 
   // When streaming completes, clear preview after a beat
   useEffect(() => {
@@ -560,7 +588,7 @@ export default function BlogEditor() {
         {streamState === 'streaming' && (
           <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 font-medium ml-2">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            Writing…
+            Writing in editor…
           </div>
         )}
         <input
@@ -656,6 +684,17 @@ export default function BlogEditor() {
         {/* Publish */}
         <button
           type="button"
+          onClick={() => handleQuickPublish('draft')}
+          disabled={quickPublishing || autoRunning}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+        >
+          {quickPublishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />}
+          Save Draft
+        </button>
+
+        {/* Publish */}
+        <button
+          type="button"
           onClick={() => handleQuickPublish('published')}
           disabled={quickPublishing || autoRunning}
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors"
@@ -674,12 +713,18 @@ export default function BlogEditor() {
         </button>
       </div>
 
+      <div className="px-4 py-2 border-x border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Generation on this page never auto-publishes. Review the draft, then publish when ready.
+        </p>
+      </div>
+
       {/* ── AI Live Preview ── */}
       {streamState === 'streaming' && streamPreview && (
         <div className="border-x border-slate-200 dark:border-slate-700 bg-teal-50/40 dark:bg-teal-900/10 px-4 py-4">
           <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 mb-2 uppercase tracking-wide flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-            AI is drafting...
+            AI typewriter preview...
           </p>
           <div
             className="rounded-lg border border-teal-200 dark:border-teal-800 bg-white dark:bg-slate-800/80 px-4 py-3 text-sm prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 opacity-80 pointer-events-none max-h-64 overflow-y-auto"
