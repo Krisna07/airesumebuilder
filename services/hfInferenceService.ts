@@ -22,7 +22,7 @@ export const HF_MODELS = {
     FAST_CODE: "deepseek-ai/DeepSeek-V3:fastest", // Latest & fast
 
     // Quality models (high-quality, still 200+ tok/s)
-    QUALITY_CHAT: "meta-llama/Llama-3.1-70B-Instruct:fastest",
+    QUALITY_CHAT: "meta-llama/Llama-3.1-8B-Instruct:fastest",
     QUALITY_CODE: "Qwen/Qwen2.5-72B-Instruct:fastest",
 
     // Cheap models (most cost-efficient)
@@ -37,6 +37,28 @@ export interface HFInferenceOptions {
     temperature?: number;
     max_tokens?: number;
     provider?: "auto" | "groq" | "together" | "replicate" | "cohere" | string;
+}
+
+const HF_ROUTER_CHAT_FALLBACK_MODELS = [
+    "meta-llama/Llama-3.1-8B-Instruct:fastest",
+    "Qwen/Qwen2.5-72B-Instruct:fastest",
+    "deepseek-ai/DeepSeek-V3:fastest",
+] as const;
+
+type HFRouterErrorPayload = {
+    error?: {
+        message?: string;
+        type?: string;
+        param?: string;
+        code?: string;
+    };
+};
+
+function isModelNotSupported(errorPayload: HFRouterErrorPayload | null): boolean {
+    const code = errorPayload?.error?.code;
+    const message = errorPayload?.error?.message;
+    return code === "model_not_supported"
+        || (typeof message === "string" && message.toLowerCase().includes("not supported by any provider"));
 }
 
 /**
@@ -104,43 +126,72 @@ export async function callHFInferenceProvidersRouter(
         throw new Error("Hugging Face token not configured. Set HF_TOKEN.");
     }
 
-    try {
-        const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.HF_TOKEN}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                model: options.model,
-                messages: [
-                    {
-                        role: "user",
-                        content: options.prompt,
-                    },
-                ],
-                temperature: options.temperature ?? 0.7,
-                max_tokens: options.max_tokens ?? 4096,
-            }),
-        });
+    const fallbackModels = [
+        options.model,
+        ...HF_ROUTER_CHAT_FALLBACK_MODELS,
+    ].filter((model, index, arr) => arr.indexOf(model) === index);
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`HF Router error: ${error.error?.message || response.statusText}`);
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < fallbackModels.length; i += 1) {
+        const model = fallbackModels[i];
+        const hasNext = i < fallbackModels.length - 1;
+
+        try {
+            const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${process.env.HF_TOKEN}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: [
+                        {
+                            role: "user",
+                            content: options.prompt,
+                        },
+                    ],
+                    temperature: options.temperature ?? 0.7,
+                    max_tokens: options.max_tokens ?? 4096,
+                }),
+            });
+
+            if (!response.ok) {
+                let errorPayload: HFRouterErrorPayload | null = null;
+                try {
+                    errorPayload = (await response.json()) as HFRouterErrorPayload;
+                } catch {
+                    errorPayload = null;
+                }
+
+                if (isModelNotSupported(errorPayload) && hasNext) {
+                    console.warn(`HF Router model not supported: ${model}. Retrying with fallback model...`);
+                    continue;
+                }
+
+                const message = errorPayload?.error?.message || response.statusText;
+                throw new Error(`HF Router error (${model}): ${message}`);
+            }
+
+            const result = await response.json();
+            const content = result.choices?.[0]?.message?.content;
+
+            if (!content) {
+                throw new Error(`Empty response from HF Inference Providers (${model})`);
+            }
+
+            return content;
+        } catch (error: any) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            if (!hasNext) {
+                break;
+            }
         }
-
-        const result = await response.json();
-        const content = result.choices?.[0]?.message?.content;
-
-        if (!content) {
-            throw new Error("Empty response from HF Inference Providers");
-        }
-
-        return content;
-    } catch (error: any) {
-        console.error("HF Inference Providers Router error:", error?.message);
-        throw error;
     }
+
+    console.error("HF Inference Providers Router error:", lastError?.message);
+    throw lastError || new Error("HF Router failed without a specific error.");
 }
 
 /**
