@@ -19,6 +19,7 @@ import {
 import { callGeminiModel, isGeminiAvailable } from "@/services/geminiService";
 import { callOpenRouterModel } from "@/services/openRouterService";
 import { getGeminiModelForTask, getGroqModelForTask, getOpenRouterModelForTask } from "@/services/aiModelConfig";
+import { parseResponse } from '@/lib/jsonParse'
 
 export type AIProviderType = "groq" | "gemini" | "huggingface" | "openrouter" | "none";
 
@@ -185,18 +186,7 @@ export async function callAI(options: AICallOptions): Promise<string> {
                     if (provider === "groq") {
                         return JSON.stringify(groqParseJson(response));
                     }
-                    if (provider === "gemini") {
-                        try {
-                            return JSON.stringify(JSON.parse(response));
-                        } catch {
-                            const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-                            if (jsonMatch?.[1]) {
-                                return JSON.stringify(JSON.parse(jsonMatch[1]));
-                            }
-                            throw new Error('Failed to parse JSON from Gemini response');
-                        }
-                    }
-                    return JSON.stringify(JSON.parse(response));
+                    return JSON.stringify(parseResponse(response) as unknown);
                 } catch (parseError) {
                     console.warn(`[AI] JSON parsing failed for ${provider}, retrying with next provider...`);
                     lastError = parseError;
