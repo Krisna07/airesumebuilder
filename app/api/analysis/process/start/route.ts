@@ -67,73 +67,98 @@ async function persistForUser(userId: string, resumeData: ResumeData, analysis: 
   }
 }
 
+type RunAnalysisResult = {
+  resumeData: ResumeData
+  analysis: any
+  resumeText: string
+  sourceFileName?: string
+  resumeId?: string
+  previewPath?: string
+}
+
+async function runAnalysis(params: {
+  fileBase64: string
+  fileName?: string
+  userId?: string | null
+  onProgress?: (patch: { status: 'extracting' | 'parsing' | 'analyzing' | 'persisting'; progress: number; message: string }) => void
+}): Promise<RunAnalysisResult> {
+  params.onProgress?.({
+    status: 'extracting',
+    progress: 10,
+    message: 'Extracting text from PDF',
+  })
+
+  const fileRaw = params.fileBase64.includes('base64,')
+    ? params.fileBase64.split('base64,')[1]
+    : params.fileBase64
+
+  const bytes = Buffer.from(fileRaw, 'base64')
+  const pdf = await getDocumentProxy(new Uint8Array(bytes))
+  const extracted = await extractText(pdf, { mergePages: true })
+  const resumeText = extracted.text || ''
+
+  if (!resumeText.trim()) {
+    throw new Error('No extractable text found in PDF')
+  }
+
+  params.onProgress?.({
+    status: 'parsing',
+    progress: 35,
+    message: 'Parsing resume structure',
+  })
+
+  const resumeData = await AIService.generateResume(undefined, resumeText)
+
+  params.onProgress?.({
+    status: 'analyzing',
+    progress: 70,
+    message: 'Running ATS analysis',
+  })
+
+  const analysis = await AIService.analyzeResume(
+    resumeData,
+    `${ATS_BASELINE_JOB_DESCRIPTION}\n\nResume raw text:\n${resumeText.slice(0, 12000)}`,
+  )
+
+  let resumeId: string | undefined
+  let previewPath: string | undefined
+
+  if (params.userId) {
+    params.onProgress?.({
+      status: 'persisting',
+      progress: 90,
+      message: 'Saving resume and analysis',
+    })
+
+    const persisted = await persistForUser(params.userId, resumeData, analysis, resumeText)
+    resumeId = persisted.resumeId
+    previewPath = persisted.previewPath
+  }
+
+  return {
+    resumeData,
+    analysis,
+    resumeText,
+    sourceFileName: params.fileName,
+    resumeId,
+    previewPath,
+  }
+}
+
 async function processJob(jobId: string, params: { fileBase64: string; fileName?: string; userId?: string | null }) {
   try {
-    updateAnalysisJob(jobId, {
-      status: 'extracting',
-      progress: 10,
-      message: 'Extracting text from PDF',
+    const result = await runAnalysis({
+      ...params,
+      onProgress: (patch) => {
+        updateAnalysisJob(jobId, patch)
+      },
     })
-
-    const fileRaw = params.fileBase64.includes('base64,')
-      ? params.fileBase64.split('base64,')[1]
-      : params.fileBase64
-
-    const bytes = Buffer.from(fileRaw, 'base64')
-    const pdf = await getDocumentProxy(new Uint8Array(bytes))
-    const extracted = await extractText(pdf, { mergePages: true })
-    const resumeText = extracted.text || ''
-
-    if (!resumeText.trim()) {
-      throw new Error('No extractable text found in PDF')
-    }
-
-    updateAnalysisJob(jobId, {
-      status: 'parsing',
-      progress: 35,
-      message: 'Parsing resume structure',
-    })
-
-    const resumeData = await AIService.generateResume(undefined, resumeText)
-
-    updateAnalysisJob(jobId, {
-      status: 'analyzing',
-      progress: 70,
-      message: 'Running ATS analysis',
-    })
-
-    const analysis = await AIService.analyzeResume(
-      resumeData,
-      `${ATS_BASELINE_JOB_DESCRIPTION}\n\nResume raw text:\n${resumeText.slice(0, 12000)}`,
-    )
-
-    let resumeId: string | undefined
-    let previewPath: string | undefined
-
-    if (params.userId) {
-      updateAnalysisJob(jobId, {
-        status: 'persisting',
-        progress: 90,
-        message: 'Saving resume and analysis',
-      })
-
-      const persisted = await persistForUser(params.userId, resumeData, analysis, resumeText)
-      resumeId = persisted.resumeId
-      previewPath = persisted.previewPath
-    }
 
     updateAnalysisJob(jobId, {
       status: 'completed',
       progress: 100,
       message: 'Analysis complete',
-      result: {
-        resumeData,
-        analysis,
-        resumeText,
-        sourceFileName: params.fileName,
-        resumeId,
-        previewPath,
-      },
+      result,
     })
   } catch (error) {
     updateAnalysisJob(jobId, {
@@ -176,13 +201,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Guest users get a direct, synchronous ATS analysis result so we avoid
+    // serverless in-memory polling gaps between start/status invocations.
+    if (!userId) {
+      const result = await runAnalysis({ fileBase64, fileName, userId: null })
+      return NextResponse.json({ success: true, data: { mode: 'completed', result } })
+    }
+
     const jobId = randomUUID()
     createAnalysisJob(jobId)
 
     // Fire-and-track processing in the background for polling.
     void processJob(jobId, { fileBase64, fileName, userId })
 
-    return NextResponse.json({ success: true, data: { jobId } })
+    return NextResponse.json({ success: true, data: { mode: 'async', jobId } })
   } catch (error) {
     console.error('analysis/process/start error:', error)
     return NextResponse.json({ error: 'Failed to start analysis process' }, { status: 500 })

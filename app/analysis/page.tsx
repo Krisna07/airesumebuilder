@@ -155,6 +155,32 @@ export default function AnalysisPage() {
           throw new Error(body?.error || 'Failed to start processing')
         }
 
+        const mode = body?.data?.mode
+        if (mode === 'completed' && body?.data?.result) {
+          const result = body.data.result as NonNullable<JobState['result']>
+          setJobId(null)
+          setJobState({
+            id: 'guest-inline',
+            status: 'completed',
+            progress: 100,
+            message: 'Analysis complete',
+            result,
+          })
+          setResumeData(result.resumeData)
+          setAnalysis(result.analysis)
+          setResumeText(result.resumeText)
+          if (!user) {
+            setGuestAnalysisLock()
+            setGuestAnalysisRecord(result.sourceFileName || selectedFileName || file.name)
+          }
+          showToast('ATS analysis complete', 'success', 2200)
+          return
+        }
+
+        if (!body?.data?.jobId) {
+          throw new Error('Analysis job could not be started')
+        }
+
         setJobId(body.data.jobId)
         setJobState({
           id: body.data.jobId,
