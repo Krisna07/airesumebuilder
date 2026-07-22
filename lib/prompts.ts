@@ -58,49 +58,37 @@ const resumeGenerationPrompt = (sourceResume: ResumeData, jobDescription?: strin
 }
 
 const resumeExtractionPrompt = (rawText: string) => {
-  return `SYSTEM: You are an expert resume parser with a mission to extract EVERY SINGLE DETAIL.
+  return `SYSTEM: You are an expert resume parser.
 TASK: Convert the RAW_RESUME_TEXT into the exact JSON schema below.
 STRICT RULE: RETURN ONLY VALID JSON. NO MARKDOWN. NO EXPLANATION.
-
-CRITICAL: Extract as much detail as possible. Be thorough. Do not skip information.
 
 ---
 GOAL:
 - Extract the candidate's name, contact info, work history, education, skills, and custom sections from the raw text.
-- Capture EVERY detail including dates, locations, company names, responsibilities, and achievements.
+- Do not optimize, rewrite, or invent details.
 - If a field is not present, use an empty string for text fields and an empty array for list fields.
 - Preserve the original facts and dates as accurately as possible.
-- For responsibilities, extract ALL bullet points - don't summarize or limit to top few items.
-- For skills, be very thorough and extract ALL skills mentioned, grouped by type.
 
 ---
 CUSTOM SECTIONS IDENTIFICATION:
 Look for sections with these common titles (or variations):
-- Certifications, Licenses, Credentials, Professional Credentials, Certifications & Awards
-- Projects, Notable Projects, Portfolio Projects, Side Projects, Personal Projects
-- Awards, Honors, Recognition, Achievements, Academic Awards, Employee of the Month
-- Publications, Research, Articles, Papers, Technical Papers, Whitepapers
-- Languages, Language Skills, Proficiencies, Language Proficiencies, Multilingual
-- Volunteer Work, Volunteering, Community Service, Volunteer Experience, Volunteer Positions
-- Speaking, Presentations, Conferences, Speaking Engagements, Conference Talks
-- Professional Memberships, Association Memberships, Member Organizations, Memberships
-- Courses, Training, Professional Development, Workshops, Online Courses, Certifications
-- Other, Additional Info, Additional Information, Miscellaneous, Other Details, Interests
+- Certifications, Licenses, Credentials, Professional Credentials
+- Projects, Notable Projects, Portfolio Projects
+- Awards, Honors, Recognition, Achievements
+- Publications, Research, Articles, Papers
+- Languages, Language Skills, Proficiencies
+- Volunteer Work, Volunteering, Community Service, Volunteer Experience
+- Speaking, Presentations, Conferences, Speaking Engagements
+- Professional Memberships, Association Memberships, Member Organizations
+- Courses, Training, Professional Development, Workshops
 
 RULES FOR CUSTOM SECTIONS:
 - If a section is found with one of the above titles (or similar), extract it as a custom section.
 - For each subsection item, extract:
-  * title: The name/title of the certification, project, award, etc. (REQUIRED)
-  * content: A description or context for the item (include dates, achievements, etc.)
+  * title: The name/title of the certification, project, award, etc.
+  * content: A description or context for the item (empty string if none).
   * date: If a date is mentioned, include it (e.g., "2023", "Jan-2023"). Otherwise, empty string.
 - Always look for and extract ANY significant section that is NOT experience, education, or core skills.
-- Extraction is better than omission - if unsure, include it.
-
-DETAIL EXTRACTION RULES:
-- For EXPERIENCES: Extract every responsibility as a separate item in the responsibilities array
-- For EDUCATIONS: Include all degrees found, GPA if mentioned, honors if mentioned
-- For SKILLS: Group by type (Technical, Languages, Tools, Soft Skills, etc.) and include ALL skills
-- For CUSTOM SECTIONS: Include every achievement, award, publication, certification mentioned
 
 ---
 SCHEMA:
@@ -118,7 +106,6 @@ ${rawText}
 
 OUTPUT:`;
 }
-
 
 const analyzeResumeToJobFitPrompt = (sourceResume: ResumeData, jobDescription: string) => {
   return `SYSTEM: You are an expert ATS (Applicant Tracking System) Analyst and Technical Recruiter. 

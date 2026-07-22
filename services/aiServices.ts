@@ -177,6 +177,39 @@ export async function callAIWithProviderPreference(
 export class AIService {
 
     /**
+     * Fast-path resume extraction optimized for lower latency providers.
+     * Provider can be overridden with RESUME_EXTRACTION_AI_PROVIDER.
+     */
+    static async extractResumeFast(rawText: string): Promise<ResumeData> {
+        const prompt = resumeExtractionPrompt(rawText);
+        const configuredProvider = (process.env.RESUME_EXTRACTION_AI_PROVIDER || 'groq').toLowerCase();
+        const preferredProvider: AIProviderType =
+            configuredProvider === 'huggingface'
+                ? 'huggingface'
+                : configuredProvider === 'openrouter'
+                    ? 'openrouter'
+                    : 'groq';
+
+        try {
+            const response = await callAIWithProviderPreference(
+                prompt,
+                resumeGenerationSchema,
+                'resume-extraction',
+                preferredProvider
+            );
+
+            if (!isValidResumeData(response)) {
+                throw new Error('Invalid resume data structure returned');
+            }
+
+            return response as ResumeData;
+        } catch (error: any) {
+            console.error('Error extracting resume (fast path):', error?.message || error);
+            throw new Error('Failed to extract resume');
+        }
+    }
+
+    /**
      * Generate a specific section of a resume
      * Uses specialized model: openrouter/owl-alpha
      */

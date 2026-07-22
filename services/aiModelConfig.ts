@@ -66,6 +66,7 @@ function isHeavyTask(taskType?: string): boolean {
 function isFastTask(taskType?: string): boolean {
     if (!taskType) return false;
     return [
+        "resume-extraction",
         "job-extraction",
         "section-generation",
     ].includes(taskType);

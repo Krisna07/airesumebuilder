@@ -155,24 +155,17 @@ export class ResumeService {
 export async function uploadResume(file: File, userId?: string) {
     try {
         const text = await extractTextFromPdf(file)
-        const normalizedText = typeof text === 'string' ? text.trim() : '';
-        if (!normalizedText) {
+        // console.log(text)
+        if (!text || text.trim().length === 0) {
             throw new Error('No text extracted from PDF.');
         }
-
-        // Prevent oversized JSON bodies and runaway token usage in extraction routes.
-        const MAX_EXTRACTION_TEXT_CHARS = 35000;
-        const safeText = normalizedText.length > MAX_EXTRACTION_TEXT_CHARS
-            ? normalizedText.slice(0, MAX_EXTRACTION_TEXT_CHARS)
-            : normalizedText;
-
         const endpoint = userId ? '/api/ai/extract-resume' : '/api/ai/extract-resume-guest';
 
         const extractResponse = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ text: safeText })
+            body: JSON.stringify({ text })
         });
 
         const extractBody = await extractResponse.json();
