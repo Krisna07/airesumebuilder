@@ -247,7 +247,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: refreshed.user.email ?? null,
         image: refreshed.user.image ?? undefined,
         isVerified: refreshed.user.isVerified || false,
-        plan: refreshed.user.plan ?? 'FREE'
+        plan: refreshed.user.plan ?? 'FREE',
+        isAdmin: refreshed.user.isAdmin ?? false
       })
       // refresh subscription from server so Account page reflects plan changes immediately
       await getSubscription(true)
