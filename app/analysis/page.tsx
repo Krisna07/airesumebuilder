@@ -147,7 +147,11 @@ export default function AnalysisPage() {
         const response = await fetch('/api/analysis/process/start', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ fileBase64, fileName: file.name }),
+          body: JSON.stringify({
+            fileBase64,
+            fileName: file.name,
+            persistForAuthenticatedUser: false,
+          }),
         })
 
         const body = await response.json()

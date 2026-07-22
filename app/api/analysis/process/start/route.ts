@@ -80,6 +80,7 @@ async function runAnalysis(params: {
   fileBase64: string
   fileName?: string
   userId?: string | null
+  persistForAuthenticatedUser?: boolean
   onProgress?: (patch: { status: 'extracting' | 'parsing' | 'analyzing' | 'persisting'; progress: number; message: string }) => void
 }): Promise<RunAnalysisResult> {
   params.onProgress?.({
@@ -123,7 +124,7 @@ async function runAnalysis(params: {
   let resumeId: string | undefined
   let previewPath: string | undefined
 
-  if (params.userId) {
+  if (params.userId && params.persistForAuthenticatedUser) {
     params.onProgress?.({
       status: 'persisting',
       progress: 90,
@@ -145,7 +146,12 @@ async function runAnalysis(params: {
   }
 }
 
-async function processJob(jobId: string, params: { fileBase64: string; fileName?: string; userId?: string | null }) {
+async function processJob(jobId: string, params: {
+  fileBase64: string
+  fileName?: string
+  userId?: string | null
+  persistForAuthenticatedUser?: boolean
+}) {
   try {
     const result = await runAnalysis({
       ...params,
@@ -180,6 +186,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const fileBase64 = typeof body?.fileBase64 === 'string' ? body.fileBase64 : ''
     const fileName = typeof body?.fileName === 'string' ? body.fileName : undefined
+    const persistForAuthenticatedUser = body?.persistForAuthenticatedUser === true
 
     if (!fileBase64) {
       return NextResponse.json({ error: 'fileBase64 is required' }, { status: 400 })
@@ -201,10 +208,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Guest users get a direct, synchronous ATS analysis result so we avoid
-    // serverless in-memory polling gaps between start/status invocations.
-    if (!userId) {
-      const result = await runAnalysis({ fileBase64, fileName, userId: null })
+    // Default behavior for /analysis: direct synchronous analysis with no DB writes.
+    // This avoids status polling and serverless in-memory job lookup failures.
+    if (!persistForAuthenticatedUser) {
+      const result = await runAnalysis({
+        fileBase64,
+        fileName,
+        userId,
+        persistForAuthenticatedUser: false,
+      })
       return NextResponse.json({ success: true, data: { mode: 'completed', result } })
     }
 
@@ -212,7 +224,12 @@ export async function POST(req: NextRequest) {
     createAnalysisJob(jobId)
 
     // Fire-and-track processing in the background for polling.
-    void processJob(jobId, { fileBase64, fileName, userId })
+    void processJob(jobId, {
+      fileBase64,
+      fileName,
+      userId,
+      persistForAuthenticatedUser: true,
+    })
 
     return NextResponse.json({ success: true, data: { mode: 'async', jobId } })
   } catch (error) {
