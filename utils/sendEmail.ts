@@ -124,6 +124,12 @@ export const createTransporter = (auth: { user: string, pass: string }) => nodem
     auth: auth
 });
 
+function getNotificationSmtpCredentials() {
+    const user = process.env.ADMIN_EMAIL || process.env.AUTH_EMAIL || '';
+    const pass = process.env.ADMIN_PASSWORD || process.env.AUTH_PASSWORD || '';
+    return { user, pass };
+}
+
 
 export class EmailService {
     static async sendVerificationCode(email: string, name: string, code: string) {
@@ -226,14 +232,15 @@ export class EmailService {
     static async sendEmail(email: string, subject: string, plainText: string, htmlContent: string) {
         const receiverEmail = email;
         const senderEmail = "noreply@airesumecraft.xyz";
+        const smtp = getNotificationSmtpCredentials();
 
-        if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+        if (!smtp.user || !smtp.pass) {
             throw new Error("Email service not configured properly.");
         }
         // Send the email
         const emailTransporter = createTransporter({
-            user: process.env.ADMIN_EMAIL,
-            pass: process.env.ADMIN_PASSWORD,
+            user: smtp.user,
+            pass: smtp.pass,
         })
         const info = await emailTransporter.sendMail({
             from: `"${APP_NAME}" <${senderEmail}>`,

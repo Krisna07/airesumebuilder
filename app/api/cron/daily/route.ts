@@ -14,38 +14,72 @@ async function sendSuccessNotification(params: {
   blogState?: string
   blogTitle?: string
   blogSlug?: string
+  allSucceeded: boolean
+  subscriptionSuccess: boolean
+  blogSuccess: boolean
+  accountCleanupSuccess: boolean
+  subscriptionError?: string
+  blogError?: string
+  accountCleanupError?: string
 }) {
-  const recipient = process.env.CRON_NOTIFY_EMAIL || process.env.ADMIN_EMAIL
+  const recipient = process.env.CRON_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || process.env.AUTH_EMAIL
   if (!recipient) {
-    console.warn('[cron/daily] CRON_NOTIFY_EMAIL or ADMIN_EMAIL not set - skipping success email')
+    console.warn('[cron/daily] CRON_NOTIFY_EMAIL or ADMIN_EMAIL or AUTH_EMAIL not set - skipping notification email')
     return { sent: false, reason: 'Recipient not configured' }
   }
 
-  const subject = '[AIResumeCraft] Daily cron succeeded'
+  const subject = params.allSucceeded
+    ? '[AIResumeCraft] Daily cron succeeded'
+    : '[AIResumeCraft] Daily cron completed with failures'
+
+  const failureLines = params.allSucceeded
+    ? []
+    : [
+      `Subscription job success: ${params.subscriptionSuccess}`,
+      `Blog job success: ${params.blogSuccess}`,
+      `Account cleanup success: ${params.accountCleanupSuccess}`,
+      `Subscription error: ${params.subscriptionError ?? 'n/a'}`,
+      `Blog error: ${params.blogError ?? 'n/a'}`,
+      `Account cleanup error: ${params.accountCleanupError ?? 'n/a'}`,
+    ]
+
   const plain = [
-    'Daily cron completed successfully.',
+    params.allSucceeded ? 'Daily cron completed successfully.' : 'Daily cron completed with failures.',
     `Duration: ${params.durationMs}ms`,
     `Subscriptions reset: ${params.subscriptionResetCount}`,
     `Deleted accounts (expired): ${params.deletedAccountsCount}`,
     `Blog state: ${params.blogState ?? 'n/a'}`,
     `Blog title: ${params.blogTitle ?? 'n/a'}`,
     `Blog slug: ${params.blogSlug ?? 'n/a'}`,
+    ...failureLines,
     `Timestamp: ${new Date().toISOString()}`,
   ].join('\n')
 
+  const failureHtml = params.allSucceeded
+    ? ''
+    : `
+      <p><strong>Subscription job success:</strong> ${params.subscriptionSuccess}</p>
+      <p><strong>Blog job success:</strong> ${params.blogSuccess}</p>
+      <p><strong>Account cleanup success:</strong> ${params.accountCleanupSuccess}</p>
+      <p><strong>Subscription error:</strong> ${params.subscriptionError ?? 'n/a'}</p>
+      <p><strong>Blog error:</strong> ${params.blogError ?? 'n/a'}</p>
+      <p><strong>Account cleanup error:</strong> ${params.accountCleanupError ?? 'n/a'}</p>
+    `
+
   const html = `
-    <h2>Daily cron completed successfully</h2>
+    <h2>${params.allSucceeded ? 'Daily cron completed successfully' : 'Daily cron completed with failures'}</h2>
     <p><strong>Duration:</strong> ${params.durationMs}ms</p>
     <p><strong>Subscriptions reset:</strong> ${params.subscriptionResetCount}</p>
     <p><strong>Deleted accounts (expired):</strong> ${params.deletedAccountsCount}</p>
     <p><strong>Blog state:</strong> ${params.blogState ?? 'n/a'}</p>
     <p><strong>Blog title:</strong> ${params.blogTitle ?? 'n/a'}</p>
     <p><strong>Blog slug:</strong> ${params.blogSlug ?? 'n/a'}</p>
+    ${failureHtml}
     <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
   `
 
   await EmailService.sendEmail(recipient, subject, plain, html)
-  console.log(`[cron/daily] Success email sent to ${recipient}`)
+  console.log(`[cron/daily] Notification email sent to ${recipient}`)
   return { sent: true }
 }
 
@@ -94,22 +128,30 @@ async function handleCron(req: Request) {
 
   if (allSucceeded) {
     console.log(`[cron/daily] Done - duration=${durationMs}ms`)
-    try {
-      notification = await sendSuccessNotification({
-        durationMs,
-        subscriptionResetCount: subscription.resetCount,
-        deletedAccountsCount: accountCleanup.deletedCount,
-        blogState: blog.state,
-        blogTitle: blog.title,
-        blogSlug: blog.slug,
-      })
-    } catch (emailError) {
-      const message = emailError instanceof Error ? emailError.message : 'Unknown email error'
-      console.error('[cron/daily] Success email failed:', message)
-      notification = { sent: false, reason: message }
-    }
   } else {
     console.error(`[cron/daily] Completed with failures - duration=${durationMs}ms`)
+  }
+
+  try {
+    notification = await sendSuccessNotification({
+      durationMs,
+      subscriptionResetCount: subscription.resetCount,
+      deletedAccountsCount: accountCleanup.deletedCount,
+      blogState: blog.state,
+      blogTitle: blog.title,
+      blogSlug: blog.slug,
+      allSucceeded,
+      subscriptionSuccess: subscription.success,
+      blogSuccess: blog.success,
+      accountCleanupSuccess: accountCleanup.success,
+      subscriptionError: subscription.error,
+      blogError: blog.error || blog.reason,
+      accountCleanupError: accountCleanup.error,
+    })
+  } catch (emailError) {
+    const message = emailError instanceof Error ? emailError.message : 'Unknown email error'
+    console.error('[cron/daily] Notification email failed:', message)
+    notification = { sent: false, reason: message }
   }
 
   return NextResponse.json(
