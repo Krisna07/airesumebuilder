@@ -395,7 +395,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logOut = async () => {
     setUser(null);
     clearVerificationCache()
-    sessionStorage.removeItem('user');
     sessionStorage.clear()
     // Prevent NEXTAUTH_URL from forcing prod domain; we handle redirect manually
     await signOut({ redirect: false })

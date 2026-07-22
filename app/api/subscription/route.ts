@@ -1,33 +1,35 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { resetCountsData, shouldResetForPlan } from '@/lib/subscription'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  let resolved
+  try {
+    resolved = await requireUserSession()
+  } catch (err) {
+    const mapped = mapSubscriptionError(err)
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+  }
 
-  let sub = await prisma.subscription.findUnique({ where: { userId: user.id } })
+  let sub = await prisma.subscription.findUnique({ where: { userId: resolved.userId } })
   if (!sub) {
     sub = await prisma.subscription.create({
-      data: { userId: user.id, plan: 'FREE', ...resetCountsData() },
+      data: { userId: resolved.userId, plan: 'FREE', ...resetCountsData() },
     })
   } else if (shouldResetForPlan(sub.plan as 'FREE' | 'SUPPORTER' | 'ULTIMATE', sub.lastResetDate)) {
     sub = await prisma.subscription.update({
-      where: { userId: user.id },
+      where: { userId: resolved.userId },
       data: resetCountsData(),
     })
   }
 
   // Fetch lifetime usage history
-  let usageHistory = await prisma.usageHistory.findUnique({ where: { userId: user.id } })
+  let usageHistory = await prisma.usageHistory.findUnique({ where: { userId: resolved.userId } })
   if (!usageHistory) {
     usageHistory = await prisma.usageHistory.create({
       data: {
-        userId: user.id,
+        userId: resolved.userId,
         regenTotal: 0,
         downloadTotal: 0,
         clTotal: 0,
@@ -41,20 +43,23 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let resolved
+  try {
+    resolved = await requireUserSession()
+  } catch (err) {
+    const mapped = mapSubscriptionError(err)
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+  }
   const body = await req.json()
   const plan = body?.plan as 'FREE' | 'SUPPORTER' | 'ULTIMATE' | undefined
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any = {}
   if (plan) data.plan = plan
 
   const sub = await prisma.subscription.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id, plan: plan ?? 'FREE', ...resetCountsData() },
+    where: { userId: resolved.userId },
+    create: { userId: resolved.userId, plan: plan ?? 'FREE', ...resetCountsData() },
     update: data,
   })
 

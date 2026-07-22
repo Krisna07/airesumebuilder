@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { resetCountsData } from '@/lib/subscription'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
 
 export async function POST() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  let resolved
+  try {
+    resolved = await requireUserSession()
+  } catch (err) {
+    const mapped = mapSubscriptionError(err)
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+  }
 
   const updated = await prisma.subscription.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id, plan: 'FREE', ...resetCountsData() },
+    where: { userId: resolved.userId },
+    create: { userId: resolved.userId, plan: 'FREE', ...resetCountsData() },
     update: resetCountsData(),
   })
 

@@ -31,6 +31,7 @@ export async function PUT(req: NextRequest) {
   try {
     let user;
     const { email, name, image, provider, providerId, password } = await req.json();
+    const normalizedProvider = provider === 'credentials' ? 'credentials' : (provider || 'credentials')
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
@@ -39,26 +40,32 @@ export async function PUT(req: NextRequest) {
     const existingUser = await prisma.user.findUnique({ where: { email } });
 
     // OAuth user creation or update
-    if (provider !== 'credentials') {
+    if (normalizedProvider !== 'credentials') {
       if (!existingUser) {
         user = await prisma.user.create({
           data: {
             email,
             name: name || email.split('@')[0],
             image: image || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
-            provider: provider || 'credentials',
+            provider: normalizedProvider,
             providerId: providerId || null,
+            password: null,
             isVerified: true,
           },
         });
       } else {
+        if (existingUser.password && !existingUser.deletedAt) {
+          return NextResponse.json({ error: 'EXISTING_ACCOUNT_WITH_PASSWORD' }, { status: 409 })
+        }
+
         user = await prisma.user.update({
           where: { email },
           data: {
             name: name || email.split('@')[0],
             image: image || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
-            provider: provider || 'credentials',
+            provider: normalizedProvider,
             providerId: providerId || null,
+            password: null,
             isVerified: true,
           },
         });
@@ -66,7 +73,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Credentials-based signup
-    if (provider === 'credentials') {
+    if (normalizedProvider === 'credentials') {
       if (!password) {
         return NextResponse.json({ error: 'Password is required for credentials signup.' }, { status: 400 });
       }
@@ -80,6 +87,10 @@ export async function PUT(req: NextRequest) {
           return NextResponse.json({ error: 'User already exists.' }, { status: 409 });
         }
 
+        if (existingUser.provider && existingUser.provider !== 'credentials') {
+          return NextResponse.json({ error: 'This account already uses SSO. Sign in with your provider instead.' }, { status: 409 })
+        }
+
         const emailResponse = await EmailService.sendVerificationCode(email, name || email.split('@')[0], code);
         if (emailResponse && 'error' in emailResponse) {
           console.error('Failed to send verification email:', emailResponse.error);
@@ -91,7 +102,7 @@ export async function PUT(req: NextRequest) {
           data: {
             name: name || email.split('@')[0],
             image: image || `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(name || email)}`,
-            provider: provider || 'credentials',
+            provider: 'credentials',
             providerId: providerId || null,
             password: hashedPassword,
             isVerified: false,
@@ -130,7 +141,7 @@ export async function PUT(req: NextRequest) {
             email,
             name: name || email.split('@')[0],
             image: image || `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(name || email)}`,
-            provider: provider || 'credentials',
+            provider: 'credentials',
             providerId: providerId || null,
             password: hashedPassword,
             isVerified: false,

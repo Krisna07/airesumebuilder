@@ -3,6 +3,8 @@ import NextAuth from "next-auth"
 
 declare module "next-auth" {
   interface Session {
+    error?: string
+    userEmail?: string | null
     user: {
       id: string
       name?: string | null
@@ -25,5 +27,7 @@ declare module "next-auth/jwt" {
     plan?: 'FREE' | 'SUPPORTER' | 'ULTIMATE'
     isVerified?: boolean
     isAdmin?: boolean
+    existingAccountError?: boolean
+    userEmail?: string | null
   }
 }

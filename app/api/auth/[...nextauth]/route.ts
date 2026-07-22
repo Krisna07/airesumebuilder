@@ -82,6 +82,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
             image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
             provider: provider || 'credentials',
             providerId: providerId || null,
+            password: null,
             isVerified: true
           },
         });
@@ -99,6 +100,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
           image: image ? image : `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name || email)}`,
           provider: provider || 'credentials',
           providerId: providerId || null,
+          password: null,
           isVerified: true
         },
       });
@@ -129,6 +131,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
 
   return {
     stored: true,
+    isRestoredAccount,
     ...user
   };
 

@@ -26,6 +26,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, message: 'If account exists, verification code sent to email' })
   }
 
+  if (user.provider && user.provider !== 'credentials') {
+    return NextResponse.json({ error: 'Password reset is not available for SSO accounts. Sign in with your provider.' }, { status: 400 })
+  }
+
   // Generate 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString()
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes

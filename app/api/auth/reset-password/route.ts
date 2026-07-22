@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { requireUserSession } from '@/lib/subscription-server'
 
 export async function POST(req: Request) {
   const body = await req.json()
@@ -23,20 +24,33 @@ export async function POST(req: Request) {
 
   // Determine user context: logged-in or not
   let userEmail = email
+  let sessionUserId: string | null = null
   const session = await getServerSession(authOptions)
   const isLoggedIn = !!session?.user?.email
 
   if (!userEmail) {
     if (isLoggedIn) {
-      userEmail = session?.user?.email
+      try {
+        const resolved = await requireUserSession()
+        sessionUserId = resolved.userId
+        userEmail = resolved.email
+      } catch {
+        userEmail = session?.user?.email
+      }
     } else {
       return NextResponse.json({ error: 'Email is required for logged-out reset' }, { status: 400 })
     }
   }
 
-  const user = await prisma.user.findUnique({ where: { email: userEmail } })
+  const user = sessionUserId
+    ? await prisma.user.findUnique({ where: { id: sessionUserId } })
+    : await prisma.user.findUnique({ where: { email: userEmail } })
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  if (user.provider && user.provider !== 'credentials') {
+    return NextResponse.json({ error: 'Password reset is not available for SSO accounts. Sign in with your provider.' }, { status: 400 })
   }
   
 
@@ -68,7 +82,7 @@ export async function POST(req: Request) {
   const hashedPassword = await bcrypt.hash(newPassword, 10)
   await prisma.user.update({
     where: { id: user.id },
-    data: { password: hashedPassword },
+    data: { password: hashedPassword, provider: 'credentials' },
   })
 
   // Delete used verification code

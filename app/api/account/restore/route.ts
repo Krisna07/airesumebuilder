@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
 
 /**
  * Restore a deleted account within the 15-day grace period
  * User must provide password to verify account ownership
  */
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let sessionUserId: string
+  try {
+    ; ({ userId: sessionUserId } = await requireUserSession())
+  } catch (err) {
+    const mapped = mapSubscriptionError(err)
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status })
   }
 
   const body = await req.json()
   const { password } = body as { password?: string }
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+  const user = await prisma.user.findUnique({ where: { id: sessionUserId } })
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   // Check if account is deleted

@@ -2,9 +2,10 @@
 import Button from '@/components/Ui/Button';
 import { UserAuthLoading } from '@/components/Ui/LoadingScreen';
 import { useAuth } from '@/context/authContext'; import { useToast } from '@/context/PopupContext';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FaGoogle } from 'react-icons/fa6';
 
 const LoginForm: React.FC = () => {
@@ -13,11 +14,24 @@ const LoginForm: React.FC = () => {
         password: string;
     }>({ email: '', password: '' });
     const toast = useToast()
+    const { data: session } = useSession()
+    const oauthErrorShownRef = useRef(false)
     const searchParams = useSearchParams()
     const nextTarget = (() => {
         const next = searchParams?.get('next')
         return next && next.startsWith('/') ? next : '/builder'
     })()
+    useEffect(() => {
+        if (session?.error === 'EXISTING_ACCOUNT_WITH_PASSWORD' && !oauthErrorShownRef.current) {
+            oauthErrorShownRef.current = true
+            setLoader(false)
+            toast.showToast(
+                `This email already uses password sign-in${session.userEmail ? ` (${session.userEmail})` : ''}. Use your email and password instead of Google.`,
+                'warning',
+                5000
+            )
+        }
+    }, [session?.error, session?.userEmail, toast])
     const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
