@@ -9,7 +9,7 @@ export default defineConfig({
   name: 'default',
   title: 'resumeblogs',
 
-  projectId: process.env.SANITY_PROJECT_ID || '6t71lflr',
+  projectId: process.env.SANITY_PROJECT_ID,
   dataset: isProd ? 'production' : 'preview',
 
   plugins: [structureTool(), visionTool()],

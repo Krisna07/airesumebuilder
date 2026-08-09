@@ -3,7 +3,7 @@ import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
 import { NextResponse } from "next/server";
 
 import { prisma } from '@/lib/prisma'
-import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/services/subscriptionService'
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

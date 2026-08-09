@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { AnalysisResult, ResumeData } from '@/types/types';
 import { AIService } from '@/services/aiServices';
-import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
+import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/services/guestService';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
 
         try {
             if (userId) {
-                const { assertQuota, mapSubscriptionError } = await import('@/lib/subscription-server')
+                const { assertQuota, mapSubscriptionError } = await import('@/services/subscriptionService')
                 try {
                     await assertQuota(userId, 'regen')
                 } catch (err) {
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (userId) {
-            const { consumeUsage } = await import('@/lib/subscription-server')
+            const { consumeUsage } = await import('@/services/subscriptionService')
             try {
                 await consumeUsage(userId, 'regen')
             } catch (err) {

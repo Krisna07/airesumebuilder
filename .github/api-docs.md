@@ -139,7 +139,6 @@ Responses across the API follow `{ success?: boolean, data?: any, error?: string
   - `app/builder/[slug]/page.tsx` renders `MultiStepForm` with sections (`Forms/EducationStep.tsx`, etc.) to edit data stored via `/api/resume`.
   - `app/builder/[slug]/preview/page.tsx` shows the preview (template selector, job description list, analysis reports) and triggers AI/PDF endpoints.
   - `app/builder/build/page.tsx` hosts the PDF upload + resume extraction workflow (calls `/api/ai/extract-resume`).
-- **Guest Landing**: `app/guest/page.tsx` explains limited access for unauthenticated users.
 - **Account Modals & UI**: `components/VerificationModal.tsx`, `components/Checkout.tsx`, and `components/SubscriptionStatus.tsx` orchestrate the modals shown on forms and builder pages.
 - **Global Layout**: `app/layout.tsx` wires metadata/global `global.css`, while `components/Providers.tsx` wraps the app with `authContext` and theme providers.
 

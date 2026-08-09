@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth'
-import { prisma } from './prisma'
-import { getQuotaForPlan, resetCountsData, shouldResetForPlan, UsageKey, USAGE_FIELD_MAP } from './subscription'
+import { prisma } from '@/lib/prisma'
+import { getQuotaForPlan, resetCountsData, shouldResetForPlan, UsageKey, USAGE_FIELD_MAP } from '@/lib/subscriptionConfig'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 class AuthError extends Error {

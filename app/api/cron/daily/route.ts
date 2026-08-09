@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { runSubscriptionResetJob } from '@/app/api/cron/subscription-reset/route'
 import { runBlogCronJob } from '@/app/api/cron/blog/route'
 import { cleanupExpiredDeletedAccounts } from '@/app/api/cron/cleanup-deleted-accounts/route'
-import { EmailService } from '@/utils/sendEmail'
+import { EmailService } from '@/services/emailService'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -14,6 +14,8 @@ async function sendSuccessNotification(params: {
   blogState?: string
   blogTitle?: string
   blogSlug?: string
+  tweetId?: string
+  tweetError?: string
   allSucceeded: boolean
   subscriptionSuccess: boolean
   blogSuccess: boolean
@@ -51,6 +53,7 @@ async function sendSuccessNotification(params: {
     `Blog state: ${params.blogState ?? 'n/a'}`,
     `Blog title: ${params.blogTitle ?? 'n/a'}`,
     `Blog slug: ${params.blogSlug ?? 'n/a'}`,
+    `Tweet ID: ${params.tweetId ?? (params.tweetError ? `failed — ${params.tweetError}` : 'n/a')}`,
     ...failureLines,
     `Timestamp: ${new Date().toISOString()}`,
   ].join('\n')
@@ -66,6 +69,12 @@ async function sendSuccessNotification(params: {
       <p><strong>Account cleanup error:</strong> ${params.accountCleanupError ?? 'n/a'}</p>
     `
 
+  const tweetLine = params.tweetId
+    ? `<p><strong>Tweet:</strong> <a href="https://x.com/i/web/status/${params.tweetId}">${params.tweetId}</a></p>`
+    : params.tweetError
+    ? `<p><strong>Tweet:</strong> failed — ${params.tweetError}</p>`
+    : `<p><strong>Tweet:</strong> n/a</p>`
+
   const html = `
     <h2>${params.allSucceeded ? 'Daily cron completed successfully' : 'Daily cron completed with failures'}</h2>
     <p><strong>Duration:</strong> ${params.durationMs}ms</p>
@@ -74,6 +83,7 @@ async function sendSuccessNotification(params: {
     <p><strong>Blog state:</strong> ${params.blogState ?? 'n/a'}</p>
     <p><strong>Blog title:</strong> ${params.blogTitle ?? 'n/a'}</p>
     <p><strong>Blog slug:</strong> ${params.blogSlug ?? 'n/a'}</p>
+    ${tweetLine}
     ${failureHtml}
     <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
   `
@@ -140,6 +150,8 @@ async function handleCron(req: Request) {
       blogState: blog.state,
       blogTitle: blog.title,
       blogSlug: blog.slug,
+      tweetId: blog.tweetId,
+      tweetError: blog.tweetError,
       allSucceeded,
       subscriptionSuccess: subscription.success,
       blogSuccess: blog.success,

@@ -1,24 +1,24 @@
-import { 
+import {
   Sparkles,
-  Target, 
-  Wand2, 
-  Download, 
-  Palette, 
-  BarChart3, 
-  Globe, 
+  Target,
+  Wand2,
+  Download,
+  Palette,
+  BarChart3,
+  Globe,
   Zap,
   FileCheck,
   MessageSquare,
   Upload,
   RefreshCw,
   Layout,
-  CheckCircle2,
   ArrowRight
 } from 'lucide-react'
 import Link from 'next/link'
+import type { JSX } from 'react'
 import type { Metadata } from 'next'
 import ResumePreview from '@/components/Templates/ResumePreview'
-import dummyResume from '@/app/data/dummyResume.json'
+import dummyResume from '@/data/dummyResume.json'
 
 export const metadata: Metadata = {
   title: 'AI Resume Builder Features | Free Resume Tools & Templates',
@@ -61,8 +61,7 @@ export const metadata: Metadata = {
   },
 }
 
-const FeaturesPage = () => {
-  // Structured data for features page
+function FeaturesPage(): JSX.Element {
   const softwareSchema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -272,7 +271,7 @@ const FeaturesPage = () => {
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                       {feature.title}
                     </h3>
-                 </div>
+                  </div>
                   <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
                     {feature.description}
                   </p>
@@ -324,6 +323,7 @@ const FeaturesPage = () => {
                   <div className="w-40 h-52 flex-shrink-0 rounded-lg overflow-hidden bg-white shadow-sm border border-slate-200 dark:border-slate-700 relative">
                     <div className="absolute inset-0" style={{ width: '794px', height: '1123px', transform: 'scale(0.18)', transformOrigin: 'top left' }}>
                       <ResumePreview
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         resumeData={dummyResume as any}
                         template={template.id}
                         className="pointer-events-none"
@@ -387,9 +387,8 @@ const FeaturesPage = () => {
               {jobMatchingFeatures.map((feature, index) => (
                 <div
                   key={index}
-                  className={`group p-6 md:p-8 bg-slate-50 text-left dark:bg-slate-800 rounded-2xl border-2 border-transparent hover:border-teal-500 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 hover:shadow-md hover:scale-[1.02] transition-all duration-300 ${
-                    index === 2 ? 'md:col-span-2 md:w-1/2 md:mx-auto' : ''
-                  }`}
+                  className={`group p-6 md:p-8 bg-slate-50 text-left dark:bg-slate-800 rounded-2xl border-2 border-transparent hover:border-teal-500 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 hover:shadow-md hover:scale-[1.02] transition-all duration-300 ${index === 2 ? 'md:col-span-2 md:w-1/2 md:mx-auto' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-4">
                     <div className="min-w-12 min-h-12 rounded-xl bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">

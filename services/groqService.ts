@@ -107,12 +107,3 @@ export function parseGroqJsonResponse(response: string): any {
 export function isGroqAvailable(): boolean {
     return hasGroqKey;
 }
-
-/**
- * Get model latency estimate
- */
-export function getModelLatencyEstimate(model: string): string {
-    if (model.includes("8b")) return "<100ms";
-    if (model.includes("70b") || model.includes("mixtral")) return "100-200ms";
-    return "unknown";
-}

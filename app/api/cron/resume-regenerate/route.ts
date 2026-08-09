@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/prisma'
 import { AIService } from '@/services/aiServices'
-import { consumeUsage } from '@/lib/subscription-server'
+import { consumeUsage } from '@/services/subscriptionService'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60

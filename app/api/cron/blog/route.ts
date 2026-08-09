@@ -16,6 +16,8 @@ export type BlogCronJobResult = {
   title?: string
   slug?: string
   blogId?: string
+  tweetId?: string
+  tweetError?: string
   traceId?: string
   durationMs?: number
   reason?: string
@@ -116,6 +118,8 @@ export async function runBlogCronJob(options?: BlogCronJobOptions): Promise<Blog
       title: result.title,
       slug: result.slug,
       blogId: result.blogId,
+      tweetId: result.tweetId,
+      tweetError: result.tweetError,
       traceId: result.traceId,
       durationMs: result.durationMs,
       reason: result.reason,

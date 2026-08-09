@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdminOrForbidden } from '@/lib/blogAuth'
+import { requireAdminOrForbidden } from '@/services/authService'
 import { streamBlogHtmlPrompt, blogMetaPrompt } from '@/lib/prompts'
 import {
   generateBlogDraftFromTitle,
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
               excerpt: 'string',
             },
             'blog-title-generation',
-            'groq'
+            'gemini'
           ) as {
             title?: string
             excerpt?: string
@@ -102,7 +102,7 @@ export async function GET(req: Request) {
           streamBlogHtmlPrompt(derivedTitle),
           undefined,
           'blog-content-generation',
-          'groq'
+          'gemini'
         )
         const html = typeof htmlResponse === 'string' ? htmlResponse : String(htmlResponse || '')
         for (let i = 0; i < html.length; i += 1200) {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/admin'
+import { isAdminEmail } from '@/services/authService'
 
 export async function GET(req: Request) {
   const session = await getServerSession()

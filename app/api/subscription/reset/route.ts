@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resetCountsData } from '@/lib/subscription'
-import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
+import { resetCountsData } from '@/lib/subscriptionConfig'
+import { requireUserSession, mapSubscriptionError } from '@/services/subscriptionService'
 
 export async function POST() {
   let resolved

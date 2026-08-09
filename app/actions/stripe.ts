@@ -1,7 +1,7 @@
 'use server'
 
 import { stripe } from '@/lib/stripe'
-import { requireUserSession } from '@/lib/subscription-server'
+import { requireUserSession } from '@/services/subscriptionService'
 import { prisma } from '@/lib/prisma'
 
 const PRODUCTS = {

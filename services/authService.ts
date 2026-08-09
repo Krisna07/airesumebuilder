@@ -4,6 +4,18 @@ import { NextResponse } from 'next/server'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
 
+export function isAdminEmail(email?: string | null) {
+  if (!email) return false
+  const raw = [process.env.ADMIN_EMAILS || '', process.env.ADMIN_EMAIL || '']
+    .filter(Boolean)
+    .join(',')
+  const list = raw
+    .split(',')
+    .map(v => v.trim().toLowerCase())
+    .filter(Boolean)
+  return list.includes(email.toLowerCase())
+}
+
 async function getDbAdminByUserIdentity(params: { userId?: string; email: string }) {
   const { userId, email } = params
   const dbUser = await prisma.user.findFirst({

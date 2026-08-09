@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdminOrForbidden } from '@/lib/blogAuth'
+import { requireAdminOrForbidden } from '@/services/authService'
 import { imageUploadSchema } from '@/lib/blogValidation'
 import { saveImage } from '@/services/blogCmsService'
 

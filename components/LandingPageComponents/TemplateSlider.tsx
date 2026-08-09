@@ -1,44 +1,40 @@
-
 "use client"
 
-import dummyResume from './../../app/data/dummyResume.json'
+import { useState } from 'react';
+import type { JSX } from 'react';
+import { ArrowRight, Check } from 'lucide-react';
+import dummyResume from './../../data/dummyResume.json';
 import ResumePreview from '../Templates/ResumePreview';
 import Button from '../Ui/Button';
-
-import { ArrowRight, Check } from 'lucide-react';
+import Templates from '../Templates/templates';
 import { useAuth } from '@/context/authContext';
 import { LocalResumeService } from '@/services/localResumeService';
 import { ResumeService } from '@/services/resumeServices';
-import { useState } from 'react';
 import { useToast } from '@/context/PopupContext';
-import Templates from '../Templates/templates';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockResume: any = dummyResume
 
-const TemplateSlider = () => {
+function TemplateSlider(): JSX.Element {
   const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null)
   const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mockResume: any = {
-    ...dummyResume
-  }
-
 
   const templates = Templates.slice(0, 6)
 
   const { user } = useAuth()
   const { showToast } = useToast()
-  const handleCreateResume = async (template: string) => {
+
+  async function handleCreateResume(template: string): Promise<void> {
     setCreatingTemplate(template)
-    const loggedInUser = user
-    if (!loggedInUser) {
+
+    if (!user) {
       LocalResumeService.create(undefined, undefined, template)
-      window.location.href = ('/builder/guest-resume')
+      window.location.href = '/builder/guest-resume'
       return
     }
 
     try {
-      const response = await ResumeService.create(loggedInUser.id, template)
+      const response = await ResumeService.create(user.id, template)
       const data = await response.json()
 
       if (!response.ok) {
@@ -47,7 +43,7 @@ const TemplateSlider = () => {
       }
 
       showToast("Resume created successfully", 'success')
-      window.location.href = (`/builder/resumes/${data.data.id}`)
+      window.location.href = `/builder/resumes/${data.data.id}`
     } catch (err) {
       console.error("Error creating resume:", err)
       showToast("Error creating resume", 'error')
@@ -115,6 +111,6 @@ const TemplateSlider = () => {
       })}
     </div>
   );
-};
+}
 
 export default TemplateSlider;

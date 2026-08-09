@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getImage } from '@/services/blogCmsService'
-import { requireAdminOrForbidden } from '@/lib/blogAuth'
+import { requireAdminOrForbidden } from '@/services/authService'
 import { deleteImage } from '@/services/blogCmsService'
 
 export const runtime = 'nodejs'

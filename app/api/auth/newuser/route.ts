@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 // import { validate } from 'deep-email-validator'; // Properly destructure validate
-import { EmailService } from '@/utils/sendEmail';
+import { EmailService } from '@/services/emailService';
 
 function generateVerificationCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();

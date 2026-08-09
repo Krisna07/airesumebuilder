@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { requireUserSession } from '@/lib/subscription-server'
+import { requireUserSession } from '@/services/subscriptionService'
 
 export async function POST(req: Request) {
   const body = await req.json()

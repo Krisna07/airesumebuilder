@@ -18,15 +18,6 @@ type GeneratedImagePayload = {
 // Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-function getGatewayToken(): string {
-  return (
-    process.env.CLOUDFLARE_AI_GATEWAY_TOKEN ||
-    process.env.BLOG_AI_WORKER_API_KEY ||
-    process.env.BLOG_IMAGE_API_KEY ||
-    ''
-  )
-}
-
 function getGatewayBaseUrl(): string {
   return (
     process.env.CLOUDFLARE_AI_GATEWAY_BASE_URL ||
@@ -34,12 +25,11 @@ function getGatewayBaseUrl(): string {
   )
 }
 
-function getWorkersAiImageEndpoint(modelId: string): string {
-  // Derive the workers-ai gateway path from the base URL.
-  // Base is: https://gateway.ai.cloudflare.com/v1/{accountId}/{gatewayName}/compat
-  // Image endpoint is: https://gateway.ai.cloudflare.com/v1/{accountId}/{gatewayName}/workers-ai/{modelId}
-  const base = getGatewayBaseUrl().replace(/\/compat\/?$/, '')
-  return `${base}/workers-ai/${modelId}`
+function getCloudflareAccountId(): string {
+  if (process.env.CLOUDFLARE_ACCOUNT_ID) return process.env.CLOUDFLARE_ACCOUNT_ID
+  // Extract from gateway URL: https://gateway.ai.cloudflare.com/v1/{accountId}/...
+  const match = getGatewayBaseUrl().match(/\/v1\/([a-f0-9]+)\//)
+  return match?.[1] ?? ''
 }
 
 function getPrimaryGoogleImageModel(): string {
@@ -203,107 +193,54 @@ async function fetchImageFromUrl(url: string): Promise<GeneratedImagePayload> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Try generating image via OpenAI-compatible Cloudflare gateway
- */
-async function tryCloudflareGateway(prompt: string): Promise<GeneratedImagePayload | null> {
-  const token = getGatewayToken()
-  if (!token) return null
-
-  try {
-    // Try Cloudflare's OpenAI-compatible gateway endpoint first.
-    const modelId = process.env.BLOG_IMAGE_API_MODEL || '@cf/black-forest-labs/flux-2-klein-9b'
-    const compatModelId = `workers-ai/${modelId}`
-    const [w, h] = (process.env.BLOG_IMAGE_API_SIZE || '1024x1024').split('x')
-    const baseUrl = getGatewayBaseUrl().replace(/\/$/, '')
-    const endpoint = `${baseUrl}/images/generations`
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'cf-aig-authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        model: compatModelId,
-        prompt,
-        size: `${w}x${h}`,
-        response_format: 'b64_json',
-      }),
-    })
-
-    if (!response.ok) {
-      const reason = (await response.text().catch(() => '')).slice(0, 200)
-      console.warn(`[image] Cloudflare Gateway compat unavailable (${response.status})${reason ? `: ${reason}` : ''}`)
-      return null
-    }
-
-    const data = (await response.json()) as { data?: Array<{ b64_json?: string }> }
-    const firstImage = data.data?.[0]
-    if (firstImage?.b64_json) {
-      return {
-        bytes: Buffer.from(firstImage.b64_json, 'base64'),
-        mimeType: 'image/jpeg',
-        filename: `blog-${Date.now()}.jpg`,
-      }
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.warn(`[image] Cloudflare Gateway compat call failed: ${message}`)
-  }
-
-  return null
-}
-
-/**
- * Try generating image via Cloudflare Workers AI FormData endpoint
+ * Try generating image via Cloudflare Workers AI REST API.
+ *
+ * Requires CLOUDFLARE_API_TOKEN (a full Cloudflare API token with Workers AI: Read permission —
+ * NOT the AI Gateway token) and CLOUDFLARE_ACCOUNT_ID (auto-extracted from gateway URL if unset).
+ *
+ * Docs: https://developers.cloudflare.com/ai-gateway/usage/providers/workersai/
  */
 async function tryCloudflareWorkersAi(prompt: string): Promise<GeneratedImagePayload | null> {
-  const token = getGatewayToken()
-  if (!token) return null
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN
+  const accountId = getCloudflareAccountId()
+  if (!apiToken || !accountId) return null
 
   try {
-    const modelId = process.env.BLOG_IMAGE_API_MODEL || '@cf/black-forest-labs/flux-2-klein-9b'
-    const endpoint = getWorkersAiImageEndpoint(modelId)
-    const [width, height] = (process.env.BLOG_IMAGE_API_SIZE || '1024x1024').split('x')
+    const modelId = process.env.BLOG_IMAGE_API_MODEL || '@cf/black-forest-labs/flux-1-schnell'
+    const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`
 
-    const form = new FormData()
-    form.append('prompt', prompt)
-    form.append('width', width || '1024')
-    form.append('height', height || '1024')
-    form.append('guidance', '7.5')
-    form.append('num_steps', '30')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60000)
 
-    const workersController = new AbortController()
-    const workersTimeout = setTimeout(() => workersController.abort(), 60000)
-    let workersResponse: Response
+    let response: Response
     try {
-      workersResponse = await fetch(endpoint, {
+      response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
-          'cf-aig-authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+          'cf-aig-gateway-id': 'default',
         },
-        body: form,
-        signal: workersController.signal,
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal,
       })
     } finally {
-      clearTimeout(workersTimeout)
+      clearTimeout(timeout)
     }
-    const response = workersResponse
 
     const bodyText = await response.text()
     if (!response.ok) {
       throw new Error(`Workers AI failed (${response.status}): ${bodyText.slice(0, 300)}`)
     }
 
-    const json = JSON.parse(bodyText) as { image?: string; result?: { image?: string } }
-    const base64Image = json.image ?? json.result?.image
+    // Flux-1-schnell returns wrapped base64: { result: { image: "..." }, success: true }
+    const json = JSON.parse(bodyText) as { result?: { image?: string }; image?: string }
+    const base64Image = json.result?.image ?? json.image
 
     if (base64Image) {
-      const rawBase64 = base64Image.includes(',') ? (base64Image.split(',').pop() ?? base64Image) : base64Image
+      const raw = base64Image.includes(',') ? (base64Image.split(',').pop() ?? base64Image) : base64Image
       return {
-        bytes: Buffer.from(rawBase64, 'base64'),
+        bytes: Buffer.from(raw, 'base64'),
         mimeType: 'image/jpeg',
         filename: `blog-${Date.now()}.jpg`,
       }
@@ -311,7 +248,7 @@ async function tryCloudflareWorkersAi(prompt: string): Promise<GeneratedImagePay
 
     throw new Error('Workers AI response contained no image data')
   } catch (err) {
-    console.warn('Workers AI endpoint failed:', err)
+    console.warn('[image] Workers AI failed:', err)
   }
 
   return null
@@ -493,25 +430,39 @@ async function tryGoogleGeminiImage(prompt: string, model: string): Promise<Gene
 
 /**
  * Generate blog cover image with automatic fallback chain
- * 
+ *
  * Tries in order:
- * 1. Gemini 3.1 Flash Image
- * 2. Gemini 3.1 Flash Lite Image
- * 3. Cloudflare OpenAI-compatible endpoint
- * 4. Cloudflare Workers AI FormData endpoint
- * 5. Custom image API
- * 6. Pollinations free API (community fallback)
- * 7. Local SVG fallback
+ * 1. Gemini image models (only when BLOG_IMAGE_SKIP_GEMINI != true AND billing is enabled)
+ * 2. Cloudflare Workers AI — requires CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+ * 3. Custom image API (if BLOG_IMAGE_API_URL is set)
+ * 4. Pollinations free API (no auth, always available)
+ * 5. Local SVG fallback
+ *
+ * Note: Cloudflare compat gateway does NOT support image generation (text LLMs only).
+ * Note: Gemini image models (3.1-flash-image, 3.1-flash-lite-image) became paid-only on 2026-07-16.
+ *       Enable by setting BLOG_IMAGE_SKIP_GEMINI=false and adding billing to your Google AI project.
  */
+function is429(err: unknown): boolean {
+  if (err && typeof err === 'object') {
+    const e = err as Record<string, unknown>
+    if (e.status === 429) return true
+    const msg = typeof e.message === 'string' ? e.message : ''
+    if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) return true
+  }
+  return false
+}
+
 export async function generateBlogCoverImage(imagePrompt: string): Promise<GeneratedImagePayload> {
-  // Select random style and enhance prompt
   const stylePreset = selectRandomImageStyle()
   const enhancedPrompt = `${stylePreset}, ${imagePrompt}, high quality, sharp focus, professional color grading, teal and slate color palette, no text, no words, no typography, no illustrations, photorealistic, 8k resolution`
+  // Gemini image models are paid-only as of 2026-07-16. Skip unless billing is confirmed enabled.
+  const skipGemini = process.env.BLOG_IMAGE_SKIP_GEMINI !== 'false'
 
   const providers = [
-    { name: 'Gemini 3.1 Flash Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getPrimaryGoogleImageModel()) },
-    { name: 'Gemini 3.1 Flash Lite Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getSecondaryGoogleImageModel()) },
-    { name: 'Cloudflare Gateway', fn: () => tryCloudflareGateway(enhancedPrompt) },
+    ...(!skipGemini ? [
+      { name: 'Gemini 3.1 Flash Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getPrimaryGoogleImageModel()) },
+      { name: 'Gemini 3.1 Flash Lite Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getSecondaryGoogleImageModel()) },
+    ] : []),
     { name: 'Cloudflare Workers AI', fn: () => tryCloudflareWorkersAi(enhancedPrompt) },
     { name: 'Custom Image API', fn: () => tryCustomImageApi(enhancedPrompt) },
     { name: 'Pollinations Fallback', fn: () => tryPollinationsFallback(enhancedPrompt) },
@@ -526,12 +477,15 @@ export async function generateBlogCoverImage(imagePrompt: string): Promise<Gener
         return result
       }
     } catch (err) {
-      console.warn(`[image] ${provider.name} failed:`, err)
+      if (is429(err)) {
+        console.warn(`[image] ${provider.name} quota exhausted (429) — skipping`)
+      } else {
+        console.warn(`[image] ${provider.name} failed:`, err)
+      }
       continue
     }
   }
 
-  // Last resort: SVG fallback
   console.warn('[image] All image providers exhausted, using SVG fallback')
   return createFallbackCoverImagePayload(imagePrompt, 'All image generation providers failed')
 }

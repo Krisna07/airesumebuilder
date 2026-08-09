@@ -104,6 +104,8 @@ export function getGeminiModelForTask(taskType?: string): string {
     if (taskType === "resume-generation" || taskType === "resume-analysis" || taskType === "cover-letter") {
         return GEMINI_REGEN_ANALYSIS_MODEL;
     }
+    if (taskType === "blog-content-generation") return GEMINI_STRONG_MODEL;
+    if (taskType === "blog-title-generation") return GEMINI_FAST_MODEL;
     if (isHeavyTask(taskType)) return GEMINI_STRONG_MODEL;
     if (isFastTask(taskType)) return GEMINI_LITE_MODEL;
     return GEMINI_FAST_MODEL;

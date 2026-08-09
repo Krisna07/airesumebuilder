@@ -4,7 +4,7 @@ import { AIService } from '@/services/aiServices';
 import { JobDescription, ResumeData } from '@/types/types';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma'
-import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/services/subscriptionService'
 import { createRequestGuard } from '@/lib/ai-request-guard'
 
 export const runtime = 'nodejs';
