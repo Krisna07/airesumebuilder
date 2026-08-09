@@ -503,14 +503,26 @@ async function tryGoogleGeminiImage(prompt: string, model: string): Promise<Gene
  * 6. Pollinations free API (community fallback)
  * 7. Local SVG fallback
  */
+function is429(err: unknown): boolean {
+  if (err && typeof err === 'object') {
+    const e = err as Record<string, unknown>
+    if (e.status === 429) return true
+    const msg = typeof e.message === 'string' ? e.message : ''
+    if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit')) return true
+  }
+  return false
+}
+
 export async function generateBlogCoverImage(imagePrompt: string): Promise<GeneratedImagePayload> {
-  // Select random style and enhance prompt
   const stylePreset = selectRandomImageStyle()
   const enhancedPrompt = `${stylePreset}, ${imagePrompt}, high quality, sharp focus, professional color grading, teal and slate color palette, no text, no words, no typography, no illustrations, photorealistic, 8k resolution`
+  const skipGemini = process.env.BLOG_IMAGE_SKIP_GEMINI === 'true'
 
   const providers = [
-    { name: 'Gemini 3.1 Flash Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getPrimaryGoogleImageModel()) },
-    { name: 'Gemini 3.1 Flash Lite Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getSecondaryGoogleImageModel()) },
+    ...(!skipGemini ? [
+      { name: 'Gemini 3.1 Flash Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getPrimaryGoogleImageModel()) },
+      { name: 'Gemini 3.1 Flash Lite Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getSecondaryGoogleImageModel()) },
+    ] : []),
     { name: 'Cloudflare Gateway', fn: () => tryCloudflareGateway(enhancedPrompt) },
     { name: 'Cloudflare Workers AI', fn: () => tryCloudflareWorkersAi(enhancedPrompt) },
     { name: 'Custom Image API', fn: () => tryCustomImageApi(enhancedPrompt) },
@@ -526,12 +538,15 @@ export async function generateBlogCoverImage(imagePrompt: string): Promise<Gener
         return result
       }
     } catch (err) {
-      console.warn(`[image] ${provider.name} failed:`, err)
+      if (is429(err)) {
+        console.warn(`[image] ${provider.name} quota exhausted (429) — skipping`)
+      } else {
+        console.warn(`[image] ${provider.name} failed:`, err)
+      }
       continue
     }
   }
 
-  // Last resort: SVG fallback
   console.warn('[image] All image providers exhausted, using SVG fallback')
   return createFallbackCoverImagePayload(imagePrompt, 'All image generation providers failed')
 }
