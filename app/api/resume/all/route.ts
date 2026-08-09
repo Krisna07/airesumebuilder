@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/prisma'
+import { requireUserSession, mapSubscriptionError } from '@/services/subscriptionService'
 
 function safeParseJson<T>(value: unknown, fallback: T): T {
     if (value == null) return fallback;
@@ -16,14 +17,25 @@ function safeParseJson<T>(value: unknown, fallback: T): T {
 export async function GET(req: NextRequest) {
 
     try {
-        const { searchParams } = new URL(req.url);
+        let sessionUserId: string
+        try {
+            ;({ userId: sessionUserId } = await requireUserSession())
+        } catch (err) {
+            const mapped = mapSubscriptionError(err)
+            return NextResponse.json({ error: mapped.message }, { status: mapped.status })
+        }
 
+        const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
-        console.log("Fetching resumes for user ID:", id);
+
         if (!id) {
             return NextResponse.json({ error: "Missing 'id' parameter" }, { status: 400 });
         }
-        const allResumes = await prisma.resume.findMany({ where: { userId: id } });
+        if (id !== sessionUserId) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const allResumes = await prisma.resume.findMany({ where: { userId: sessionUserId } });
         if (!allResumes) {
             return NextResponse.json({ error: "No resumes found" }, { status: 404 });
         }
