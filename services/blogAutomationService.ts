@@ -486,7 +486,7 @@ export async function planUniqueTitleFromResume(
         prompt,
         blogTitlePlanSchema,
         'blog-title-generation',
-        'groq'
+        'gemini'
       )
       const result = parseTitlePlanFromAi(aiResponse)
 
@@ -618,7 +618,7 @@ export async function generateBlogDraftFromTitle(
     prompt,
     blogGenerationSchema,
     'blog-content-generation',
-    'groq'
+    'gemini'
   )
 
   const parsed = typeof rawResponse === 'string' ? parseResponse(rawResponse) : rawResponse
@@ -659,7 +659,7 @@ export async function regenerateBlogContent(
     prompt,
     blogRegenerationSchema,
     'blog-content-generation',
-    'groq'
+    'gemini'
   )
 
   if (!response || typeof response !== 'object' || !Array.isArray((response as any).sections)) {

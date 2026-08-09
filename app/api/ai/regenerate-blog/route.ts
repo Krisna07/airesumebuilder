@@ -19,7 +19,7 @@ async function callAI(prompt: string): Promise<string> {
     prompt,
     undefined,
     'blog-content-generation',
-    'groq'
+    'gemini'
   )
 
   if (typeof response === 'string') {
