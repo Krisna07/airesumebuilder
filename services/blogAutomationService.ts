@@ -11,9 +11,10 @@ import { generateBlogTitlePlanPrompt, generateSeoBlogPrompt, regenerateBlogPromp
 import { prisma } from '@/lib/prisma'
 import sanityClient from '@/lib/sanity'
 import { createBlog, getBlogById, normalizeSlug, updateBlog, saveImage } from '@/services/blogCmsService'
-import { generateBlogCoverImage } from '@/services/imageGenerationService'
+import { generateBlogCoverImage, type GeneratedImagePayload } from '@/services/imageGenerationService'
 import { callAIWithProviderPreference } from '@/services/aiServices'
 import { blogGenerationSchema, blogTitlePlanSchema, blogRegenerationSchema } from '@/lib/aiSchemas'
+import { postBlogTweet } from '@/services/twitterService'
 import type { BlogActor, BlogSection, BlogStatus, CreateBlogInput } from '@/types/blog'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +62,8 @@ export type BlogAutomationResult = {
   title: string
   slug?: string
   blogId?: string
+  tweetId?: string
+  tweetError?: string
   traceId: string
   durationMs: number
 }
@@ -699,12 +702,13 @@ export async function refreshOldBlogPost(postId: string, actor: BlogActor) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Publish a generated blog draft with image
+ * Publish a generated blog draft with image.
+ * Returns the blog post and the generated cover image so callers can reuse the bytes.
  */
 export async function publishGeneratedBlog(
   draft: GeneratedBlogDraft,
   actor = getCronActor()
-) {
+): Promise<{ post: Awaited<ReturnType<typeof createBlog>>; image: GeneratedImagePayload }> {
   const generatedImage = await generateBlogCoverImage(draft.imagePrompt)
 
   const imageMeta = await saveImage({
@@ -725,7 +729,8 @@ export async function publishGeneratedBlog(
     coverImageId: imageMeta.id,
   }
 
-  return createBlog(payload, actor)
+  const post = await createBlog(payload, actor)
+  return { post, image: generatedImage }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -760,7 +765,15 @@ export async function runHourlyBlogAutomation(options?: {
       }
     }
 
-    const post = await publishGeneratedBlog(draft)
+    const { post, image } = await publishGeneratedBlog(draft)
+
+    const twitterResult = await postBlogTweet({
+      title: post.title,
+      excerpt: draft.excerpt,
+      slug: post.slug,
+      imageBuffer: image.bytes,
+      imageMimeType: image.mimeType,
+    })
 
     return {
       success: true,
@@ -768,6 +781,8 @@ export async function runHourlyBlogAutomation(options?: {
       title: post.title,
       slug: post.slug,
       blogId: post.id,
+      tweetId: twitterResult.ok ? twitterResult.tweetId : undefined,
+      tweetError: twitterResult.ok ? undefined : twitterResult.error,
       traceId,
       durationMs: Date.now() - startedAt,
     }

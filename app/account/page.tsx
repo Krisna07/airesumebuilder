@@ -1,26 +1,22 @@
 'use client'
 
 import { useEffect } from 'react'
+import type { JSX } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
-/**
- * Account Page Redirect
- * 
- * This page has been moved to /builder/settings
- * Redirects users to the new location inside the dashboard
- */
-const AccountPage = () => {
-    const router = useRouter()
+const REDIRECT_DELAY_MS = 3000
+
+function AccountPage(): JSX.Element {
+  const router = useRouter()
 
   useEffect(() => {
-      // Auto-redirect after 3 seconds
-      const timer = setTimeout(() => {
-          router.push('/builder/settings')
-      }, 3000)
+    const timer = setTimeout(() => {
+      router.push('/builder/settings')
+    }, REDIRECT_DELAY_MS)
 
-      return () => clearTimeout(timer)
+    return () => clearTimeout(timer)
   }, [router])
 
   return (
@@ -51,7 +47,7 @@ const AccountPage = () => {
                   You can also access settings from the dashboard navigation menu.
               </p>
           </div>
-    </div>
+      </div>
   )
 }
 

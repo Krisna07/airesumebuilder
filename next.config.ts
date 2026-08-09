@@ -14,15 +14,7 @@ const nextConfig = {
     },
     serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
     outputFileTracingIncludes: {
-        '/api/generate': [
-            './node_modules/playwright-core/**/*',
-            './node_modules/playwright/**/*'
-        ],
         '/api/generate/v2': [
-            './node_modules/playwright-core/**/*',
-            './node_modules/playwright/**/*'
-        ],
-        '/api/download': [
             './node_modules/playwright-core/**/*',
             './node_modules/playwright/**/*'
         ],

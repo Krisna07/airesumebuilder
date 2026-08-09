@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
+import { requireUserSession, mapSubscriptionError } from '@/services/subscriptionService'
 import type { AnalysisResult, ResumeData } from '@/types/types'
 
 export const runtime = 'nodejs'

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getQuotaForPlan, resetCountsData, shouldResetDaily, UsageKey } from '@/lib/subscription'
-import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
+import { getQuotaForPlan, resetCountsData, shouldResetDaily, UsageKey } from '@/lib/subscriptionConfig'
+import { requireUserSession, mapSubscriptionError } from '@/services/subscriptionService'
 
 type Payload = { key: UsageKey; amount?: number }
 

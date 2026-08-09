@@ -1,18 +1,12 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import { extractJobDetailsPrompt } from '@/lib/prompts';
-import { requireUserSession, consumeUsage, mapSubscriptionError } from '@/lib/subscription-server';
-import { parseResponse } from '@/lib/jsonParse';
+import { requireUserSession, consumeUsage, mapSubscriptionError } from '@/services/subscriptionService';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Import the private AI function - should be moved to AIService class ideally
-const callAI = async (prompt: string) => {
-  return await AIService.extractJobMetadata(prompt);
-};
-
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await requireUserSession();
 
@@ -30,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Generate AI extraction
     const prompt = extractJobDetailsPrompt(rawText);
-    const result = await callAI(prompt);
+    const result = await AIService.extractJobMetadata(prompt);
     // AI now returns a parsed object
     const extracted = result as {
       title: string;

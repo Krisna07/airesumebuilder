@@ -4,6 +4,7 @@
 /.next
 /out
 .kiro
+.claude
 
 # Dependencies
 /node_modules

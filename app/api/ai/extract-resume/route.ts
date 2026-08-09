@@ -1,6 +1,6 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
-import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/lib/subscription-server'
+import { assertQuota, consumeUsage, mapSubscriptionError, requireUserSession } from '@/services/subscriptionService'
 import { extractResumeFromText, cleanResumeText } from '@/services/textResumeExtractor'
 
 export const runtime = 'nodejs';

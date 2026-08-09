@@ -1,7 +1,7 @@
 
 import { ScrapeResult } from "@/components/Forms/JobDescription";
 import { AnalysisResult, JobDescription, ResumeData } from "@/types/types";
-import { extractTextFromPdf } from "@/utils/pdfExtractor";
+import { extractTextFromPdf } from "@/services/pdfService";
 import { LocalResumeService } from "./localResumeService";
 
 

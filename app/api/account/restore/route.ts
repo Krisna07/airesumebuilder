@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { requireUserSession, mapSubscriptionError } from '@/lib/subscription-server'
+import { requireUserSession, mapSubscriptionError } from '@/services/subscriptionService'
 
 /**
  * Restore a deleted account within the 15-day grace period

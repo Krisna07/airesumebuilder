@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { EmailService } from '@/utils/sendEmail'
+import { EmailService } from '@/services/emailService'
 import { buildWelcomeEmail } from '../newuser/welcomeEmail'
 
 export async function POST(req: NextRequest) {

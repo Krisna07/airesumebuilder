@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdminOrForbidden } from '@/lib/blogAuth'
+import { requireAdminOrForbidden } from '@/services/authService'
 import { polishBlogPrompt } from '@/lib/prompts'
 import { parseResponse } from '@/lib/jsonParse'
 import { callAIWithProviderPreference } from '@/services/aiServices'

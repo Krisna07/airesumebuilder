@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdminOrForbidden } from '@/lib/blogAuth'
+import { requireAdminOrForbidden } from '@/services/authService'
 import { createBlogSchema } from '@/lib/blogValidation'
 import { createBlog, listPublishedBlogs } from '@/services/blogCmsService'
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import { generateTemplateHTML } from "@/lib/template-utils";
-import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/lib/guest-usage';
+import { assertGuestQuota, consumeGuestUsage, mapGuestUsageError } from '@/services/guestService';
 import { resolveUserIdFromRequest } from '@/lib/auth-user';
 
 // Force Node.js runtime for this route (not edge)
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         // Quota check (identical to v1)
         try {
             if (userId) {
-                const { assertQuota, mapSubscriptionError } = await import('@/lib/subscription-server');
+                const { assertQuota, mapSubscriptionError } = await import('@/services/subscriptionService');
                 try {
                     await assertQuota(userId, 'download');
                 } catch (err) {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
             : 'Resume.pdf';
 
         if (userId) {
-            const { consumeUsage } = await import('@/lib/subscription-server');
+            const { consumeUsage } = await import('@/services/subscriptionService');
             await consumeUsage(userId, 'download');
         } else {
             await consumeGuestUsage('download');

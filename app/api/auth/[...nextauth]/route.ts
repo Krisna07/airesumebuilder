@@ -110,7 +110,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
   // Send welcome email to new OAuth users
   if (isNewUser) {
     try {
-      const { EmailService } = await import('@/utils/sendEmail');
+      const { EmailService } = await import('@/services/emailService');
       await EmailService.sendWelcomeEmail(email, user.name);
     } catch (error) {
       console.error('Failed to send welcome email to OAuth user:', error);
@@ -121,7 +121,7 @@ const handleOAuthUserRegister = async (email: string, name: string | null | unde
   // Send restoration email to restored accounts
   if (isRestoredAccount) {
     try {
-      const { EmailService } = await import('@/utils/sendEmail');
+      const { EmailService } = await import('@/services/emailService');
       await EmailService.sendAccountRestoredEmail(email, user.name);
     } catch (error) {
       console.error('Failed to send account restored email:', error);

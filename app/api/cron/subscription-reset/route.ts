@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resetCountsData } from '@/lib/subscription'
+import { resetCountsData } from '@/lib/subscriptionConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60

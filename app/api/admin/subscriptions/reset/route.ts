@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/admin'
-import { resetCountsData } from '@/lib/subscription'
+import { isAdminEmail } from '@/services/authService'
+import { resetCountsData } from '@/lib/subscriptionConfig'
 
 export async function POST() {
   const session = await getServerSession()

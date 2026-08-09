@@ -2,7 +2,7 @@
 
 import { JSX, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
-import { getQuotaForPlan, UsageKey } from '@/lib/subscription'
+import { getQuotaForPlan, UsageKey } from '@/lib/subscriptionConfig'
 import type { Subscription } from '@/types/subscription'
 import { Crown, Lock, Sparkles, Download, Mail, Brain, Upload, ShieldCheck, TrendingUp } from 'lucide-react'
 
