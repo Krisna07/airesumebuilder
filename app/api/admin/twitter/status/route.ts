@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { TwitterApi } from 'twitter-api-v2'
 import { requireAdminOrForbidden } from '@/services/authService'
 
 export const runtime = 'nodejs'
@@ -8,63 +8,31 @@ export async function GET(): Promise<NextResponse> {
   const admin = await requireAdminOrForbidden()
   if (!admin.ok) return admin.response
 
-  const record = await prisma.refreshToken.findUnique({ where: { key: 'default' } })
+  const appKey = process.env.TWITTER_CONSUMER_KEY
+  const appSecret = process.env.TWITTER_CONSUMER_SECRET
+  const accessToken = process.env.TWITTER_ACCESS_TOKEN
+  const accessSecret = process.env.TWITTER_ACCESS_TOKEN_SECRET
 
-  if (!record) {
+  if (!appKey || !appSecret || !accessToken || !accessSecret) {
     return NextResponse.json({
       connected: false,
-      error: 'No refresh token stored. Visit /api/admin/twitter/connect to authorize.',
+      error: 'Missing TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET, TWITTER_ACCESS_TOKEN, or TWITTER_ACCESS_TOKEN_SECRET.',
     })
   }
 
-  const clientId = process.env.TWITTER_CLIENT_ID
-  const clientSecret = process.env.TWITTER_CLIENT_SECRET
-  if (!clientId || !clientSecret) {
-    return NextResponse.json({ connected: false, error: 'TWITTER_CLIENT_ID or TWITTER_CLIENT_SECRET not set' }, { status: 500 })
-  }
+  const client = new TwitterApi({ appKey, appSecret, accessToken, accessSecret })
 
-  // Exchange refresh token for a fresh access token
-  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-  const tokenRes = await fetch('https://api.x.com/2/oauth2/token', {
-    method: 'POST',
-    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: record.refreshToken,
-      client_type: 'confidential',
-    }).toString(),
-  })
-  const tokenData = await tokenRes.json() as { access_token?: string; scope?: string; error?: string; error_description?: string }
-
-  if (!tokenRes.ok) {
+  try {
+    const me = await client.v2.me()
+    return NextResponse.json({
+      connected: true,
+      username: me.data.username,
+      name: me.data.name,
+    })
+  } catch (err) {
     return NextResponse.json({
       connected: false,
-      tokenPreview: record.refreshToken.slice(0, 20) + '…',
-      tokenError: tokenData.error,
-      tokenErrorDescription: tokenData.error_description,
+      error: err instanceof Error ? err.message : String(err),
     })
   }
-
-  const scopes: string[] = (tokenData.scope ?? '').split(' ').filter(Boolean)
-  const hasTweetWrite = scopes.includes('tweet.write')
-  const hasMediaWrite = scopes.includes('media.write')
-
-  // Verify the token by calling /2/users/me
-  const meRes = await fetch('https://api.x.com/2/users/me', {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
-  })
-  const meData = await meRes.json() as { data?: { id: string; username: string; name: string }; errors?: unknown }
-
-  return NextResponse.json({
-    connected: meRes.ok,
-    username: meData.data?.username ?? null,
-    name: meData.data?.name ?? null,
-    scopes,
-    hasTweetWrite,
-    hasMediaWrite,
-    readyToPost: hasTweetWrite && hasMediaWrite,
-    fix: !hasTweetWrite || !hasMediaWrite
-      ? '1) Set app permissions to "Read and Write" in developer.twitter.com → 2) Visit /api/admin/twitter/connect to re-authorize'
-      : null,
-  })
 }

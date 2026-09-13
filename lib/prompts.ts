@@ -315,7 +315,7 @@ Create a unique, topic-specific image prompt that reflects the blog's main theme
 ### OUTPUT SCHEMA (JSON ONLY)
 {
   "title": "string (SEO-optimised, max 70 chars, include primary keyword)",
-  "excerpt": "string (keyword-led, max 155 chars, ends with clear value promise)",
+  "excerpt": "string (keyword-led, max 155 chars, plain editorial summary of what the reader will learn — avoid clickbait openers like 'Discover why...' and avoid ending with a hard sales CTA)",
   "slug": { "current": "string" },
   "imagePrompt": "string (photorealistic professional photography, modern corporate aesthetic, natural lighting, shallow depth of field. NO TEXT, NO WORDS, NO TYPOGRAPHY, NO ILLUSTRATIONS)",
   "seoKeywords": ["string", "string", "string"],
@@ -472,7 +472,7 @@ ${JSON.stringify(sections, null, 2)}
 ### OUTPUT SCHEMA (JSON ONLY)
 {
   "title": "string — polished, SEO-optimised title (max 70 chars)",
-  "excerpt": "string — polished excerpt that leads with a keyword and a clear value statement (max 155 chars)",
+  "excerpt": "string — polished, plain editorial excerpt led by a keyword (max 155 chars, no clickbait phrasing or hard sales CTA)",
   "seoKeywords": ["string", "string", "string"],
   "sections": [
     { "id": "sec_1", "type": "paragraph", "content": "string" },
@@ -503,7 +503,7 @@ Crucial Rule: Do not generate a generic or repetitive title. Explore a unique an
 Return ONLY valid JSON — no markdown fences, no preamble:
 {
   "title": "string — highly unique, SEO-optimised blog post title (max 80 chars)",
-  "excerpt": "string — compelling 1-2 sentence meta description that leads with a keyword and a clear value statement (max 160 chars)"
+  "excerpt": "string — plain 1-2 sentence meta description that leads with a keyword and states what the reader will learn (max 160 chars, no clickbait phrasing or hard sales CTA)"
 }
 
 OUTPUT:`;

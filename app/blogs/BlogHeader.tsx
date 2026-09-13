@@ -17,7 +17,7 @@ const BlogHeader = () => {
           Resume writing tips, product updates, and practical job-search guidance.
         </p>
       </div>
-    {user?.isAdmin &&  <Link href={'/addblog'}>
+    {user?.isAdmin &&  <Link href={'/blogs/addblogs'}>
       <Button children="Add blog" variant='primary' size="small" className="whitespace-nowrap" />
       </Link>}
     </header>
