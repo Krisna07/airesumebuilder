@@ -36,3 +36,19 @@
 .env
 .env.*
 *.env
+
+# Dev/test scripts (not needed in production)
+/scripts
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+
+# Playwright
+/playwright-report
+/test-results
+/playwright/.cache
+.last-run.json

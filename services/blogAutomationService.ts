@@ -140,13 +140,12 @@ function parseList(value?: string): string[] {
 function selectNextBlogTitle(): string {
   const titles = parseList(process.env.BLOG_CRON_TITLES)
   if (titles.length > 0) {
-    const bucket = Math.floor(Date.now() / (60 * 60 * 1000))
-    return titles[bucket % titles.length]
+    return titles[Math.floor(Math.random() * titles.length)]
   }
 
   const keywords = parseList(process.env.BLOG_CRON_KEYWORDS)
   const keyword = keywords.length > 0
-    ? keywords[Math.floor(Date.now() / (60 * 60 * 1000)) % keywords.length]
+    ? keywords[Math.floor(Math.random() * keywords.length)]
     : 'resume writing'
 
   const templates = [
@@ -154,9 +153,12 @@ function selectNextBlogTitle(): string {
     'A modern guide to ${keyword} in 2026',
     'Common ${keyword} mistakes and how to avoid them',
     'How recruiters evaluate ${keyword} and what to optimize',
+    '${keyword}: what actually moves the needle in 2026',
+    'The ${keyword} checklist most job seekers skip',
+    'Why your ${keyword} approach might be holding you back',
   ]
 
-  const template = templates[Math.floor(Date.now() / (60 * 60 * 1000)) % templates.length]
+  const template = templates[Math.floor(Math.random() * templates.length)]
   return template.replace('${keyword}', keyword)
 }
 
@@ -525,16 +527,23 @@ export async function planUniqueTitleFromResume(
     }
   }
 
-  // Fallback to formula-based title
-  const fallbackBase = resumeContext.primaryRole
-    ? `Resume tips for ${resumeContext.primaryRole} professionals`
-    : selectNextBlogTitle()
+  // Fallback to formula-based title — vary the phrasing so repeated AI failures
+  // don't produce the same title (or same title + "edition N") every time.
+  const role = resumeContext.primaryRole || 'job seekers'
+  const year = new Date().getUTCFullYear()
+  const fallbackTemplates = [
+    `Resume tips for ${role} professionals`,
+    `What ${role} candidates get wrong on their resume in ${year}`,
+    `A ${year} resume playbook for ${role} professionals`,
+    `How ${role} professionals can stand out to recruiters in ${year}`,
+    `Resume red flags every ${role} candidate should fix`,
+    `Interview-ready: a resume checklist for ${role} professionals`,
+  ]
+  const shuffled = [...fallbackTemplates].sort(() => Math.random() - 0.5)
 
-  for (let i = 0; i < 20; i += 1) {
-    const candidate =
-      i === 0
-        ? fallbackBase
-        : `${fallbackBase} ${new Date().getUTCFullYear()} edition ${i + 1}`
+  for (let i = 0; i < 40; i += 1) {
+    const base = shuffled[i % shuffled.length] || selectNextBlogTitle()
+    const candidate = i < shuffled.length ? base : `${base} — ${selectNextBlogTitle()}`.slice(0, 140)
 
     const slug = normalizeSlug(candidate)
     const key = normalizeTitleKey(candidate)
@@ -546,7 +555,7 @@ export async function planUniqueTitleFromResume(
   }
 
   // Last resort: timestamp-based
-  return { title: `${fallbackBase} ${Date.now()}`, targetKeywords: [] }
+  return { title: `${shuffled[0]} — ${Date.now()}`, targetKeywords: [] }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

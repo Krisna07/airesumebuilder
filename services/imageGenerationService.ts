@@ -135,19 +135,33 @@ function selectRandomImageStyle(): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Fallback gradient palettes — rotated so a total provider outage doesn't
+ * produce the visually identical cover image on every blog post.
+ */
+const FALLBACK_GRADIENT_PALETTES = [
+  ['#0f172a', '#155e75', '#f59e0b'],
+  ['#1e1b4b', '#5b21b6', '#f472b6'],
+  ['#052e16', '#15803d', '#a3e635'],
+  ['#1e3a8a', '#2563eb', '#38bdf8'],
+  ['#450a0a', '#b91c1c', '#f97316'],
+  ['#164e63', '#0e7490', '#5eead4'],
+]
+
+/**
  * Create an SVG fallback image when all providers fail
  */
 function createFallbackCoverImagePayload(imagePrompt: string, reason?: string): GeneratedImagePayload {
   const promptLines = chunkText(imagePrompt, 34, 5)
   const subtitle = chunkText(reason || 'Cloudflare image generation unavailable', 44, 2)
+  const [stopA, stopB, stopC] = FALLBACK_GRADIENT_PALETTES[Math.floor(Math.random() * FALLBACK_GRADIENT_PALETTES.length)]
 
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024" role="img" aria-label="AI generated fallback cover">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="50%" stop-color="#155e75" />
-      <stop offset="100%" stop-color="#f59e0b" />
+      <stop offset="0%" stop-color="${stopA}" />
+      <stop offset="50%" stop-color="${stopB}" />
+      <stop offset="100%" stop-color="${stopC}" />
     </linearGradient>
   </defs>
   <rect width="1536" height="1024" fill="url(#bg)" />
