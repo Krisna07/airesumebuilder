@@ -315,7 +315,7 @@ Create a unique, topic-specific image prompt that reflects the blog's main theme
 ### OUTPUT SCHEMA (JSON ONLY)
 {
   "title": "string (SEO-optimised, max 70 chars, include primary keyword)",
-  "excerpt": "string (keyword-led, max 155 chars, plain editorial summary of what the reader will learn — avoid clickbait openers like 'Discover why...' and avoid ending with a hard sales CTA)",
+  "excerpt": "string (keyword-led, max 155 chars, plain editorial summary of what the reader will learn. Do NOT start the sentence with 'Discover', 'Unlock', 'Master', or 'Uncover'. Do NOT use flowery marketing metaphors like 'transforming X into Y' or 'turn your resume into a magnet'. Do NOT end with a hard sales CTA. Example of the right tone: 'A practical breakdown of how ATS software parses resumes, with formatting fixes that keep your experience readable to both software and recruiters.')",
   "slug": { "current": "string" },
   "imagePrompt": "string (photorealistic professional photography, modern corporate aesthetic, natural lighting, shallow depth of field. NO TEXT, NO WORDS, NO TYPOGRAPHY, NO ILLUSTRATIONS)",
   "seoKeywords": ["string", "string", "string"],
@@ -472,7 +472,7 @@ ${JSON.stringify(sections, null, 2)}
 ### OUTPUT SCHEMA (JSON ONLY)
 {
   "title": "string — polished, SEO-optimised title (max 70 chars)",
-  "excerpt": "string — polished, plain editorial excerpt led by a keyword (max 155 chars, no clickbait phrasing or hard sales CTA)",
+  "excerpt": "string — polished, plain editorial excerpt led by a keyword (max 155 chars). Do NOT start with 'Discover', 'Unlock', 'Master', or 'Uncover'. Do NOT use flowery metaphors ('transforming X into Y'). No hard sales CTA.",
   "seoKeywords": ["string", "string", "string"],
   "sections": [
     { "id": "sec_1", "type": "paragraph", "content": "string" },
@@ -503,7 +503,7 @@ Crucial Rule: Do not generate a generic or repetitive title. Explore a unique an
 Return ONLY valid JSON — no markdown fences, no preamble:
 {
   "title": "string — highly unique, SEO-optimised blog post title (max 80 chars)",
-  "excerpt": "string — plain 1-2 sentence meta description that leads with a keyword and states what the reader will learn (max 160 chars, no clickbait phrasing or hard sales CTA)"
+  "excerpt": "string — plain 1-2 sentence meta description that leads with a keyword and states what the reader will learn (max 160 chars). Do NOT start with 'Discover', 'Unlock', 'Master', or 'Uncover'. Do NOT use flowery metaphors ('transforming X into Y'). No hard sales CTA."
 }
 
 OUTPUT:`;

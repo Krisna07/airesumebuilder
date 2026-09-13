@@ -34,17 +34,24 @@ function getClient(): TwitterApi {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Clickbait-style openers/metaphors that have been observed getting real
+// posts flagged by X's spam filter (generic 403, "not permitted"). AI-written
+// excerpts drift back toward this pattern even when the prompt says not to,
+// so this is a hard code-level backstop rather than relying on the prompt alone.
+const CLICKBAIT_PATTERN = /^(discover|unlock|uncover|master)\b|transform\w* .+ into\b/i
+
 function composeTweetText(title: string, excerpt: string, url: string): string {
   const sep = '\n\n'
   const available = TWEET_MAX_CHARS - TCO_URL_LENGTH - sep.length * 2
+  const safeExcerpt = CLICKBAIT_PATTERN.test(excerpt.trim()) ? '' : excerpt
 
   const titleCapped = title.length > 140 ? title.slice(0, 139) + '…' : title
   const excerptBudget = available - titleCapped.length
   let excerptPart =
-    excerptBudget > 20
-      ? excerpt.length > excerptBudget
-        ? excerpt.slice(0, excerptBudget - 1) + '…'
-        : excerpt
+    excerptBudget > 20 && safeExcerpt
+      ? safeExcerpt.length > excerptBudget
+        ? safeExcerpt.slice(0, excerptBudget - 1) + '…'
+        : safeExcerpt
       : ''
 
   // Safety net: the budget above assumes X's t.co shortener discounts the URL

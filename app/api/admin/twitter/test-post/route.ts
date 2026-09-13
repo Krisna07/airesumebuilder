@@ -22,6 +22,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const slug = typeof body.slug === 'string' ? body.slug : `test-${Date.now()}`
   const useRealImage = body.useRealImage === true
   const noImage = body.noImage === true
+  const noUrl = body.noUrl === true
+
+  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (noUrl) process.env.NEXT_PUBLIC_APP_URL = ''
 
   let imageBuffer: Buffer | undefined
   let imageMimeType: string | undefined
@@ -42,6 +46,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const result = await postBlogTweet({ title, excerpt, slug, imageBuffer, imageMimeType })
+
+  if (noUrl) process.env.NEXT_PUBLIC_APP_URL = originalAppUrl
 
   if (result.ok) {
     return NextResponse.json({ success: true, tweetId: result.tweetId })
