@@ -60,6 +60,8 @@ export interface BlogPost {
   createdAt: string
   updatedAt: string
   publishedAt?: string
+  /** Set when a previously-published post is unpublished; drives the 7-day auto-delete TTL. */
+  unpublishedAt?: string
 }
 
 export interface BlogListItem {
@@ -72,8 +74,10 @@ export interface BlogListItem {
   authorImageUrl?: string
   authorImageId?: string
   seoKeywords?: string[]
+  status: BlogStatus
   createdAt: string
   publishedAt?: string
+  unpublishedAt?: string
 }
 
 export interface BlogImageMeta {

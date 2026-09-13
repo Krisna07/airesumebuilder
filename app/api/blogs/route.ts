@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminOrForbidden } from '@/services/authService'
 import { createBlogSchema } from '@/lib/blogValidation'
-import { createBlog, listPublishedBlogs } from '@/services/blogCmsService'
+import { createBlog, listPublishedBlogs, listAllBlogsForAdmin } from '@/services/blogCmsService'
 
 export const runtime = 'nodejs'
 
@@ -10,11 +10,19 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const limit = Number(searchParams.get('limit') || 20)
     const offset = Number(searchParams.get('offset') || 0)
+    const safeLimit = Number.isNaN(limit) ? 20 : Math.min(limit, 50)
+    const safeOffset = Number.isNaN(offset) ? 0 : Math.max(offset, 0)
 
-    const data = await listPublishedBlogs({
-      limit: Number.isNaN(limit) ? 20 : Math.min(limit, 50),
-      offset: Number.isNaN(offset) ? 0 : Math.max(offset, 0),
-    })
+    // Admin-only: include drafts/archived posts so they stay discoverable for editing.
+    if (searchParams.get('includeAll') === '1') {
+      const admin = await requireAdminOrForbidden()
+      if (!admin.ok) return admin.response
+
+      const data = await listAllBlogsForAdmin({ limit: safeLimit, offset: safeOffset })
+      return NextResponse.json({ success: true, data })
+    }
+
+    const data = await listPublishedBlogs({ limit: safeLimit, offset: safeOffset })
 
     return NextResponse.json({ success: true, data })
   } catch (error) {

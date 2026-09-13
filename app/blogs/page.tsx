@@ -1,6 +1,6 @@
 import { listPublishedBlogs } from '@/services/blogCmsService'
 import BlogHeader from './BlogHeader'
-import BlogCard from '@/components/blog/BlogCard'
+import BlogList from '@/components/blog/BlogList'
 import { Metadata } from 'next'
 import Link from 'next/link'
 
@@ -124,17 +124,7 @@ export default async function BlogsPage() {
             .
           </p>
         </div>
-        {items.length === 0 ? (
-          <div className="rounded-xl border  border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
-            No blog posts published yet.
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {items.map((post) => (
-              <BlogCard key={post.id} post={post} />
-            ))}
-          </div>
-        )}
+        <BlogList initialItems={items} />
       </section>
     </>
   )

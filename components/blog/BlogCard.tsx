@@ -2,12 +2,23 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { useAuth } from '@/context/authContext'
 import { useToast } from '@/context/PopupContext'
 import type { BlogListItem } from '@/types/blog'
 
 interface Props {
     post: BlogListItem
+}
+
+const UNPUBLISHED_TTL_DAYS = 7
+
+function ttlLabel(unpublishedAt: string): string {
+    const deletesAt = new Date(unpublishedAt).getTime() + UNPUBLISHED_TTL_DAYS * 24 * 60 * 60 * 1000
+    const daysLeft = Math.ceil((deletesAt - Date.now()) / (24 * 60 * 60 * 1000))
+    if (daysLeft <= 0) return 'Deleting soon'
+    if (daysLeft === 1) return 'Auto-deletes in 1 day'
+    return `Auto-deletes in ${daysLeft} days`
 }
 
 export default function BlogCard({ post }: Props) {
@@ -54,10 +65,31 @@ export default function BlogCard({ post }: Props) {
     }
 
     return (
-        <div className="h-full rounded-xl select-none border border-slate-200 dark:border-slate-700 group overflow-hidden hover:shadow-lg dark:hover:shadow-[0px_2px_8px_0_white] transition-all ease-in-out duration-300">
+        <div className="h-full rounded-xl select-none border border-slate-200 dark:border-slate-700 group overflow-hidden hover:shadow-lg dark:hover:shadow-[0px_2px_8px_0_white] transition-all ease-in-out duration-300 relative">
+            {user?.isAdmin && (
+                <Link
+                    href={`/blogs/addblogs?editId=${post.id}`}
+                    title="Edit this post"
+                    className="absolute top-2 right-2 z-20 p-2 rounded-full bg-white/90 dark:bg-slate-800/90 shadow hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                >
+                    <Pencil className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                </Link>
+            )}
             <Link href={`/blogs/${post.slug}`} className="block h-full">
                 <article className="h-full flex flex-col">
-                    <div className='overflow-hidden bg-green-200'>
+                    <div className='overflow-hidden bg-green-200 relative'>
+                        {post.status !== 'published' && (
+                            <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1">
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium capitalize bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                                    {post.status}
+                                </span>
+                                {post.status === 'draft' && post.unpublishedAt && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200">
+                                        {ttlLabel(post.unpublishedAt)}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                         {post.coverImageId ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -96,12 +128,6 @@ export default function BlogCard({ post }: Props) {
 
             {user?.isAdmin && (
                 <div className="p-3 border-t flex items-center gap-2 justify-end">
-                    <Link
-                        href={`/blogs/addblogs?editId=${post.id}`}
-                        className="px-3 py-1 rounded bg-slate-100 text-sm dark:bg-slate-700 dark:text-slate-100"
-                    >
-                        Edit
-                    </Link>
                     <button
                         onClick={togglePublish}
                         disabled={loading}

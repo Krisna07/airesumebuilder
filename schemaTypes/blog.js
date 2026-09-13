@@ -153,6 +153,13 @@ export const blogSchema = defineType({
     defineField({name: 'createdAt', title: 'Created At', type: 'datetime'}),
     defineField({name: 'updatedAt', title: 'Updated At', type: 'datetime'}),
     defineField({name: 'publishedAt', title: 'Published At', type: 'datetime'}),
+    defineField({
+      name: 'unpublishedAt',
+      title: 'Unpublished At',
+      type: 'datetime',
+      description: 'Set automatically when a published post is unpublished. Drives the 7-day auto-delete TTL for drafts.',
+      readOnly: true,
+    }),
   ],
   validation: (Rule) =>
     Rule.custom((doc) => {

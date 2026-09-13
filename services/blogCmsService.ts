@@ -28,6 +28,7 @@ interface SanityBlogDoc {
   createdAt: string
   updatedAt: string
   publishedAt?: string
+  unpublishedAt?: string
 }
 
 export function normalizeSlug(value: string) {
@@ -92,6 +93,7 @@ function mapToPost(doc: SanityBlogDoc | null): BlogPost | null {
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     publishedAt: doc.publishedAt,
+    unpublishedAt: doc.unpublishedAt,
   }
 }
 
@@ -104,8 +106,10 @@ function toListItem(post: BlogPost): BlogListItem {
     coverImageId: post.coverImageId,
     author: post.author,
     seoKeywords: post.seoKeywords,
+    status: post.status,
     createdAt: post.createdAt,
     publishedAt: post.publishedAt,
+    unpublishedAt: post.unpublishedAt,
   }
 }
 
@@ -158,7 +162,7 @@ export async function createBlog(input: CreateBlogInput, actor: BlogActor) {
 
 export async function getBlogById(id: string) {
   const doc = await sanityClient.fetch<SanityBlogDoc | null>(
-    '*[_type == "blog" && _id == $id][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && _id == $id][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt,unpublishedAt}',
     { id }
   )
 
@@ -167,7 +171,7 @@ export async function getBlogById(id: string) {
 
 export async function getBlogBySlug(slug: string) {
   const doc = await sanityClient.fetch<SanityBlogDoc | null>(
-    '*[_type == "blog" && slug.current == $slug][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && slug.current == $slug][0]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt,unpublishedAt}',
     { slug }
   )
 
@@ -180,7 +184,34 @@ export async function listPublishedBlogs({ limit = 20, offset = 0 }: BlogPaginat
   const end = safeOffset + safeLimit
 
   const docs = await sanityClient.fetch<SanityBlogDoc[]>(
-    '*[_type == "blog" && status == "published"] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt}',
+    '*[_type == "blog" && status == "published"] | order(coalesce(publishedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt,unpublishedAt}',
+    { start: safeOffset, end }
+  )
+
+  const items = docs
+    .map((doc) => mapToPost(doc))
+    .filter((post): post is BlogPost => Boolean(post))
+    .map(toListItem)
+
+  return {
+    items,
+    offset: safeOffset,
+    limit: safeLimit,
+  }
+}
+
+/**
+ * All posts regardless of status (draft/published/archived), newest first.
+ * Admin-only — used so drafts created via automation or the editor stay
+ * discoverable for editing/publishing.
+ */
+export async function listAllBlogsForAdmin({ limit = 20, offset = 0 }: BlogPaginationInput = {}) {
+  const safeLimit = Math.min(Math.max(limit, 1), 50)
+  const safeOffset = Math.max(offset, 0)
+  const end = safeOffset + safeLimit
+
+  const docs = await sanityClient.fetch<SanityBlogDoc[]>(
+    '*[_type == "blog"] | order(coalesce(publishedAt, updatedAt, createdAt) desc)[$start...$end]{_id,title,excerpt,slug,coverImageId,authorImageUrl,authorImageId,seoKeywords,sections,status,author,createdBy,createdByEmail,createdAt,updatedAt,publishedAt,unpublishedAt}',
     { start: safeOffset, end }
   )
 
@@ -289,6 +320,19 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
     ? input.coverImageId ?? undefined
     : existing.coverImageId
 
+  const nextPublishedAt =
+    nextStatus === 'published' ? existing.publishedAt ?? new Date().toISOString() : undefined
+
+  // Track when a *previously live* post goes back to draft, so the 7-day
+  // auto-delete TTL only applies to unpublish actions — never to fresh,
+  // never-published drafts (e.g. from automation) or plain content edits.
+  const nextUnpublishedAt =
+    nextStatus === 'published'
+      ? undefined
+      : existing.status === 'published' && nextStatus === 'draft'
+        ? new Date().toISOString()
+        : existing.unpublishedAt
+
   const updated: BlogPost = {
     ...existing,
     title: nextTitle,
@@ -302,8 +346,8 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
     author: input.author ?? existing.author,
     status: nextStatus,
     updatedAt: new Date().toISOString(),
-    publishedAt:
-      nextStatus === 'published' ? existing.publishedAt ?? new Date().toISOString() : undefined,
+    publishedAt: nextPublishedAt,
+    unpublishedAt: nextUnpublishedAt,
   }
 
   const patch = sanityClient
@@ -319,8 +363,19 @@ export async function updateBlog(id: string, input: UpdateBlogInput) {
       status: updated.status,
       author: updated.author,
       updatedAt: updated.updatedAt,
-      publishedAt: updated.publishedAt,
     })
+
+  if (nextPublishedAt) {
+    patch.set({ publishedAt: nextPublishedAt })
+  } else {
+    patch.unset(['publishedAt'])
+  }
+
+  if (nextUnpublishedAt) {
+    patch.set({ unpublishedAt: nextUnpublishedAt })
+  } else {
+    patch.unset(['unpublishedAt'])
+  }
 
   if (hasCoverImageUpdate) {
     if (input.coverImageId) {
@@ -394,6 +449,28 @@ export async function deleteImage(imageId: string) {
   } catch (error) {
     console.error('deleteImage failed', error)
     return false
+  }
+}
+
+/**
+ * Drafts that used to be published, unpublished more than `cutoffIso` ago,
+ * and never got republished since — candidates for the TTL auto-delete cron.
+ */
+export async function listExpiredUnpublishedDrafts(cutoffIso: string) {
+  return sanityClient.fetch<Array<{ _id: string; title: string; coverImageId?: string }>>(
+    '*[_type == "blog" && status == "draft" && defined(unpublishedAt) && unpublishedAt <= $cutoff]{_id,title,coverImageId}',
+    { cutoff: cutoffIso }
+  )
+}
+
+/**
+ * Permanently removes a blog document and its cover image (best-effort).
+ * Unlike archiveBlog, this is a hard delete — used only for TTL-expired drafts.
+ */
+export async function hardDeleteBlog(id: string, coverImageId?: string) {
+  await sanityClient.delete(id)
+  if (coverImageId) {
+    await deleteImage(coverImageId)
   }
 }
 

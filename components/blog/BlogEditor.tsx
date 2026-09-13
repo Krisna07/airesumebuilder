@@ -10,7 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import EditorToolbar from './EditorToolbar';
 import BlogPreCheckModal from './BlogPreCheckModal';
 import BlogPreviewModal from './BlogPreviewModal';
-import { Sparkles, Settings, Image as ImageIcon, Eye, Rocket, Pencil, Upload, Loader2, X } from 'lucide-react';
+import { Sparkles, Settings, Image as ImageIcon, Eye, EyeOff, Rocket, Pencil, Upload, Loader2, X } from 'lucide-react';
 import type { BlogSection, BlogStatus } from '@/types/blog';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -101,6 +101,7 @@ export default function BlogEditor() {
   const [author, setAuthor] = useState('ResumeCraft Team');
   const [coverImageId, setCoverImageId] = useState<string | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [existingStatus, setExistingStatus] = useState<BlogStatus | null>(null);
 
   // UI state
   const [editLoading, setEditLoading] = useState(false);
@@ -254,7 +255,7 @@ export default function BlogEditor() {
     setEditLoading(true);
     fetch(`/api/blogs/${editId}`)
       .then(r => r.json())
-      .then((json: { success: boolean; data?: { title?: string; excerpt?: string; author?: string; coverImageId?: string; sections?: BlogSection[] } }) => {
+      .then((json: { success: boolean; data?: { title?: string; excerpt?: string; author?: string; coverImageId?: string; sections?: BlogSection[]; status?: BlogStatus } }) => {
         if (!json.success || !json.data) throw new Error('Blog not found');
         const post = json.data;
         if (post.title) setTitle(post.title);
@@ -267,6 +268,7 @@ export default function BlogEditor() {
         if (post.sections?.length) {
           editor.commands.setContent(sectionsToHtml(post.sections), false);
         }
+        setExistingStatus(post.status ?? null);
       })
       .catch(err => {
         setAutoToast({ type: 'error', text: `Failed to load blog: ${err instanceof Error ? err.message : 'Unknown error'}` });
@@ -415,8 +417,14 @@ export default function BlogEditor() {
       const d = json.data;
       const text = d?.state === 'skipped'
         ? `Automation skipped — ${d.reason || 'already ran recently'}`
-        : `Blog automation created: "${d?.title || 'new post'}"`;
+        : `Draft created: "${d?.title || 'new post'}" — opening it for review…`;
       setAutoToast({ type: 'success', text });
+
+      // Jump straight into editing the new draft so Edit/Publish is immediately reachable
+      // instead of relying on the admin to find it in the /blogs list.
+      if (d?.state !== 'skipped' && d?.blogId) {
+        router.push(`/blogs/addblogs?editId=${d.blogId}`);
+      }
     } catch (err) {
       setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Automation failed.' });
     } finally {
@@ -469,8 +477,11 @@ export default function BlogEditor() {
         type: 'success',
         text: status === 'published'
           ? `${editId ? 'Updated' : 'Published'}! /${json.data?.slug || ''}`
-          : `Draft ${editId ? 'updated' : 'saved'}.`,
+          : editId && existingStatus === 'published'
+            ? 'Unpublished — moved back to draft.'
+            : `Draft ${editId ? 'updated' : 'saved'}.`,
       });
+      if (editId) setExistingStatus(status);
       if (!editId && status === 'draft') {
         // Reset only on new draft create, otherwise redirect handles it
         setTitle('');
@@ -520,6 +531,10 @@ export default function BlogEditor() {
       setTimeout(() => setAutoToast(null), 4000);
       return;
     }
+    if (status === 'draft' && editId && existingStatus === 'published') {
+      if (!confirm('Unpublish this post? It will move back to draft and go offline.')) return;
+    }
+
     setQuickPublishing(true);
     try {
       await handleConfirmPublish(status);
@@ -541,6 +556,7 @@ export default function BlogEditor() {
   // ─── Derived ───────────────────────────────────────────────────────────────
   const editorHtml = editor?.getHTML() || '';
   const editorSections = htmlToSections(editorHtml);
+  const isEditingPublished = Boolean(editId) && existingStatus === 'published';
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
@@ -681,15 +697,22 @@ export default function BlogEditor() {
           <Eye className="w-3.5 h-3.5" /> Preview
         </button>
 
-        {/* Publish */}
+        {/* Save Draft / Unpublish */}
         <button
           type="button"
           onClick={() => handleQuickPublish('draft')}
           disabled={quickPublishing || autoRunning}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+          title={isEditingPublished ? 'Move this post back to draft and take it offline' : undefined}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border text-sm font-semibold disabled:opacity-50 transition-colors ${
+            isEditingPublished
+              ? 'border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20'
+              : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
         >
-          {quickPublishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />}
-          Save Draft
+          {quickPublishing
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : isEditingPublished ? <EyeOff className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+          {isEditingPublished ? 'Unpublish' : 'Save Draft'}
         </button>
 
         {/* Publish */}

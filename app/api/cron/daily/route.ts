@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { runSubscriptionResetJob } from '@/app/api/cron/subscription-reset/route'
 import { runBlogCronJob } from '@/app/api/cron/blog/route'
 import { cleanupExpiredDeletedAccounts } from '@/app/api/cron/cleanup-deleted-accounts/route'
+import { cleanupExpiredUnpublishedBlogs } from '@/app/api/cron/cleanup-unpublished-blogs/route'
 import { EmailService } from '@/services/emailService'
 
 export const runtime = 'nodejs'
@@ -11,6 +12,7 @@ async function sendSuccessNotification(params: {
   durationMs: number
   subscriptionResetCount: number
   deletedAccountsCount: number
+  expiredDraftsDeletedCount: number
   blogState?: string
   blogTitle?: string
   blogSlug?: string
@@ -20,9 +22,11 @@ async function sendSuccessNotification(params: {
   subscriptionSuccess: boolean
   blogSuccess: boolean
   accountCleanupSuccess: boolean
+  expiredDraftsCleanupSuccess: boolean
   subscriptionError?: string
   blogError?: string
   accountCleanupError?: string
+  expiredDraftsCleanupError?: string
 }) {
   const recipient = process.env.CRON_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || process.env.AUTH_EMAIL
   if (!recipient) {
@@ -40,9 +44,11 @@ async function sendSuccessNotification(params: {
       `Subscription job success: ${params.subscriptionSuccess}`,
       `Blog job success: ${params.blogSuccess}`,
       `Account cleanup success: ${params.accountCleanupSuccess}`,
+      `Expired drafts cleanup success: ${params.expiredDraftsCleanupSuccess}`,
       `Subscription error: ${params.subscriptionError ?? 'n/a'}`,
       `Blog error: ${params.blogError ?? 'n/a'}`,
       `Account cleanup error: ${params.accountCleanupError ?? 'n/a'}`,
+      `Expired drafts cleanup error: ${params.expiredDraftsCleanupError ?? 'n/a'}`,
     ]
 
   const plain = [
@@ -50,6 +56,7 @@ async function sendSuccessNotification(params: {
     `Duration: ${params.durationMs}ms`,
     `Subscriptions reset: ${params.subscriptionResetCount}`,
     `Deleted accounts (expired): ${params.deletedAccountsCount}`,
+    `Expired unpublished drafts deleted: ${params.expiredDraftsDeletedCount}`,
     `Blog state: ${params.blogState ?? 'n/a'}`,
     `Blog title: ${params.blogTitle ?? 'n/a'}`,
     `Blog slug: ${params.blogSlug ?? 'n/a'}`,
@@ -64,9 +71,11 @@ async function sendSuccessNotification(params: {
       <p><strong>Subscription job success:</strong> ${params.subscriptionSuccess}</p>
       <p><strong>Blog job success:</strong> ${params.blogSuccess}</p>
       <p><strong>Account cleanup success:</strong> ${params.accountCleanupSuccess}</p>
+      <p><strong>Expired drafts cleanup success:</strong> ${params.expiredDraftsCleanupSuccess}</p>
       <p><strong>Subscription error:</strong> ${params.subscriptionError ?? 'n/a'}</p>
       <p><strong>Blog error:</strong> ${params.blogError ?? 'n/a'}</p>
       <p><strong>Account cleanup error:</strong> ${params.accountCleanupError ?? 'n/a'}</p>
+      <p><strong>Expired drafts cleanup error:</strong> ${params.expiredDraftsCleanupError ?? 'n/a'}</p>
     `
 
   const tweetLine = params.tweetId
@@ -80,6 +89,7 @@ async function sendSuccessNotification(params: {
     <p><strong>Duration:</strong> ${params.durationMs}ms</p>
     <p><strong>Subscriptions reset:</strong> ${params.subscriptionResetCount}</p>
     <p><strong>Deleted accounts (expired):</strong> ${params.deletedAccountsCount}</p>
+    <p><strong>Expired unpublished drafts deleted:</strong> ${params.expiredDraftsDeletedCount}</p>
     <p><strong>Blog state:</strong> ${params.blogState ?? 'n/a'}</p>
     <p><strong>Blog title:</strong> ${params.blogTitle ?? 'n/a'}</p>
     <p><strong>Blog slug:</strong> ${params.blogSlug ?? 'n/a'}</p>
@@ -126,13 +136,14 @@ async function handleCron(req: Request) {
   }
 
   const startedAt = Date.now()
-  console.log('[cron/daily] Starting daily orchestrator (subscription-reset + blog + account-cleanup)')
+  console.log('[cron/daily] Starting daily orchestrator (subscription-reset + blog + account-cleanup + expired-drafts-cleanup)')
 
   const subscription = await runSubscriptionResetJob()
   const blog = await runBlogCronJob()
   const accountCleanup = await cleanupExpiredDeletedAccounts()
+  const expiredDraftsCleanup = await cleanupExpiredUnpublishedBlogs()
 
-  const allSucceeded = subscription.success && blog.success && accountCleanup.success
+  const allSucceeded = subscription.success && blog.success && accountCleanup.success && expiredDraftsCleanup.success
   const durationMs = Date.now() - startedAt
   let notification: { sent: boolean; reason?: string } = { sent: false }
 
@@ -147,6 +158,7 @@ async function handleCron(req: Request) {
       durationMs,
       subscriptionResetCount: subscription.resetCount,
       deletedAccountsCount: accountCleanup.deletedCount,
+      expiredDraftsDeletedCount: expiredDraftsCleanup.deletedCount,
       blogState: blog.state,
       blogTitle: blog.title,
       blogSlug: blog.slug,
@@ -156,9 +168,11 @@ async function handleCron(req: Request) {
       subscriptionSuccess: subscription.success,
       blogSuccess: blog.success,
       accountCleanupSuccess: accountCleanup.success,
+      expiredDraftsCleanupSuccess: expiredDraftsCleanup.success,
       subscriptionError: subscription.error,
       blogError: blog.error || blog.reason,
       accountCleanupError: accountCleanup.error,
+      expiredDraftsCleanupError: expiredDraftsCleanup.error,
     })
   } catch (emailError) {
     const message = emailError instanceof Error ? emailError.message : 'Unknown email error'
@@ -174,6 +188,7 @@ async function handleCron(req: Request) {
         subscription,
         blog,
         accountCleanup,
+        expiredDraftsCleanup,
       },
       notification,
     },

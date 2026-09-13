@@ -220,7 +220,7 @@ async function tryCloudflareWorkersAi(prompt: string): Promise<GeneratedImagePay
   if (!apiToken || !accountId) return null
 
   try {
-    const modelId = process.env.BLOG_IMAGE_API_MODEL || '@cf/black-forest-labs/flux-1-schnell'
+    const modelId = process.env.BLOG_IMAGE_API_MODEL || '@cf/bytedance/stable-diffusion-xl-lightning'
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`
 
     const controller = new AbortController()
@@ -242,12 +242,28 @@ async function tryCloudflareWorkersAi(prompt: string): Promise<GeneratedImagePay
       clearTimeout(timeout)
     }
 
+    // Workers AI image models split into two response shapes depending on the
+    // model: some (e.g. flux-1-schnell) return JSON-wrapped base64, others
+    // (e.g. stable-diffusion-xl-lightning) return raw binary image bytes.
+    const contentType = response.headers.get('content-type') || ''
+
+    if (contentType.startsWith('image/')) {
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '')
+        throw new Error(`Workers AI failed (${response.status}): ${errText.slice(0, 300)}`)
+      }
+      return {
+        bytes: Buffer.from(await response.arrayBuffer()),
+        mimeType: contentType,
+        filename: `blog-${Date.now()}.jpg`,
+      }
+    }
+
     const bodyText = await response.text()
     if (!response.ok) {
       throw new Error(`Workers AI failed (${response.status}): ${bodyText.slice(0, 300)}`)
     }
 
-    // Flux-1-schnell returns wrapped base64: { result: { image: "..." }, success: true }
     const json = JSON.parse(bodyText) as { result?: { image?: string }; image?: string }
     const base64Image = json.result?.image ?? json.image
 
@@ -472,12 +488,13 @@ export async function generateBlogCoverImage(imagePrompt: string): Promise<Gener
   // Gemini image models are paid-only as of 2026-07-16. Skip unless billing is confirmed enabled.
   const skipGemini = process.env.BLOG_IMAGE_SKIP_GEMINI !== 'false'
 
+  // Cloudflare Workers AI is the primary provider — always tried first.
   const providers = [
+    { name: 'Cloudflare Workers AI', fn: () => tryCloudflareWorkersAi(enhancedPrompt) },
     ...(!skipGemini ? [
       { name: 'Gemini 3.1 Flash Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getPrimaryGoogleImageModel()) },
       { name: 'Gemini 3.1 Flash Lite Image', fn: () => tryGoogleGeminiImage(enhancedPrompt, getSecondaryGoogleImageModel()) },
     ] : []),
-    { name: 'Cloudflare Workers AI', fn: () => tryCloudflareWorkersAi(enhancedPrompt) },
     { name: 'Custom Image API', fn: () => tryCustomImageApi(enhancedPrompt) },
     { name: 'Pollinations Fallback', fn: () => tryPollinationsFallback(enhancedPrompt) },
   ]
