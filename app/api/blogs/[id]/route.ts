@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminOrForbidden } from '@/services/authService'
 import { updateBlogSchema } from '@/lib/blogValidation'
-import { archiveBlog, updateBlog, touchBlogAuthSession } from '@/services/blogCmsService'
-import { getBlogById } from '@/services/blogCmsService'
+import { getBlogById, hardDeleteBlog, updateBlog, touchBlogAuthSession } from '@/services/blogCmsService'
 
 export const runtime = 'nodejs'
 
@@ -64,10 +63,12 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
     if (!admin.ok) return admin.response
 
     const { id } = await context.params
-    const archived = await archiveBlog(id)
-    if (!archived) {
+    const existing = await getBlogById(id)
+    if (!existing) {
       return NextResponse.json({ success: false, error: 'Blog not found' }, { status: 404 })
     }
+
+    await hardDeleteBlog(id, existing.coverImageId)
 
     await touchBlogAuthSession({
       userId: admin.session.userId,
@@ -77,9 +78,9 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
       userAgent: req.headers.get('user-agent') || undefined,
     })
 
-    return NextResponse.json({ success: true, data: archived })
+    return NextResponse.json({ success: true, data: { id, slug: existing.slug } })
   } catch (error) {
     console.error('DELETE /api/blogs/[id] failed', error)
-    return NextResponse.json({ success: false, error: 'Failed to archive blog' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Failed to delete blog' }, { status: 500 })
   }
 }

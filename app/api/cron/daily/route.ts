@@ -1,12 +1,28 @@
 import { NextResponse } from 'next/server'
 import { runSubscriptionResetJob } from '@/app/api/cron/subscription-reset/route'
-import { runBlogCronJob } from '@/app/api/cron/blog/route'
+import { runBlogCronJob, type BlogCronJobResult } from '@/app/api/cron/blog/route'
 import { cleanupExpiredDeletedAccounts } from '@/app/api/cron/cleanup-deleted-accounts/route'
 import { cleanupExpiredUnpublishedBlogs } from '@/app/api/cron/cleanup-unpublished-blogs/route'
 import { EmailService } from '@/services/emailService'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * The daily cron runs every day, but blog generation only runs every N days
+ * (BLOG_CRON_INTERVAL_DAYS, default 3). Counting UTC days since the epoch keeps
+ * the spacing exact across month boundaries, unlike an every-3rd-day-of-month cron.
+ */
+function getBlogIntervalDays(): number {
+  const parsed = Number(process.env.BLOG_CRON_INTERVAL_DAYS)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 3
+}
+
+function isBlogDay(now: number, intervalDays: number): boolean {
+  return Math.floor(now / DAY_MS) % intervalDays === 0
+}
 
 async function sendSuccessNotification(params: {
   durationMs: number
@@ -139,7 +155,10 @@ async function handleCron(req: Request) {
   console.log('[cron/daily] Starting daily orchestrator (subscription-reset + blog + account-cleanup + expired-drafts-cleanup)')
 
   const subscription = await runSubscriptionResetJob()
-  const blog = await runBlogCronJob()
+  const blogIntervalDays = getBlogIntervalDays()
+  const blog: BlogCronJobResult = isBlogDay(startedAt, blogIntervalDays)
+    ? await runBlogCronJob()
+    : { success: true, state: 'skipped', reason: `Blog generation runs every ${blogIntervalDays} days` }
   const accountCleanup = await cleanupExpiredDeletedAccounts()
   const expiredDraftsCleanup = await cleanupExpiredUnpublishedBlogs()
 

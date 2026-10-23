@@ -7,57 +7,22 @@ import dummyResume from './../../data/dummyResume.json';
 import ResumePreview from '../Templates/ResumePreview';
 import Button from '../Ui/Button';
 import Templates from '../Templates/templates';
-import { useAuth } from '@/context/authContext';
-import { LocalResumeService } from '@/services/localResumeService';
-import { ResumeService } from '@/services/resumeServices';
-import { useToast } from '@/context/PopupContext';
+import { useCreateFromTemplate } from '@/hooks/useCreateFromTemplate';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockResume: any = dummyResume
 
 function TemplateSlider(): JSX.Element {
   const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null)
-  const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null)
+  const { creatingTemplate, createFromTemplate: handleCreateResume } = useCreateFromTemplate()
 
   const templates = Templates.slice(0, 6)
-
-  const { user } = useAuth()
-  const { showToast } = useToast()
-
-  async function handleCreateResume(template: string): Promise<void> {
-    setCreatingTemplate(template)
-
-    if (!user) {
-      LocalResumeService.create(undefined, undefined, template)
-      window.location.href = '/builder/guest-resume'
-      return
-    }
-
-    try {
-      const response = await ResumeService.create(user.id, template)
-      const data = await response.json()
-
-      if (!response.ok) {
-        showToast(data.message || response.statusText, 'error')
-        return
-      }
-
-      showToast("Resume created successfully", 'success')
-      window.location.href = `/builder/resumes/${data.data.id}`
-    } catch (err) {
-      console.error("Error creating resume:", err)
-      showToast("Error creating resume", 'error')
-    } finally {
-      setCreatingTemplate(null)
-    }
-  }
-
 
   return (
     <div className='w-full lg:grid flex md:grid-cols-3 p-2 gap-2 space-y-2 lg:overflow-hidden overflow-x-scroll hide-scrollbar rounded-xl'>
       {templates.map((template) => {
         const isHovered = hoveredTemplate === template.id
-        const isCreating = creatingTemplate === template.name
+        const isCreating = creatingTemplate === template.id
 
         return (
           <div
@@ -71,7 +36,7 @@ function TemplateSlider(): JSX.Element {
             >
               <ResumePreview
                 resumeData={mockResume}
-                template={template.name}
+                template={template.id}
                 deferUntilVisible
                 className='pointer-events-none h-full w-full rounded p-0! aspect-3/4!'
               />
@@ -82,7 +47,7 @@ function TemplateSlider(): JSX.Element {
                 <Button
                   variant="primary"
                   size="small"
-                  onClick={() => handleCreateResume(template.name)}
+                  onClick={() => handleCreateResume(template.id)}
                 >
                   {isCreating ? "Creating" : 'Use Template'}
                   <ArrowRight className="w-4 h-4" />

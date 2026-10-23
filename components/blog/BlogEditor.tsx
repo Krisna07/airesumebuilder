@@ -10,7 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import EditorToolbar from './EditorToolbar';
 import BlogPreCheckModal from './BlogPreCheckModal';
 import BlogPreviewModal from './BlogPreviewModal';
-import { Sparkles, Settings, Image as ImageIcon, Eye, EyeOff, Rocket, Pencil, Upload, Loader2, X } from 'lucide-react';
+import { Sparkles, Settings, Image as ImageIcon, Eye, EyeOff, Rocket, Pencil, Upload, Loader2, X, Trash2 } from 'lucide-react';
 import type { BlogSection, BlogStatus } from '@/types/blog';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -118,6 +118,7 @@ export default function BlogEditor() {
   const [autoToast, setAutoToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [autoRunning, setAutoRunning] = useState(false);
   const [quickPublishing, setQuickPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [imageGenFailed, setImageGenFailed] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [inlineUploading, setInlineUploading] = useState(false);
@@ -543,6 +544,24 @@ export default function BlogEditor() {
     }
   }
 
+  // ─── Delete (edit mode only) ───────────────────────────────────────────────
+  async function handleDelete() {
+    if (!editId) return;
+    if (!confirm(`Permanently delete "${title || 'this post'}"? This removes the post and its cover image and cannot be undone.`)) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/blogs/${editId}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Delete failed');
+      router.push('/blogs');
+    } catch (err) {
+      setAutoToast({ type: 'error', text: err instanceof Error ? err.message : 'Delete failed.' });
+      setTimeout(() => setAutoToast(null), 5000);
+      setDeleting(false);
+    }
+  }
+
   // ─── Preview ───────────────────────────────────────────────────────────────
   function handlePreview() {
     if (!title.trim() || title.trim().length < 3) {
@@ -686,6 +705,20 @@ export default function BlogEditor() {
           }
           <span className="hidden lg:inline text-xs">Automation</span>
         </button>
+
+        {/* Delete — only when editing an existing post */}
+        {editId && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting || quickPublishing || autoRunning}
+            title="Permanently delete this post"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+          >
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Delete
+          </button>
+        )}
 
         {/* Preview */}
         <button

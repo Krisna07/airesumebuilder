@@ -465,7 +465,7 @@ export async function listExpiredUnpublishedDrafts(cutoffIso: string) {
 
 /**
  * Permanently removes a blog document and its cover image (best-effort).
- * Unlike archiveBlog, this is a hard delete — used only for TTL-expired drafts.
+ * Used by the admin Delete action and the TTL-expired drafts cleanup.
  */
 export async function hardDeleteBlog(id: string, coverImageId?: string) {
   await sanityClient.delete(id)
@@ -482,11 +482,6 @@ export async function touchBlogAuthSession(_input: {
   userAgent?: string
 }) {
   // No-op for Sanity-backed CMS.
-}
-
-export async function archiveBlog(id: string) {
-  const blog = await updateBlog(id, { status: 'archived' })
-  return blog
 }
 
 export async function seedDemoBlog() {

@@ -27,13 +27,13 @@ export default function BlogCard({ post }: Props) {
     const [loading, setLoading] = useState(false)
 
     const handleDelete = async () => {
-        if (!confirm('Delete this blog post? This cannot be undone.')) return
+        if (!confirm(`Permanently delete "${post.title}"? This removes the post and its cover image and cannot be undone.`)) return
         try {
             setLoading(true)
             const res = await fetch(`/api/blogs/${post.id}`, { method: 'DELETE' })
             const payload = await res.json()
             if (!res.ok || !payload?.success) throw new Error(payload?.error || 'Failed')
-            showToast('Blog archived')
+            showToast('Blog deleted')
             // reload page
             window.location.reload()
         } catch (err) {
