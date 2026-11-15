@@ -40,19 +40,39 @@ const LoginForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoader(true)
-        const response = await signIn('credentials', { email: form.email, password: form.password, redirect: false });
+        try {
+            const response = await signIn('credentials', { email: form.email, password: form.password, redirect: false });
 
-        if (!response?.ok) {
-            setLoader(false)
-            // Check if it's a deleted account
-            if (response?.error?.includes('ACCOUNT_DELETED')) {
-                return toast.showToast("Account deleted. You have 15 days to restore it. Contact support or sign in with Google to restore.", 'error', 5000)
+            if (!response?.ok) {
+                // Check if it's a deleted account
+                if (response?.error?.includes('ACCOUNT_DELETED')) {
+                    toast.showToast("Account deleted. You have 15 days to restore it. Contact support or sign in with Google to restore.", 'error', 5000)
+                    return
+                }
+                // NextAuth (v4) normalizes any error thrown from the credentials
+                // provider's authorize() into the generic string "CredentialsSignin"
+                // before it reaches the client -- the custom message we throw
+                // server-side (e.g. "Invalid credentials.") never survives. Map that
+                // generic code, and any other/unexpected value (including a missing
+                // `response`, e.g. if signIn() itself rejects below), to one clear,
+                // human-readable message so a failed login is never silent.
+                toast.showToast(
+                    response?.error && response.error !== 'CredentialsSignin'
+                        ? response.error
+                        : "Incorrect email or password. Please try again.",
+                    'error',
+                    3000,
+                )
+                return
             }
-            return toast.showToast(response?.error ? response.error : "Error logging in please try again !!", 'error', 3000)
+            toast.showToast("Login successfull", 'success', 3000)
+            window.location.href = nextTarget
+        } catch (error) {
+            console.error('Sign in failed:', error)
+            toast.showToast("Something went wrong signing you in. Please try again.", 'error', 3000)
+        } finally {
+            setLoader(false)
         }
-        toast.showToast("Login successfull", 'success', 3000)
-        setLoader(false)
-        window.location.href = nextTarget
     };
 
     const triggerSignIn = async (provider: string) => {

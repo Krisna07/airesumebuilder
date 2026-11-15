@@ -1,7 +1,7 @@
 import { AIService } from '@/services/aiServices';
 import { NextRequest, NextResponse } from 'next/server';
 import { extractJobDetailsPrompt } from '@/lib/prompts';
-import { requireUserSession, consumeUsage, mapSubscriptionError } from '@/services/subscriptionService';
+import { requireUserSession, mapSubscriptionError } from '@/services/subscriptionService';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -19,8 +19,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check and consume subscription quota (using 'analysis' quota for AI extraction)
-    await consumeUsage(userId, 'analysis');
+    // NOTE: this "Extract & Save" step only parses the pasted text into
+    // structured fields (title/company/location/description) -- it is not the
+    // resume-vs-job match analysis feature. It previously consumed the same
+    // 'analysis' quota as /api/ai/analyze, so a single Analyse click after an
+    // extraction silently cost 2 of the user's daily analysis credits instead
+    // of 1. Extraction is a lightweight pre-processing step and is not metered.
 
     // Generate AI extraction
     const prompt = extractJobDetailsPrompt(rawText);

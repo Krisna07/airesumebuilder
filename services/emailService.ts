@@ -137,8 +137,13 @@ export class EmailService {
 
         const senderEmail = "authentication@airesumecraft.xyz";
 
-        // Email content
-        const subject = `Welcome to ${APP_NAME}!`;
+        // Email content.
+        // Subject/title used to read "Welcome to AIResumeCraft!" -- identical to
+        // the actual onboarding welcome email (sendWelcomeEmail, sent separately
+        // after verification). Users skimmed past this one as a marketing/welcome
+        // email and missed their verification code, both on initial signup and on
+        // "Resend code". Give it its own distinct, code-specific subject/title.
+        const subject = `Your ${APP_NAME} verification code`;
         const plainText = createBrandedCodeEmailText({
             recipientName: name,
             intro: `Use the verification code below to finish setting up your ${APP_NAME} account.`,
@@ -150,7 +155,7 @@ export class EmailService {
         const htmlContent = createBrandedCodeEmailHtml({
             recipientName: name,
             preheader: `${APP_NAME} verification code: ${code}`,
-            title: `Welcome to ${APP_NAME}`,
+            title: `Verify your ${APP_NAME} account`,
             intro: `Use the verification code below to finish setting up your ${APP_NAME} account.`,
             codeLabel: "Verification code",
             code,

@@ -34,6 +34,17 @@ jobs:
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
+      # `vercel pull` only writes variables to .vercel/.env.preview.local -- it
+      # does not export them into this job's shell environment. The `vercel
+      # build`/`vercel deploy` steps below read that file internally on their
+      # own, but a plain `npx prisma migrate deploy` does not, so prisma.config.ts's
+      # `process.env.NEON_DATABASE_DATABASE_URL || process.env.DATABASE_URL`
+      # resolved to undefined and migrate deploy failed with "datasource.url
+      # property is required". Re-export the pulled values into $GITHUB_ENV so
+      # every later step actually has them in process.env.
+      - name: Export Vercel Environment Variables
+        run: grep -v '^#' .vercel/.env.preview.local >> "$GITHUB_ENV"
+
       - name: Generate Prisma Client
         run: npx prisma generate
 

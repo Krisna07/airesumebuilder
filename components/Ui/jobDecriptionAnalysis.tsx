@@ -139,8 +139,15 @@ const JobDescriptionAnalysis: React.FC<Props> = memo(function JobDescriptionAnal
                     </div>
                 </div></>
             }
-            {/* Analysis report */}
-            {job.hasAnalysed && (
+            {/* Analysis report.
+                Gate on `analysis` too, not just `job.hasAnalysed`: right after a
+                successful first-time analysis, local `analysis` state is set
+                immediately, but `job.hasAnalysed` only flips once the parent's
+                query refetch (fired above, asynchronously) resolves. In that
+                window `!analysis` is false (hiding the pre-analysis block above)
+                while `job.hasAnalysed` was still false too (hiding this block),
+                so the card rendered nothing at all until a manual page reload. */}
+            {(job.hasAnalysed || analysis) && (
                 <>
                     {analysis ? (
                         <>
