@@ -10,9 +10,10 @@ import { FaGoogle } from 'react-icons/fa6';
 
 const SignUpForm: React.FC = () => {
     const [form, setForm] = useState<{
+        name: string;
         email: string;
         password: string;
-    }>({ password: '', email: '' });
+    }>({ name: '', password: '', email: '' });
     const { register, loading, user, signIn } = useAuth();
     const [loader, setLoader] = useState(false)
     const [isError, setIsError] = useState(false)
@@ -36,6 +37,7 @@ const SignUpForm: React.FC = () => {
         setLoader(true)
         e.preventDefault();
         const registerData = {
+            name: form.name.trim() || undefined,
             email: form.email,
             provider: 'credentials',
             password: form.password,
@@ -74,6 +76,10 @@ const SignUpForm: React.FC = () => {
                 </Link>
             </p>
             <form onSubmit={handleSubmit} className='w-full max-w-[600px] grid gap-4 p-4 font-semibold '>
+                <div className='grid gap-2'>
+                    <label className=''>Name</label>
+                    <input type='text' name='name' value={form.name} onChange={handleChange} placeholder='Your name (optional)' className='font-normal p-2 outline-none ring-1 focus:ring-green-600 ring-gray-400 transition-all ease-in-out rounded-md' />
+                </div>
                 <div className='grid gap-2'>
                     <label className=''>Email Address</label>
                     <input type='email' name='email' value={form.email} onChange={handleChange} className={`font-normal p-2 outline-none ring-1 focus:ring-green-600 ${isError ? 'ring-red-500' : 'ring-gray-400'} transition-all ease-in-out rounded-md`} />

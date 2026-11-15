@@ -84,12 +84,7 @@ export class ResumeService {
                 links: [],
                 summary: ''
             },
-            skills: [
-                {
-                    type: '',
-                    skills: []
-                }
-            ],
+            skills: [],
             experiences: [
                 {
                     title: '',

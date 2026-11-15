@@ -41,12 +41,7 @@ export class LocalResumeService {
                 links: [],
                 summary: ''
             },
-            skills: [
-                {
-                    type: '',
-                    skills: []
-                }
-            ],
+            skills: [],
             experiences: [
                 {
                     title: '',
